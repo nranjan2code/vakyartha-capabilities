@@ -72,8 +72,8 @@ export function site(index: Index): string {
   const core = new Set([...index.requires.vakyartha.provides.skills.map(s => `skill:${s}`), ...index.requires.vakyartha.provides.integrations.map(s => `integration:${s}`)]);
   const show = (r: Ref | string) => { const t = typeof r === "string" ? r : refText(r); const [kind, id] = t.split(":") as [string, string]; return { key: t.replace(":", "-"), text: nameOf.get(t) ?? id.split("-").map(w => w[0]!.toUpperCase() + w.slice(1)).join(" "), kind: kindOf(kind).singular, core: core.has(t) }; };
   const data = JSON.stringify(items.map(i => ({ key: `${i.kind}-${i.id}`, kind: i.kind, singular: kindOf(i.kind).singular, owner: kindOf(i.kind).plural, name: i.name, version: i.version, group: label(i), description: i.description, access: accessLines(i), tools: i.access.tools, needs: i.requires.map(g => g.map(show)), better: i.enhances.map(show), usedBy: i.usedBy.map(show), includes: i.skills.map(s => ({ name: s.name, description: s.description })), files: i.access.files, file: i.file, sha256: i.sha256, size: kb(i.bytes) }))).replace(/</g, "\\u003c");
-  const range = `${index.requires.vakyartha.min} up to (not including) ${index.requires.vakyartha.below}`;
-  const summary = groups.map(g => `${g.total} ${g.plural}`).join(", ");
+  // A person reads "Works with Vakyartha 1.x"; the exact range stays in index.json.
+  const range = `${index.requires.vakyartha.min.split(".")[0]}.x`;
   const navButton = (id: string, text: string, n: number, sub = false) => `<li><button type="button" class="nav-item${sub ? " sub" : ""}" data-group="${esc(id)}" aria-current="${id === "all" ? "true" : "false"}"><span>${esc(text)}</span><span class="n">${n}</span></button></li>`;
   const nav = [navButton("all", "Everything", index.items.length), ...groups.flatMap(g => [navButton(g.kind, g.plural, g.total), ...g.cats.map(c => navButton(`${g.kind}:${c.id}`, c.name, c.n, true))])].join("");
   const options = [`<option value="all">Everything (${index.items.length})</option>`, ...groups.map(g => `<optgroup label="${esc(g.plural)}"><option value="${g.kind}">All ${esc(g.plural)} (${g.total})</option>${g.cats.map(c => `<option value="${esc(`${g.kind}:${c.id}`)}">${esc(c.name)} (${c.n})</option>`).join("")}</optgroup>`)].join("");
@@ -85,7 +85,7 @@ export function site(index: Index): string {
 <title>Vakyartha Capabilities</title>
 <script>try{const t=localStorage.getItem("vak-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch{}</script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDggNjA4Ij48cmVjdCB3aWR0aD0iNjA4IiBoZWlnaHQ9IjYwOCIgcng9IjExNCIgZmlsbD0iIzEwMUQzRCIvPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDU0LjcyIDU0LjcyKSI+PHN2ZyB3aWR0aD0iNDk4LjU2IiBoZWlnaHQ9IjQ5OC41NiIgdmlld0JveD0iODAgODAgNDQwIDQ0MCI+PHBhdGggZmlsbD0iI0Y2RjVGMSIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMjcwIDEwNUMyNzggMTMyIDMxMSAxNDYgMzQ4IDE1MkMzOTQgMTU2IDQyNSAxNzQgNDQ2IDIwMUw0OTQgMjMxTDQ1MCAyMzhDNDI2IDI0OSA0MjAgMjc0IDQyMyAzMDBDNDMwIDM1NyA0MDcgNDExIDM2OCA0NTFDMzMyIDQ4NyAyOTUgNTAyIDI1MyA0ODVMMTk1IDQ2MkMxNTkgNDQ3IDEzMSA0NTIgMTA4IDQ3OUMxMTQgNDI5IDEyNiAzODQgMTQ5IDM0N0MxNzcgMzAxIDIyMyAyNjUgMjU3IDIyOUMyNzMgMjEzIDI4MyAxOTkgMjg5IDE4MkMyNzQgMTg1IDI2NSAxODEgMjYzIDE3MkMyNzcgMTgwIDI5OCAxNzggMzE2IDE3MkMyODcgMTc0IDI2OCAxNjcgMjY5IDE0N0MyODEgMTYzIDMxMCAxNjYgMzMzIDE1OUMyOTkgMTU5IDI3MSAxNDEgMjcwIDEwNVpNNDQ4IDIzMUM0MzAgMjA3IDQxMCAxODggMzg5IDE4OUMzNjIgMTkwIDM1MSAyMTEgMzU2IDIzN0MzNTkgMjU3IDM3NCAyNzYgMzk4IDI5NkM0MDIgMjY3IDQxOCAyNDQgNDQ4IDIzMVpNMTYyIDM3MUMxOTAgMzQ2IDIyMCAzNTIgMjQ1IDM3NkwyNzMgNDEzQzMwNCAzNzcgMzM1IDMzMSAzNjcgMjk3QzM1OCAzNjYgMzMxIDQzMiAyOTEgNDgzQzI2OCA0NDIgMjM1IDQwNyAyMDQgMzg4QzE4OSAzNzkgMTc1IDM3NiAxNjIgMzgwWiIvPgogIDxjaXJjbGUgY3g9IjQwNSIgY3k9IjIxOCIgcj0iMTMiIGZpbGw9IiNGNkY1RjEiLz4KICA8cGF0aCBmaWxsPSIjRjVBNDAwIiBkPSJNNDk0IDIzMUM0NDUgMjMxIDQxNyAyNDEgNDA1IDI2N0MzODkgMzAwIDQwMSAzMzggNDAyIDM3MEM0MTMgMzQ5IDQyMCAzMjcgNDIzIDMwM0M0MjMgMjc1IDQyNiAyNTIgNDUwIDIzOFoiLz4KPC9zdmc+PC9nPjwvc3ZnPg==">
-<meta name="description" content="${esc(summary)} for Vakyartha ${esc(range)}. Every item is hash-pinned and arrives in Vakyartha as a draft you review.">
+<meta name="description" content="Apps, skills and integrations for Vakyartha. Find something useful, then add it from inside Vakyartha.">
 <style>
 /* Layout: a catalog with a grouped shelf on the left, one results column with search, sort and paging, and one detail sheet. */
 :root{
@@ -195,8 +195,8 @@ dialog::backdrop{background:rgba(10,14,22,.45)}
 </div></header>
 <main class="wrap">
 <section class="intro">
-<div><h1>Capabilities for Vakyartha</h1><p>${esc(summary)}, each published as one exact, hash-pinned version. Add them from inside Vakyartha, where every item arrives as a draft you review before it can run.</p></div>
-<ul class="facts"><li>Release <code>${esc(index.version)}</code></li><li>For Vakyartha ${esc(range)}</li></ul>
+<div><h1>Apps and skills for Vakyartha</h1><p>Ready-made apps, skills that teach Vakyartha new jobs, and integrations that connect your tools. Find one you like, then add it from inside Vakyartha. Nothing runs until you say so.</p></div>
+<ul class="facts"><li>Release <code>${esc(index.version)}</code></li><li>Works with Vakyartha ${esc(range)}</li></ul>
 </section>
 <div class="layout">
 <aside class="shelf" aria-label="Browse by group"><h2>Browse</h2><ul>${nav}</ul></aside>
@@ -216,7 +216,7 @@ ${items.map(card).join("\n")}
 </div>
 </main>
 <footer><div class="wrap">
-<span>Each archive is named by its content hash and listed with its SHA-256. Vakyartha installs only the exact version and hash you reviewed.</span>
+<span>Every item is checked by Vakyartha before it is added.</span>
 <span>Vakyartha Capabilities ${esc(index.version)} · <a href="https://vakyartha.com">vakyartha.com</a> · <a href="https://nranjan2code.github.io/vakyartha-releases/">Download Vakyartha</a></span>
 </div></footer>
 <dialog id="detail" aria-labelledby="d-name"><div class="sheet" id="sheet" tabindex="-1"></div></dialog>

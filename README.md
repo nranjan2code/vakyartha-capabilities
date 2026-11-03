@@ -17,7 +17,7 @@ The apps, skills and integrations published for [Vakyartha](https://vakyartha.co
 
 **Browse the catalog:** <https://nranjan2code.github.io/vakyartha-capabilities/> · **Download Vakyartha:** <https://nranjan2code.github.io/vakyartha-releases/>
 
-Every item is added from inside Vakyartha, where it arrives as a draft you review. Vakyartha verifies the owner's signature and the exact version and hash you reviewed before anything is installed.
+Find something useful on the catalog page, then add it from inside Vakyartha. Nothing runs until you turn it on, and Vakyartha checks every item is exactly the one published here.
 
 ## What is here
 
