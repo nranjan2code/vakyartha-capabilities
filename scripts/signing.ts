@@ -1,5 +1,6 @@
 // Ed25519 signatures over the exact bytes of index.json. Node's built-in crypto
-// signs and verifies; the public key is 32 raw bytes, base64, in keys/catalog.pub.
+// signs and verifies. The public key (32 bytes) and signatures (64 bytes) are
+// stored as lowercase hex, which Vakyartha reads without any decoder library.
 import { createPrivateKey, createPublicKey, sign, verify, type KeyObject } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -18,12 +19,13 @@ export const seedOf = (key: KeyObject): Buffer => key.export({ format: "der", ty
 
 export function readPublicKey(): Buffer {
   if (!existsSync(PUBLIC_KEY_FILE)) throw new Error("keys/catalog.pub is missing: the owner creates it once with node scripts/keygen.ts");
-  const raw = Buffer.from(readFileSync(PUBLIC_KEY_FILE, "utf8").trim(), "base64");
-  if (raw.length !== 32) throw new Error("keys/catalog.pub must hold a 32-byte Ed25519 public key in base64");
-  return raw;
+  const text = readFileSync(PUBLIC_KEY_FILE, "utf8").trim();
+  if (!/^[0-9a-f]{64}$/.test(text)) throw new Error("keys/catalog.pub must hold a 32-byte Ed25519 public key in lowercase hex");
+  return Buffer.from(text, "hex");
 }
-export const signIndex = (index: Buffer, seed: Buffer): string => sign(null, index, privateKeyFromSeed(seed)).toString("base64");
+export const signIndex = (index: Buffer, seed: Buffer): string => sign(null, index, privateKeyFromSeed(seed)).toString("hex");
 export function verifyIndex(index: Buffer, signature: string, publicKey: Buffer): boolean {
-  const sig = Buffer.from(signature.trim(), "base64");
+  if (!/^[0-9a-f]{128}$/.test(signature.trim())) return false;
+  const sig = Buffer.from(signature.trim(), "hex");
   return sig.length === 64 && verify(null, index, publicKeyFromRaw(publicKey), sig);
 }

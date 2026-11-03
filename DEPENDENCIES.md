@@ -50,7 +50,7 @@ or a built-in that Vakyartha declares.
 
 Every catalog release is signed. The signed object is the exact bytes of
 `index.json`, which lists every archive with its SHA-256; the signature
-(`index.json.sig`, Ed25519) therefore covers every item in the release.
+(`index.json.sig`, Ed25519, lowercase hex) therefore covers every item in the release.
 
 - The private key is held only by the owner, in the macOS Keychain on the
   owner's computer. `node scripts/sign.ts` signs a built release after the owner
@@ -72,3 +72,11 @@ integrations. Vakyartha keeps the exact signed original beside the change.
 | Reset | **Reset to Vakyartha version** restores the exact signed bytes of the installed release and verifies them again |
 | A new signed version arrives for a changed item | The review shows the change beside the new version; the person keeps theirs or resets and updates. Nothing is overwritten silently |
 | Files change on disk outside Vakyartha | The item fails its integrity check, is marked, and reset is offered |
+
+## Integrations follow Vakyartha's release
+
+An integration reaches the network, so the hosts it may reach and the key each
+host receives are compiled into Vakyartha from the release it pins. Vakyartha
+offers the integrations compiled into it. A newer catalog release may list an
+integration this Vakyartha does not have; it is shown as needing a Vakyartha
+update and cannot be added until then.

@@ -15,5 +15,5 @@ if (exists) throw new Error("A signing key is already in the Keychain. Remove it
 const { publicKey, privateKey } = generateKeyPairSync("ed25519");
 // security -i reads the command from stdin, so the key never appears in a process list.
 execFileSync("security", ["-i"], { input: `add-generic-password -s ${KEYCHAIN.service} -a ${KEYCHAIN.account} -T "" -w ${seedOf(privateKey).toString("base64")}\n`, stdio: ["pipe", "ignore", "inherit"] });
-writeFileSync(PUBLIC_KEY_FILE, `${rawPublicKey(publicKey).toString("base64")}\n`);
+writeFileSync(PUBLIC_KEY_FILE, `${rawPublicKey(publicKey).toString("hex")}\n`);
 console.log("Signing key created in the Keychain. Review and commit keys/catalog.pub.");
