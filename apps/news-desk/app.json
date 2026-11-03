@@ -131,7 +131,7 @@
       {
         "name": "news-desk-reader",
         "description": "Search, inspect, and summarize verified publisher articles and current headlines from News Desk",
-        "path": "SKILLS.md"
+        "path": "skills/news-desk-reader/SKILL.md"
       }
     ]
   },

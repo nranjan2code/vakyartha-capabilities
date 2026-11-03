@@ -55,5 +55,6 @@
       "action": "refresh",
       "maxDurationSec": 30
     }
-  ]
+  ],
+  "exports": {}
 }

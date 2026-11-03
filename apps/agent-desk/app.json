@@ -185,7 +185,7 @@
       {
         "name": "agent-desk-worker",
         "description": "Carry out a bounded Agent Desk task through governed tools, compare approaches against fixed criteria and save source-aware unreviewed attempts.",
-        "path": "SKILLS.md"
+        "path": "skills/agent-desk-worker/SKILL.md"
       }
     ]
   }

@@ -152,7 +152,7 @@
       {
         "name": "weather-desk-reader",
         "description": "Read Weather Desk's saved forecasts and source times using the canonical weather procedure",
-        "path": "SKILLS.md"
+        "path": "skills/weather-desk-reader/SKILL.md"
       }
     ]
   }

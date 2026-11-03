@@ -236,9 +236,9 @@
     ],
     "skills": [
       {
-        "name": "rbi-desk-reader",
-        "description": "Use the canonical RBI procedure to read RBI Desk rates, reserves, directions and notices",
-        "path": "SKILLS.md"
+        "name": "rbi",
+        "description": "Read RBI Desk rates, reserves, Master Directions and notices with source dates",
+        "path": "skills/rbi/SKILL.md"
       }
     ]
   },

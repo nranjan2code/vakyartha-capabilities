@@ -45,3 +45,30 @@ or a built-in that Vakyartha declares.
 2. A skill that requires an app is not allowed as a separate item: it belongs inside that app.
 3. Skill names are unique across standalone skills and skills shipped inside apps.
 4. Requirements form no cycle.
+
+## Signed releases
+
+Every catalog release is signed. The signed object is the exact bytes of
+`index.json`, which lists every archive with its SHA-256; the signature
+(`index.json.sig`, Ed25519) therefore covers every item in the release.
+
+- The private key is held only by the owner, in the macOS Keychain on the
+  owner's computer. `node scripts/sign.ts` signs a built release after the owner
+  confirms the version at the terminal. CI never holds the key; it verifies the
+  signature and refuses to publish an unsigned or mis-signed release.
+- The public key is `keys/catalog.pub` in this repository. Vakyartha compiles in
+  the key from the release it pins and accepts nothing that does not verify.
+- Vakyartha's bundled items come from the pinned release and are verified
+  against the same signature when Vakyartha is built.
+
+## Changing what Vakyartha ships
+
+People may change any shipped item: core skills, app skills, apps and
+integrations. Vakyartha keeps the exact signed original beside the change.
+
+| Situation | What Vakyartha does |
+|---|---|
+| An item is changed in Vakyartha | It is marked **Changed by you**, is never shown as verified and is never re-signed |
+| Reset | **Reset to Vakyartha version** restores the exact signed bytes of the installed release and verifies them again |
+| A new signed version arrives for a changed item | The review shows the change beside the new version; the person keeps theirs or resets and updates. Nothing is overwritten silently |
+| Files change on disk outside Vakyartha | The item fails its integrity check, is marked, and reset is offered |

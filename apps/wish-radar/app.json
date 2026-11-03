@@ -347,7 +347,7 @@
       {
         "name": "wish-radar-advisor",
         "description": "Evaluate price trends, calculate savings in Indian Rupees, and advise on deals across Indian stores",
-        "path": "SKILLS.md"
+        "path": "skills/wish-radar-advisor/SKILL.md"
       }
     ]
   },

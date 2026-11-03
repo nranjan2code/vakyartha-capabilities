@@ -300,7 +300,7 @@
       {
         "name": "learning-author",
         "description": "Create and curate source-aware short courses for Learning Desk, adapting teaching to a learner's age, prior knowledge and goal; propose drafts for personal review",
-        "path": "SKILLS.md"
+        "path": "skills/learning-author/SKILL.md"
       }
     ]
   }

@@ -163,6 +163,13 @@
           "additionalProperties": false
         }
       }
+    ],
+    "skills": [
+      {
+        "name": "clinic-desk",
+        "description": "Answer front-desk questions from Clinic Desk, prepare bookings for a person to confirm and give the day brief",
+        "path": "skills/clinic-desk/SKILL.md"
+      }
     ]
   },
   "triggers": []

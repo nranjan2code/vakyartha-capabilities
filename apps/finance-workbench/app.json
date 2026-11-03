@@ -30,5 +30,6 @@
     "toolActions": {},
     "toolPurposes": {}
   },
-  "triggers": []
+  "triggers": [],
+  "exports": {}
 }

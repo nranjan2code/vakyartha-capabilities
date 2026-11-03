@@ -246,7 +246,7 @@
       {
         "name": "nse-market-analyst",
         "description": "Analyze Indian market indices, price movements, and market breadth from NSE Market Terminal",
-        "path": "SKILLS.md"
+        "path": "skills/nse-market-analyst/SKILL.md"
       }
     ]
   },
