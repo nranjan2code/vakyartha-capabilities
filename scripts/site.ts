@@ -189,7 +189,7 @@ dialog::backdrop{background:rgba(10,14,22,.45)}
 <body>
 <header class="top"><div class="wrap">
 <a class="brand" href="./" aria-label="Vakyartha Capabilities"><i class="brand-bird" aria-hidden="true"></i><i class="brand-word" aria-hidden="true"></i><span>Capabilities</span></a>
-<nav class="links" aria-label="Catalog files"><a href="index.json">index.json</a><a href="SHA256SUMS.txt">SHA256SUMS</a><a href="https://github.com/nranjan2code/vakyartha-capabilities/releases/tag/capabilities-v${esc(index.version)}">Release ${esc(index.version)}</a></nav>
+<nav class="links" aria-label="Vakyartha"><a href="https://nranjan2code.github.io/vakyartha-releases/">Download Vakyartha</a><a href="https://vakyartha.com">vakyartha.com</a><a href="index.json">index.json</a><a href="SHA256SUMS.txt">SHA256SUMS</a><a href="https://github.com/nranjan2code/vakyartha-capabilities/releases/tag/capabilities-v${esc(index.version)}">Release ${esc(index.version)}</a></nav>
 </div></header>
 <main class="wrap">
 <section class="intro">
@@ -215,7 +215,7 @@ ${items.map(card).join("\n")}
 </main>
 <footer><div class="wrap">
 <span>Each archive is named by its content hash and listed with its SHA-256. Vakyartha installs only the exact version and hash you reviewed.</span>
-<span>Vakyartha Capabilities ${esc(index.version)}</span>
+<span>Vakyartha Capabilities ${esc(index.version)} · <a href="https://vakyartha.com">vakyartha.com</a> · <a href="https://nranjan2code.github.io/vakyartha-releases/">Download Vakyartha</a></span>
 </div></footer>
 <dialog id="detail" aria-labelledby="d-name"><div class="sheet" id="sheet" tabindex="-1"></div></dialog>
 <script id="catalog-data" type="application/json">${data}</script>
