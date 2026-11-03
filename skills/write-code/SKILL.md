@@ -4,6 +4,7 @@ description: Write, set up or explain source code, scripts, functions, config fi
 
 compatibility: Language-agnostic. Uses the Microsoft Learn, AWS Knowledge and Library docs integrations and Sandboxed execution when they are enabled; works without them.
 metadata:
+  enhances: "integration:microsoft-learn integration:aws-knowledge integration:context7 integration:github integration:sandbox-execution"
   category: code
   author: Vakyartha
   version: "1.0.0"

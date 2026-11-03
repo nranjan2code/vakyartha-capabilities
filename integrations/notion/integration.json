@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "id": "notion",
+  "version": "1.0.0",
+  "name": "Notion",
+  "publisher": "Notion",
+  "trust": "vendor",
+  "category": "files",
+  "icon": "page",
+  "summary": "Search and edit your Notion pages.",
+  "description": "Notion's own MCP server. It sees only the pages and databases you share with the integration in Notion.",
+  "homepage": "https://github.com/makenotion/notion-mcp-server",
+  "access": [
+    "Pages you share with the integration in Notion",
+    "Asks before creating or editing pages"
+  ],
+  "source": {
+    "kind": "npm",
+    "package": "@notionhq/notion-mcp-server",
+    "version": "2.5.2",
+    "bin": "bin/cli.mjs"
+  },
+  "config": [
+    {
+      "key": "token",
+      "label": "Notion integration token",
+      "kind": "secret",
+      "required": true,
+      "env": "NOTION_TOKEN",
+      "help": "Create an internal integration at notion.so/profile/integrations and share pages with it."
+    }
+  ],
+  "egress": {
+    "hosts": [
+      {
+        "host": "api.notion.com"
+      }
+    ],
+    "env": {
+      "NOTION_TOKEN": "INTEGRATION_NOTION_TOKEN"
+    }
+  }
+}

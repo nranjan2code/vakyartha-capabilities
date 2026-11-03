@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "id": "files",
+  "version": "1.0.0",
+  "name": "Files",
+  "publisher": "Model Context Protocol",
+  "trust": "official",
+  "category": "files",
+  "icon": "folder",
+  "summary": "Read and edit files in folders you choose.",
+  "description": "The MCP reference filesystem server. It can list, search, read and (with your approval) write files, only inside the folders you add here.",
+  "homepage": "https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem",
+  "access": [
+    "Only the folders you add",
+    "Asks before writing, moving or creating files"
+  ],
+  "source": {
+    "kind": "npm",
+    "package": "@modelcontextprotocol/server-filesystem",
+    "version": "2026.8.31",
+    "bin": "dist/index.js",
+    "folderArgs": "folders"
+  },
+  "config": [
+    {
+      "key": "folders",
+      "label": "Folders",
+      "kind": "folders",
+      "required": true,
+      "help": "Absolute paths, one per line. The server sees nothing outside them."
+    }
+  ],
+  "egress": {
+    "hosts": []
+  }
+}

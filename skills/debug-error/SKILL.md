@@ -4,6 +4,7 @@ description: Diagnose error messages, stack traces, test failures, and broken co
 
 compatibility: Universal debugging across language runtimes, compilers, test suites, and operating systems.
 metadata:
+  enhances: "integration:sandbox-execution"
   category: code
   author: Vakyartha
   version: "1.0.0"

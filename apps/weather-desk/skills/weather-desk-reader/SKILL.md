@@ -2,6 +2,7 @@
 name: weather-desk-reader
 description: Read Weather Desk's saved places, weather datasets and briefing with source times and missingness
 metadata:
+  requires: "skill:weather"
   author: Vakyartha
   part-of: app:weather-desk
   loads-with: "weather"

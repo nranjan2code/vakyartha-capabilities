@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "id": "context7",
+  "version": "1.0.0",
+  "name": "Library docs",
+  "publisher": "Upstash (Context7)",
+  "trust": "vendor",
+  "category": "developer",
+  "icon": "book",
+  "summary": "Current documentation for code libraries.",
+  "description": "Context7 looks up up-to-date documentation and examples for programming libraries, so code answers match the version you use.",
+  "homepage": "https://github.com/upstash/context7",
+  "access": [
+    "Sends library names and questions to Context7"
+  ],
+  "source": {
+    "kind": "npm",
+    "package": "@upstash/context7-mcp",
+    "version": "4.3.0",
+    "bin": "dist/index.js"
+  },
+  "config": [
+    {
+      "key": "apiKey",
+      "label": "Context7 API key (optional)",
+      "kind": "secret",
+      "env": "CONTEXT7_API_KEY",
+      "help": "Optional: higher rate limits."
+    }
+  ],
+  "egress": {
+    "hosts": [
+      {
+        "host": "context7.com"
+      }
+    ],
+    "env": {
+      "CONTEXT7_API_KEY": "INTEGRATION_CONTEXT7_APIKEY"
+    }
+  }
+}

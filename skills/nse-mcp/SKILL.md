@@ -4,6 +4,7 @@ description: Query official National Stock Exchange of India (NSE) market data v
 
 compatibility: Requires enabled 'nse' (Bhavcopy) or 'nse-cmmkt' (Market Live) vendor integrations.
 metadata:
+  requires: "skill:interactive-ui integration:nse|integration:nse-cmmkt"
   category: live-data
   author: Vakyartha
   version: "1.0.0"

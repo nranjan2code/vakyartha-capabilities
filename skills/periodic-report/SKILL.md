@@ -4,6 +4,7 @@ description: Prepare a daily, weekly or monthly status/performance report from s
 
 compatibility: Works with text chat, markdown reports, and interactive canvas surfaces.
 metadata:
+  requires: "skill:interactive-ui skill:surface-design"
   category: reports
   author: Vakyartha
   version: "1.0.0"

@@ -4,6 +4,8 @@ description: Prepare a current daily news digest or headline dashboard for a sel
 
 compatibility: Works with text summaries, news readers, web search tools, and interactive digest canvases.
 metadata:
+  requires: "integration:web"
+  enhances: "integration:brave-search integration:tavily"
   category: live-data
   author: Vakyartha
   version: "1.0.0"

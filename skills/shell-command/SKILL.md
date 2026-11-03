@@ -4,6 +4,7 @@ description: Compose, explain, and safely execute terminal, shell, and command-l
 
 compatibility: Operates with macOS, Linux, and Windows shells (zsh, bash, sh, PowerShell).
 metadata:
+  enhances: "integration:sandbox-execution"
   category: code
   author: Vakyartha
   version: "1.0.0"

@@ -5,15 +5,16 @@
 import { createHash } from "node:crypto";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { ROOT, SCHEMA, checkManifest, readItems, readManifest, type Item } from "./catalog.ts";
+import { ROOT, SCHEMA, checkCatalog, readItems, readManifest, refText, usedBy, type Item } from "./catalog.ts";
 import { site } from "./site.ts";
 
-export interface IndexItem extends Omit<Item, "files"> { file: string; sha256: string; bytes: number }
-export interface Index { schema: number; name: string; version: string; requires: { vakyartha: { min: string; below: string } }; items: IndexItem[] }
+export interface IndexItem extends Omit<Item, "files"> { usedBy: string[]; file: string; sha256: string; bytes: number }
+export interface Index { schema: number; name: string; version: string; requires: { vakyartha: { min: string; below: string; provides: { skills: string[]; integrations: string[] } } }; items: IndexItem[] }
 
 export function build(out: string): Index {
   const manifest = readManifest(), items = readItems();
-  checkManifest(manifest, items);
+  checkCatalog(manifest, items);
+  const users = usedBy(items);
   rmSync(out, { recursive: true, force: true });
   mkdirSync(path.join(out, "archives"), { recursive: true });
   const listed: IndexItem[] = items.map(({ files, ...item }) => {
@@ -22,7 +23,7 @@ export function build(out: string): Index {
     // The name carries the content hash, so a published file name can never point at different bytes.
     const file = `archives/${item.kind}-${item.id}-${item.version}-${sha256.slice(0, 12)}.vkcap.json`;
     writeFileSync(path.join(out, file), data);
-    return { ...item, file, sha256, bytes: data.length };
+    return { ...item, usedBy: users.get(refText(item)) ?? [], file, sha256, bytes: data.length };
   });
   const index: Index = { schema: SCHEMA, name: manifest.name, version: manifest.version, requires: manifest.requires, items: listed };
   writeFileSync(path.join(out, "index.json"), `${JSON.stringify(index, null, 2)}\n`);

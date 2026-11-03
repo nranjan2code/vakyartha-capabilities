@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "id": "aws-knowledge",
+  "version": "1.0.0",
+  "name": "AWS Knowledge",
+  "publisher": "Amazon Web Services",
+  "trust": "vendor",
+  "category": "developer",
+  "icon": "book",
+  "summary": "Search AWS documentation, regions and service availability.",
+  "description": "AWS's hosted knowledge server: search and read AWS documentation, list regions and check which services and features are available in each.",
+  "homepage": "https://awslabs.github.io/mcp/servers/aws-knowledge-mcp-server",
+  "access": [
+    "Sends your search terms to AWS",
+    "No account or key needed; it cannot reach your AWS account"
+  ],
+  "source": {
+    "kind": "http",
+    "url": "https://knowledge-mcp.global.api.aws"
+  },
+  "config": [],
+  "egress": {
+    "hosts": [
+      {
+        "host": "knowledge-mcp.global.api.aws"
+      }
+    ]
+  }
+}

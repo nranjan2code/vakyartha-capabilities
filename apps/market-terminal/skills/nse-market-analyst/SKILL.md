@@ -3,6 +3,7 @@ name: nse-market-analyst
 description: Read the Indian market from NSE Market Terminal: indices, breadth, India VIX, top movers and tracked stock quotes
 allowed-tools: app-market-terminal__get_market_summary app-market-terminal__get_market_brief app-market-terminal__get_portfolio app-market-terminal__get_instrument
 metadata:
+  requires: "skill:interactive-ui"
   author: Vakyartha
   part-of: app:market-terminal
   loads-with: "interactive-ui"

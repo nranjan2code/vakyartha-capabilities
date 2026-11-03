@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "id": "open-meteo",
+  "version": "1.0.0",
+  "name": "Weather",
+  "publisher": "Community (cmer81) for Open-Meteo",
+  "trust": "custom",
+  "category": "data",
+  "icon": "cloud",
+  "summary": "Forecasts, past weather, air quality and marine conditions.",
+  "description": "A community MCP server for the free Open-Meteo APIs: place search, 16-day forecasts, weather since 1940, air quality and pollen, marine, flood, seasonal and climate data. No key or account; the free tier is for non-commercial use.",
+  "homepage": "https://github.com/cmer81/open-meteo-mcp",
+  "access": [
+    "Sends place names and coordinates to open-meteo.com",
+    "Free public weather API; non-commercial use with rate limits. Paid weather keys/subscriptions are unsupported by this connector; the chat model's plan does not change weather access.",
+    "No account-status detection. A subscription cannot be inferred from a model plan or a saved key."
+  ],
+  "source": {
+    "kind": "npm",
+    "package": "open-meteo-mcp-server",
+    "version": "2.5.3",
+    "bin": "dist/index.js"
+  },
+  "config": [],
+  "egress": {
+    "hosts": [
+      {
+        "host": "air-quality-api.open-meteo.com"
+      },
+      {
+        "host": "api.open-meteo.com"
+      },
+      {
+        "host": "archive-api.open-meteo.com"
+      },
+      {
+        "host": "climate-api.open-meteo.com"
+      },
+      {
+        "host": "ensemble-api.open-meteo.com"
+      },
+      {
+        "host": "flood-api.open-meteo.com"
+      },
+      {
+        "host": "geocoding-api.open-meteo.com"
+      },
+      {
+        "host": "marine-api.open-meteo.com"
+      },
+      {
+        "host": "seasonal-api.open-meteo.com"
+      }
+    ],
+    "toolHosts": {
+      "geocoding": [
+        "geocoding-api.open-meteo.com"
+      ],
+      "weather_forecast": [
+        "api.open-meteo.com"
+      ],
+      "air_quality": [
+        "air-quality-api.open-meteo.com"
+      ],
+      "weather_archive": [
+        "archive-api.open-meteo.com"
+      ],
+      "marine_weather": [
+        "marine-api.open-meteo.com"
+      ],
+      "flood_forecast": [
+        "flood-api.open-meteo.com"
+      ]
+    }
+  },
+  "tools": {
+    "only": [
+      "air_quality",
+      "climate_projection",
+      "dwd_icon_forecast",
+      "ecmwf_forecast",
+      "elevation",
+      "ensemble_forecast",
+      "flood_forecast",
+      "gem_forecast",
+      "geocoding",
+      "gfs_forecast",
+      "jma_forecast",
+      "marine_weather",
+      "meteofrance_forecast",
+      "metno_forecast",
+      "seasonal_forecast",
+      "weather_archive",
+      "weather_forecast"
+    ],
+    "detail": "Free public weather API; non-commercial use with rate limits. Paid weather keys/subscriptions are unsupported by this connector; the chat model's plan does not change weather access.",
+    "otherDetail": "This tool is outside the reviewed free Weather connector's capabilities. Paid weather access is not supported."
+  }
+}

@@ -4,6 +4,7 @@ description: Use when the user plans a trip, holiday, outing or itinerary.
 
 compatibility: Works with text chat, itinerary tables, travel budgets, and interactive trip canvases.
 metadata:
+  requires: "skill:interactive-ui"
   category: everyday
   author: Vakyartha
   version: "1.0.0"

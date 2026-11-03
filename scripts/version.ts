@@ -9,6 +9,6 @@ const version = process.argv[2] ?? "";
 if (!/^\d+\.\d+\.\d+$/.test(version)) { console.error("usage: node scripts/version.ts <major.minor.patch>"); process.exit(2); }
 const items = readItems(), manifest = readManifest();
 manifest.version = version;
-manifest.provides = { skills: items.filter(i => i.kind === "skill").length, apps: items.filter(i => i.kind === "app").length };
+manifest.provides = { apps: items.filter(i => i.kind === "app").length, skills: items.filter(i => i.kind === "skill").length, integrations: items.filter(i => i.kind === "integration").length };
 writeFileSync(path.join(ROOT, "capabilities.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 console.log(`capabilities ${version}: ${JSON.stringify(manifest.provides)}`);

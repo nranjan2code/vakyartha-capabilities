@@ -4,6 +4,7 @@ description: Build an operational or enterprise dashboard from supplied records 
 
 compatibility: Requires interactive-ui and surface-design capabilities for canvas projection.
 metadata:
+  requires: "skill:interactive-ui skill:surface-design"
   category: reports
   author: Vakyartha
   version: "1.0.0"

@@ -4,6 +4,7 @@ description: Answer front-desk questions from the user's own Clinic Desk app (wh
 
 compatibility: Requires the Clinic Desk built-in app with at least one doctor set up. Everything it reads stays on this computer.
 metadata:
+  requires: "skill:interactive-ui"
   author: Vakyartha
   part-of: app:clinic-desk
   loads-with: "interactive-ui"

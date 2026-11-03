@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "id": "hugging-face",
+  "version": "1.0.0",
+  "name": "Hugging Face",
+  "publisher": "Hugging Face",
+  "trust": "vendor",
+  "category": "developer",
+  "icon": "search",
+  "summary": "Search models, datasets and Spaces on the Hugging Face Hub.",
+  "description": "Hugging Face's hosted server: search the Hub for models, datasets and Spaces, read their details and browse their files. Used without signing in, so only public repositories.",
+  "homepage": "https://huggingface.co/mcp",
+  "access": [
+    "Sends your searches to huggingface.co",
+    "Public Hub content only; no account or key needed"
+  ],
+  "source": {
+    "kind": "http",
+    "url": "https://huggingface.co/mcp"
+  },
+  "config": [],
+  "egress": {
+    "hosts": [
+      {
+        "host": "huggingface.co"
+      }
+    ]
+  }
+}

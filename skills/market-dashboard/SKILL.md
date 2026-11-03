@@ -4,6 +4,8 @@ description: Create a source-backed market, index or watchlist review for an exa
 
 compatibility: Compatible with market data feeds, financial time-series snapshots, and Vakyartha canvas surfaces.
 metadata:
+  requires: "skill:interactive-ui skill:surface-design"
+  enhances: "integration:nse"
   category: reports
   author: Vakyartha
   version: "1.0.0"

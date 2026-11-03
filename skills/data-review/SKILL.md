@@ -4,6 +4,7 @@ description: Inspect supplied tabular records, CSV or JSON for data quality, tre
 
 compatibility: Works with tabular CSV, JSON, and structured query snapshots.
 metadata:
+  requires: "skill:interactive-ui skill:surface-design"
   category: reports
   author: Vakyartha
   version: "1.0.0"

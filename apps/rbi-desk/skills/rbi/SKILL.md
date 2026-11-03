@@ -4,6 +4,7 @@ description: Read official Reserve Bank of India rates, CRR, SLR, rupee referenc
 
 compatibility: Requires the RBI Desk built-in app, refreshed at least once (Web pages integration with fetch_page set to Allow).
 metadata:
+  requires: "skill:interactive-ui"
   author: Vakyartha
   part-of: app:rbi-desk
   loads-with: "interactive-ui"

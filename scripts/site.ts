@@ -3,7 +3,7 @@
 // external fonts, scripts or trackers. Cards are rendered statically so the page
 // reads without scripts; the script adds search, filters and the detail view.
 import type { Index, IndexItem } from "./catalog-build.ts";
-import { APP_GROUPS, SKILL_GROUPS } from "./catalog.ts";
+import { APP_GROUPS, INTEGRATION_GROUPS, SKILL_GROUPS, refText, type Ref } from "./catalog.ts";
 
 const esc = (t: string) => t.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const kb = (bytes: number) => bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -11,6 +11,7 @@ const kb = (bytes: number) => bytes < 1024 * 1024 ? `${Math.max(1, Math.round(by
 const KINDS: { kind: string; plural: string; singular: string; groups: Record<string, string> }[] = [
   { kind: "app", plural: "Apps", singular: "App", groups: APP_GROUPS },
   { kind: "skill", plural: "Skills", singular: "Skill", groups: SKILL_GROUPS },
+  { kind: "integration", plural: "Integrations", singular: "Integration", groups: INTEGRATION_GROUPS },
 ];
 const kindOf = (k: string) => KINDS.find(x => x.kind === k)!;
 const label = (i: IndexItem) => kindOf(i.kind).groups[i.category] ?? i.category;
@@ -22,6 +23,11 @@ export function accessLines(i: IndexItem): string[] {
     lines.push(a.network === "none" ? "Works offline: no network and no tools" : `Reaches data only through ${a.tools.length} governed tool${a.tools.length === 1 ? "" : "s"}, each one approved by you`);
     if (a.database) lines.push("Keeps its records in a local database on your computer");
     if (a.schedule) lines.push("Can refresh on a schedule while you allow it to keep running");
+  } else if (i.kind === "integration") {
+    lines.push(`Connects only to ${a.hosts.length ? a.hosts.join(", ") : "the address you configure"}`);
+    if (a.credentials.length) lines.push(`Needs ${a.credentials.join(", ")}, kept in your system keychain`);
+    else lines.push("Needs no account or key");
+    lines.push("Each tool call follows your Allow, Ask or None setting");
   } else {
     lines.push(a.tools.length ? `Instructions that may use ${a.tools.length} Vakyartha tool${a.tools.length === 1 ? "" : "s"}` : "Instructions only: uses no tools");
     lines.push("Contains text files only; nothing in it runs on its own");
@@ -37,7 +43,11 @@ function chips(i: IndexItem): string {
     out.push(a.network === "none" ? `<span class="chip ok">Offline</span>` : `<span class="chip">${a.tools.length} governed tool${a.tools.length === 1 ? "" : "s"}</span>`);
     if (a.database) out.push(`<span class="chip">Local database</span>`);
     if (a.schedule) out.push(`<span class="chip">Scheduled</span>`);
+  } else if (i.kind === "integration") {
+    out.push(`<span class="chip">${a.hosts.length ? `${a.hosts.length} host${a.hosts.length === 1 ? "" : "s"}` : "Your address"}</span>`);
+    out.push(a.credentials.length ? `<span class="chip">Needs a key</span>` : `<span class="chip ok">No key</span>`);
   } else out.push(a.tools.length ? `<span class="chip">${a.tools.length} tool${a.tools.length === 1 ? "" : "s"}</span>` : `<span class="chip ok">No tools</span>`);
+  if (i.skills.length) out.push(`<span class="chip">Includes ${i.skills.length} skill${i.skills.length === 1 ? "" : "s"}</span>`);
   return out.join("");
 }
 
@@ -58,7 +68,10 @@ export function site(index: Index): string {
   const order = (a: IndexItem, b: IndexItem) => KINDS.findIndex(k => k.kind === a.kind) - KINDS.findIndex(k => k.kind === b.kind) || a.name.localeCompare(b.name);
   const items = [...index.items].sort(order);
   const groups = kinds.map(k => ({ ...k, total: count(k.kind), cats: Object.entries(k.groups).map(([id, name]) => ({ id, name, n: count(k.kind, id) })).filter(c => c.n > 0) }));
-  const data = JSON.stringify(items.map(i => ({ key: `${i.kind}-${i.id}`, kind: i.kind, singular: kindOf(i.kind).singular, owner: kindOf(i.kind).plural, name: i.name, version: i.version, group: label(i), description: i.description, access: accessLines(i), tools: i.access.tools, requires: i.requires, files: i.access.files, file: i.file, sha256: i.sha256, size: kb(i.bytes) }))).replace(/</g, "\\u003c");
+  const nameOf = new Map(index.items.map(i => [refText(i), i.name]));
+  const core = new Set([...index.requires.vakyartha.provides.skills.map(s => `skill:${s}`), ...index.requires.vakyartha.provides.integrations.map(s => `integration:${s}`)]);
+  const show = (r: Ref | string) => { const t = typeof r === "string" ? r : refText(r); const [kind, id] = t.split(":") as [string, string]; return { key: t.replace(":", "-"), text: nameOf.get(t) ?? id.split("-").map(w => w[0]!.toUpperCase() + w.slice(1)).join(" "), kind: kindOf(kind).singular, core: core.has(t) }; };
+  const data = JSON.stringify(items.map(i => ({ key: `${i.kind}-${i.id}`, kind: i.kind, singular: kindOf(i.kind).singular, owner: kindOf(i.kind).plural, name: i.name, version: i.version, group: label(i), description: i.description, access: accessLines(i), tools: i.access.tools, needs: i.requires.map(g => g.map(show)), better: i.enhances.map(show), usedBy: i.usedBy.map(show), includes: i.skills.map(s => ({ name: s.name, description: s.description })), files: i.access.files, file: i.file, sha256: i.sha256, size: kb(i.bytes) }))).replace(/</g, "\\u003c");
   const range = `${index.requires.vakyartha.min} up to (not including) ${index.requires.vakyartha.below}`;
   const summary = groups.map(g => `${g.total} ${g.plural}`).join(", ");
   const navButton = (id: string, text: string, n: number, sub = false) => `<li><button type="button" class="nav-item${sub ? " sub" : ""}" data-group="${esc(id)}" aria-current="${id === "all" ? "true" : "false"}"><span>${esc(text)}</span><span class="n">${n}</span></button></li>`;
@@ -250,6 +263,13 @@ ${items.map(card).join("\n")}
   q.addEventListener("input", () => { page = 1; render(false); });
   sort.addEventListener("change", () => { page = 1; render(false); });
   const el = (tag, props, ...kids) => { const n = Object.assign(document.createElement(tag), props || {}); for (const k of kids) if (k != null) n.append(k); return n; };
+  function refLink(r) {
+    const label = r.text + " (" + r.kind + (r.core ? ", part of Vakyartha" : "") + ")";
+    if (!byKey.has(r.key)) return el("span", { textContent: label });
+    const a = el("a", { href: "#" + r.key, textContent: label });
+    a.addEventListener("click", e => { e.preventDefault(); history.replaceState(null, "", "#" + r.key); show(r.key); });
+    return a;
+  }
   function show(key) {
     const i = byKey.get(key); if (!i) return;
     const tile = el("span", { className: "mono-tile " + i.kind, textContent: i.name.split(/\\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() }); tile.setAttribute("aria-hidden", "true");
@@ -262,8 +282,11 @@ ${items.map(card).join("\n")}
       el("div", { className: "sheet-head" }, tile, el("div", {}, el("h2", { id: "d-name", textContent: i.name }), el("div", { className: "sub", textContent: i.singular + " · " + i.group + " · v" + i.version })), close),
       el("p", { textContent: i.description }),
       el("section", {}, el("h3", { textContent: "What it can use" }), el("ul", {}, ...i.access.map(t => el("li", { textContent: t })))),
-      i.tools.length ? el("section", {}, el("h3", { textContent: "Tools it asks for" }), el("div", { className: "tool-list" }, ...i.tools.map(t => el("code", { textContent: t })))) : null,
-      i.requires.length ? el("section", {}, el("h3", { textContent: "Works with" }), el("p", { textContent: i.requires.join(", ") })) : null,
+      i.tools.length ? el("section", {}, el("h3", { textContent: i.kind === "integration" ? "Tools it offers" : "Tools it asks for" }), el("div", { className: "tool-list" }, ...i.tools.map(t => el("code", { textContent: t })))) : null,
+      i.includes.length ? el("section", {}, el("h3", { textContent: "Includes" }), el("ul", {}, ...i.includes.map(s => el("li", { textContent: s.name + ": " + s.description })))) : null,
+      i.needs.length ? el("section", {}, el("h3", { textContent: "Needs" }), el("ul", {}, ...i.needs.map(g => el("li", {}, ...g.flatMap((r, n) => [n ? " or " : null, refLink(r)]).filter(Boolean))))) : null,
+      i.better.length ? el("section", {}, el("h3", { textContent: "Works better with" }), el("ul", {}, ...i.better.map(r => el("li", {}, refLink(r))))) : null,
+      i.usedBy.length ? el("section", {}, el("h3", { textContent: "Used by" }), el("ul", {}, ...i.usedBy.map(r => el("li", {}, refLink(r))))) : null,
       el("section", {}, el("h3", { textContent: "Add it to Vakyartha" }), el("ol", { className: "steps" },
         el("li", { textContent: "Open " + i.owner + " in Vakyartha." }),
         el("li", { textContent: "Choose Vakyartha catalog, find " + i.name + " and choose Add as draft." }),

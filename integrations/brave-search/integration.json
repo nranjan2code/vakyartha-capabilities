@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "id": "brave-search",
+  "version": "1.0.0",
+  "name": "Brave Search",
+  "publisher": "Brave",
+  "trust": "vendor",
+  "category": "search",
+  "icon": "search",
+  "summary": "Web, news and local search.",
+  "description": "Brave's own MCP server for the Brave Search API: web, news, image and local results with snippets, so answers cite current sources.",
+  "homepage": "https://github.com/brave/brave-search-mcp-server",
+  "access": [
+    "Sends your search queries to Brave",
+    "Needs a Brave Search API key"
+  ],
+  "source": {
+    "kind": "npm",
+    "package": "@brave/brave-search-mcp-server",
+    "version": "2.1.4",
+    "bin": "dist/index.js"
+  },
+  "config": [
+    {
+      "key": "apiKey",
+      "label": "Brave Search API key",
+      "kind": "secret",
+      "required": true,
+      "env": "BRAVE_API_KEY",
+      "help": "From api-dashboard.search.brave.com (a free plan exists)."
+    }
+  ],
+  "egress": {
+    "hosts": [
+      {
+        "host": "api.search.brave.com"
+      }
+    ],
+    "env": {
+      "BRAVE_API_KEY": "INTEGRATION_BRAVE_SEARCH_APIKEY"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "id": "nse",
+  "version": "1.0.0",
+  "name": "NSE",
+  "publisher": "NSE",
+  "trust": "vendor",
+  "category": "finance",
+  "icon": "chart",
+  "summary": "Historical bhavcopy, stock prices and market breadth from the National Stock Exchange of India.",
+  "description": "National Stock Exchange of India's official hosted Bhavcopy MCP server: up to 5 years of historical end-of-day cash market data, daily bhavcopy, advances/declines, delivery volumes and 52-week highs/lows. Public and authentication-free.",
+  "homepage": "https://www.nseindia.com/nse-mcp",
+  "access": [
+    "Public market data from the National Stock Exchange of India",
+    "Historical cash market data and daily bhavcopy records for the last 5 years",
+    "No credentials or API keys required"
+  ],
+  "source": {
+    "kind": "http",
+    "url": "https://mcp.nseindia.in/bhavcopy/cm/mcp"
+  },
+  "config": [],
+  "egress": {
+    "hosts": [
+      {
+        "host": "mcp.nseindia.in"
+      }
+    ]
+  }
+}

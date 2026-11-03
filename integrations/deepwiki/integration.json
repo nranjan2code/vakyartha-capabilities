@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "id": "deepwiki",
+  "version": "1.0.0",
+  "name": "DeepWiki",
+  "publisher": "Cognition (DeepWiki)",
+  "trust": "vendor",
+  "category": "developer",
+  "icon": "branch",
+  "summary": "Ask questions about public GitHub repositories.",
+  "description": "DeepWiki's hosted server reads the generated documentation of public GitHub repositories: list a repository's topics, read them, or ask a question answered from its code.",
+  "homepage": "https://docs.devin.ai/work-with-devin/deepwiki-mcp",
+  "access": [
+    "Sends repository names and your questions to DeepWiki",
+    "Public repositories only; no account or key needed"
+  ],
+  "source": {
+    "kind": "http",
+    "url": "https://mcp.deepwiki.com/mcp"
+  },
+  "config": [],
+  "egress": {
+    "hosts": [
+      {
+        "host": "mcp.deepwiki.com"
+      }
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "id": "microsoft-learn",
+  "version": "1.0.0",
+  "name": "Microsoft Learn",
+  "publisher": "Microsoft",
+  "trust": "vendor",
+  "category": "developer",
+  "icon": "book",
+  "summary": "Search and read Microsoft's official documentation and code samples.",
+  "description": "Microsoft's hosted server for Microsoft Learn: search docs, fetch a page as text and find official code samples for Azure, .NET, Microsoft 365 and other Microsoft products.",
+  "homepage": "https://learn.microsoft.com/training/support/mcp",
+  "access": [
+    "Sends your search terms to learn.microsoft.com",
+    "No account or key needed"
+  ],
+  "source": {
+    "kind": "http",
+    "url": "https://learn.microsoft.com/api/mcp"
+  },
+  "config": [],
+  "egress": {
+    "hosts": [
+      {
+        "host": "learn.microsoft.com"
+      }
+    ]
+  }
+}

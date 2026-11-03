@@ -4,6 +4,7 @@ description: Use when the user asks about weather, a forecast, rain, temperature
 
 compatibility: Requires the Weather (Open-Meteo) integration, enabled in Integrations.
 metadata:
+  requires: "skill:interactive-ui integration:open-meteo"
   category: live-data
   author: Vakyartha
   version: "1.0.0"

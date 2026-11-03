@@ -4,6 +4,7 @@ description: Create a service or delivery dashboard for backlog, throughput, agi
 
 compatibility: Works with issue trackers, ticketing systems, delivery logs, and canvas projection.
 metadata:
+  requires: "skill:interactive-ui skill:surface-design"
   category: reports
   author: Vakyartha
   version: "1.0.0"

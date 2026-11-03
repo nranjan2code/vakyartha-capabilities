@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "id": "databricks",
+  "version": "1.0.0",
+  "name": "Databricks",
+  "publisher": "Databricks",
+  "trust": "vendor",
+  "category": "data",
+  "icon": "table",
+  "summary": "Query governed data and use workspace tools.",
+  "description": "Connects to a Databricks-provided or registered remote MCP in your workspace, or a legacy workspace MCP endpoint. Available tools and data depend on the server URL and your permissions. Uses a personal access token for local testing; browser sign-in, automatic token refresh and servers hosted on Databricks Apps are not supported.",
+  "homepage": "https://docs.databricks.com/aws/en/agents/mcp-tools/built-in-mcp-services",
+  "access": [
+    "Sends tool inputs to the workspace MCP URL you configure",
+    "Can query data, run code or change resources within your account permissions",
+    "Calls may incur workspace compute or service charges",
+    "Tools use the existing per-tool approval policies"
+  ],
+  "source": {
+    "kind": "http",
+    "urlFrom": {
+      "config": "endpoint",
+      "hostSuffixes": [
+        ".cloud.databricks.com",
+        ".azuredatabricks.net",
+        ".gcp.databricks.com"
+      ],
+      "paths": [
+        "^/ai-gateway/mcp-services/[^/]+/?$",
+        "^/api/2\\.0/mcp/[^/]+(?:/[^/]+)*/?$"
+      ]
+    }
+  },
+  "config": [
+    {
+      "key": "endpoint",
+      "label": "Databricks MCP server URL",
+      "kind": "text",
+      "required": true,
+      "help": "Copy the full MCP URL from your workspace. Example: https://<workspace-hostname>/ai-gateway/mcp-services/system.ai.dbsql. Choose only the service you want to expose; workspace features and grants must be enabled."
+    },
+    {
+      "key": "token",
+      "label": "Databricks personal access token",
+      "kind": "secret",
+      "required": true,
+      "header": {
+        "name": "authorization",
+        "format": "Bearer {value}"
+      },
+      "help": "Create a short-lived token in your workspace with only the access you need. Saved in the app's secret store and sent only as an Authorization header. Replace it here when it expires. Databricks recommends OAuth for production/team use."
+    }
+  ],
+  "egress": {
+    "hosts": []
+  }
+}

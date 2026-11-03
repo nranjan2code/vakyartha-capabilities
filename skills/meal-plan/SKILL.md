@@ -4,6 +4,7 @@ description: Use when the user wants meal ideas, a weekly menu, recipes from wha
 
 compatibility: Works with text chat, weekly meal matrices, shopping lists, and interactive recipe canvases.
 metadata:
+  requires: "skill:interactive-ui"
   category: everyday
   author: Vakyartha
   version: "1.0.0"

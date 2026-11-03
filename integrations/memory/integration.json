@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "id": "memory",
+  "version": "1.0.0",
+  "name": "Memory",
+  "publisher": "Model Context Protocol",
+  "trust": "official",
+  "category": "files",
+  "icon": "memory",
+  "summary": "Remember facts across chats.",
+  "description": "The MCP reference memory server: a small knowledge graph of people, projects and preferences the model can add to and recall, stored in a file in this app's data folder.",
+  "homepage": "https://github.com/modelcontextprotocol/servers/tree/main/src/memory",
+  "access": [
+    "One file in this app's data folder"
+  ],
+  "source": {
+    "kind": "npm",
+    "package": "@modelcontextprotocol/server-memory",
+    "version": "2026.8.31",
+    "bin": "dist/index.js",
+    "dataFiles": {
+      "MEMORY_FILE_PATH": "memory.jsonl"
+    }
+  },
+  "config": [],
+  "egress": {
+    "hosts": []
+  }
+}

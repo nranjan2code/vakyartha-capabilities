@@ -4,6 +4,7 @@ description: Review, improve, and audit source code for correctness, security vu
 
 compatibility: Language-agnostic code review across TypeScript, Rust, Python, Go, C/C++, Swift, shell, and web technologies.
 metadata:
+  enhances: "integration:sandbox-execution"
   category: code
   author: Vakyartha
   version: "1.0.0"

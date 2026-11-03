@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "id": "cloudflare-docs",
+  "version": "1.0.0",
+  "name": "Cloudflare docs",
+  "publisher": "Cloudflare",
+  "trust": "vendor",
+  "category": "developer",
+  "icon": "book",
+  "summary": "Search Cloudflare's developer documentation.",
+  "description": "Cloudflare's hosted documentation server: searches the developer docs for Workers, Pages, R2, DNS and the rest of the platform.",
+  "homepage": "https://github.com/cloudflare/mcp-server-cloudflare",
+  "access": [
+    "Sends your search terms to Cloudflare",
+    "No account or key needed; it cannot reach your Cloudflare account"
+  ],
+  "source": {
+    "kind": "http",
+    "url": "https://docs.mcp.cloudflare.com/mcp"
+  },
+  "config": [],
+  "egress": {
+    "hosts": [
+      {
+        "host": "docs.mcp.cloudflare.com"
+      }
+    ]
+  }
+}

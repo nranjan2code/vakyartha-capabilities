@@ -4,6 +4,7 @@ description: Use when the user wants to plan a day or organise a to-do list into
 
 compatibility: Works with text chat, timeline displays, and interactive daily schedule canvases.
 metadata:
+  requires: "skill:interactive-ui"
   category: everyday
   author: Vakyartha
   version: "1.0.0"

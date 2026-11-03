@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "id": "github",
+  "version": "1.0.0",
+  "name": "GitHub",
+  "publisher": "GitHub",
+  "trust": "vendor",
+  "category": "developer",
+  "icon": "branch",
+  "summary": "Issues, pull requests and code.",
+  "description": "GitHub's own remote MCP server: search code, read and file issues, review pull requests. What it can do is limited by the token you give it.",
+  "homepage": "https://github.com/github/github-mcp-server",
+  "access": [
+    "Your GitHub account, within the token's permissions",
+    "Asks before anything that changes a repository"
+  ],
+  "source": {
+    "kind": "http",
+    "url": "https://api.githubcopilot.com/mcp/"
+  },
+  "config": [
+    {
+      "key": "token",
+      "label": "GitHub token",
+      "kind": "secret",
+      "required": true,
+      "header": {
+        "name": "authorization",
+        "format": "Bearer {value}"
+      },
+      "help": "A fine-grained personal access token with only the repositories and permissions you want it to have."
+    }
+  ],
+  "egress": {
+    "hosts": [
+      {
+        "host": "api.githubcopilot.com",
+        "credential": {
+          "account": "INTEGRATION_GITHUB_TOKEN",
+          "header": "authorization",
+          "format": "Bearer {value}"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "id": "nse-cmmkt",
+  "version": "1.0.0",
+  "name": "NSE Market Live",
+  "publisher": "NSE",
+  "trust": "vendor",
+  "category": "finance",
+  "icon": "chart",
+  "summary": "Near-real-time equity quotes, indices and market snapshots from the National Stock Exchange of India.",
+  "description": "National Stock Exchange of India's official hosted CM Market Live MCP server: near-real-time snapshots of the current trading day, stock quotes, top gainers/losers, indices and active securities. Public and authentication-free.",
+  "homepage": "https://www.nseindia.com/nse-mcp",
+  "access": [
+    "Public market data from the National Stock Exchange of India",
+    "Near-real-time trading day snapshots, live quotes and index performance",
+    "No credentials or API keys required"
+  ],
+  "source": {
+    "kind": "http",
+    "url": "https://mcp.nseindia.in/cmmkt/mcp"
+  },
+  "config": [],
+  "egress": {
+    "hosts": [
+      {
+        "host": "mcp.nseindia.in"
+      }
+    ]
+  }
+}

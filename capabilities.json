@@ -5,11 +5,44 @@
   "requires": {
     "vakyartha": {
       "min": "1.0.0",
-      "below": "2.0.0"
+      "below": "2.0.0",
+      "provides": {
+        "skills": [
+          "app-admin",
+          "app-authoring",
+          "app-debugger",
+          "app-maintainer",
+          "app-operator",
+          "assistant",
+          "broadcast-programme",
+          "create-skill",
+          "decision-chain",
+          "decision-eval",
+          "doctor-integrations",
+          "doctor-models",
+          "folder-workspace",
+          "interactive-ui",
+          "presentable-reply",
+          "sandbox",
+          "surface-design",
+          "system-doctor"
+        ],
+        "integrations": [
+          "media-audio",
+          "media-image",
+          "media-video",
+          "ocr",
+          "sandbox-execution",
+          "system-health",
+          "time",
+          "web"
+        ]
+      }
     }
   },
   "provides": {
-    "skills": 49,
-    "apps": 11
+    "apps": 11,
+    "skills": 29,
+    "integrations": 17
   }
 }

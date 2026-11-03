@@ -4,6 +4,8 @@ description: Research a question across available sources and produce a sourced 
 
 compatibility: Works with text chat, research tools, web readers, and canvas evidence tables.
 metadata:
+  requires: "integration:web"
+  enhances: "integration:brave-search integration:tavily"
   category: writing
   author: Vakyartha
   version: "1.0.0"
