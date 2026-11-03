@@ -1,3 +1,5 @@
+# Mirror of the local CI (node scripts/ci.ts). Everything here also runs on the
+# owner's machine, so a release never depends on hosted minutes.
 name: Check
 on:
   pull_request:
@@ -5,9 +7,13 @@ on:
     branches: [main]
 permissions:
   contents: read
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   check:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -15,6 +21,4 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
-      - run: node scripts/check.ts --online
-      - run: node --test tests/
-      - run: node scripts/catalog-build.ts site
+      - run: node scripts/ci.ts mirror

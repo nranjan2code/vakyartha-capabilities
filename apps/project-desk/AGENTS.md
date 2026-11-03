@@ -1,6 +1,6 @@
 # Working on Project Activity Desk
 
-Read [Building a Vakyartha app](../../../docs/development/BUILDING-APPS.md) first; this app follows its method. Then README.md, SKILLS.md and ARCHITECTURE.md here.
+Read Building a Vakyartha app (Vakyartha's app-building guide, in the Vakyartha product documentation) first; this app follows its method. Then README.md, SKILLS.md and ARCHITECTURE.md here.
 
 ## Invariants
 

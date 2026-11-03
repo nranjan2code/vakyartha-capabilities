@@ -1,6 +1,11 @@
 # Changelog
 
-## 1.0.0 (unreleased)
+## Unreleased
+
+- Project Activity Desk 1.0.1: the starting repository is this public catalog, so a public app never names a private repository.
+- Public boundary check: CI fails on any link to a private repository or local path.
+
+## 1.0.0 (2026-11-03)
 
 First release on this repository as the single source of Vakyartha's
 published capabilities: 11 apps, 29 skills and 17 integrations, each at 1.0.0,

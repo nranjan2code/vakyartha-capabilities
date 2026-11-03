@@ -58,7 +58,7 @@ export function commits(raw: any[], repo: string): Commit[] {
 const isItem = (r: Item) => r && typeof r.id === 'string' && Number.isSafeInteger(r.number) && typeof r.title === 'string' && typeof r.state === 'string' && typeof r.url === 'string';
 const isCommit = (r: Commit) => r && typeof r.id === 'string' && typeof r.title === 'string' && typeof r.url === 'string';
 export function normalize(s: State): State {
-  let repo = 'nranjan2code/vakyartha';
+  let repo = 'nranjan2code/vakyartha-capabilities';
   try { repo = repository(s.repository ?? repo); } catch { /* keep the default */ }
   const issues = (Array.isArray(s.issues) ? s.issues : []).filter(isItem).slice(0, 30);
   const open = new Set(issues.filter((i) => i.state === 'open').map((i) => i.id));
