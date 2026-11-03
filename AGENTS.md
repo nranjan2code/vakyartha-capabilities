@@ -1,10 +1,26 @@
-# AGENTS.md: vakyartha-capabilities
+# AGENTS.md: Vakyartha Capabilities
 
-This repository is the published catalog of Vakyartha skills, apps and the MCP catalog. Product rules live in the Vakyartha repository's AGENTS.md; these are the rules for this repo.
+The source of every app, skill and integration Vakyartha publishes. Vakyartha
+pins one signed release of this repository as a submodule; items Vakyartha
+needs to run (its core skills and integrations) live in Vakyartha, not here.
 
-1. **Source of truth.** Authoring happens in `capabilities/` of the Vakyartha `marketplace` branch (and `main` once merged). This repo is what is published: keep `capabilities/` identical to it and never diverge by editing here only.
-2. **Versions.** `capabilities/capabilities.json` is its own version line. Bump it when the published content changes; its `requires` range names the Vakyartha versions it supports. Pins are exact.
-3. **No third-party code, no secrets.** Add no dependencies or vendored code. Scan every diff for keys before pushing.
-4. **Review by access.** A contribution is accepted only after its requested tools, destinations and files are reviewed. Apps keep the declared entitlements; skills carry no scripts that run by themselves.
-5. **Build is deterministic.** `node scripts/catalog-build.ts site` must produce identical output twice. The publish workflow only runs that build and deploys `site/`.
-6. **Nothing installs silently.** The desktop app verifies each archive hash and files items as unreviewed drafts. Do not add flows that bypass that.
+1. **One rule set.** `scripts/catalog.ts` holds every rule; the check, the build
+   and the tests all use it. Change a rule there and in DEPENDENCIES.md together.
+2. **Versions are set by a person.** `node scripts/version.ts` and
+   `node scripts/sign.ts` refuse to run without a person at a terminal typing the
+   version. Never edit a version by hand or from a script. Each item declares its
+   own exact version; the catalog has its own release version.
+3. **Signed or not published.** A release is the exact bytes of `index.json`,
+   signed with the owner's key from the macOS Keychain. CI only verifies; it
+   never holds the key. A signed release never changes: fix forward with a new
+   version.
+4. **Self-contained items.** No dependencies, no vendored code, no imports from
+   outside an item's folder, UTF-8 text only, no keys or tokens. Integrations
+   are data only: exact npm versions at least 14 days old, or https endpoints,
+   with every host they may reach listed.
+5. **Declared relationships.** Skills that need one app ship inside it. Every
+   requirement is declared and must exist here or in Vakyartha's declared core.
+6. **Pinned automation.** Workflows pin each action to a commit at least 14 days
+   old and use the Node version in `.node-version`.
+7. **Plain capability language.** Describe what an item does and what it can
+   reach in plain words. Do not name competitors.
