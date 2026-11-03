@@ -83,6 +83,7 @@ export function site(index: Index): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Vakyartha Capabilities</title>
+<script>try{const t=localStorage.getItem("vak-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch{}</script>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDggNjA4Ij48cmVjdCB3aWR0aD0iNjA4IiBoZWlnaHQ9IjYwOCIgcng9IjExNCIgZmlsbD0iIzEwMUQzRCIvPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDU0LjcyIDU0LjcyKSI+PHN2ZyB3aWR0aD0iNDk4LjU2IiBoZWlnaHQ9IjQ5OC41NiIgdmlld0JveD0iODAgODAgNDQwIDQ0MCI+PHBhdGggZmlsbD0iI0Y2RjVGMSIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMjcwIDEwNUMyNzggMTMyIDMxMSAxNDYgMzQ4IDE1MkMzOTQgMTU2IDQyNSAxNzQgNDQ2IDIwMUw0OTQgMjMxTDQ1MCAyMzhDNDI2IDI0OSA0MjAgMjc0IDQyMyAzMDBDNDMwIDM1NyA0MDcgNDExIDM2OCA0NTFDMzMyIDQ4NyAyOTUgNTAyIDI1MyA0ODVMMTk1IDQ2MkMxNTkgNDQ3IDEzMSA0NTIgMTA4IDQ3OUMxMTQgNDI5IDEyNiAzODQgMTQ5IDM0N0MxNzcgMzAxIDIyMyAyNjUgMjU3IDIyOUMyNzMgMjEzIDI4MyAxOTkgMjg5IDE4MkMyNzQgMTg1IDI2NSAxODEgMjYzIDE3MkMyNzcgMTgwIDI5OCAxNzggMzE2IDE3MkMyODcgMTc0IDI2OCAxNjcgMjY5IDE0N0MyODEgMTYzIDMxMCAxNjYgMzMzIDE1OUMyOTkgMTU5IDI3MSAxNDEgMjcwIDEwNVpNNDQ4IDIzMUM0MzAgMjA3IDQxMCAxODggMzg5IDE4OUMzNjIgMTkwIDM1MSAyMTEgMzU2IDIzN0MzNTkgMjU3IDM3NCAyNzYgMzk4IDI5NkM0MDIgMjY3IDQxOCAyNDQgNDQ4IDIzMVpNMTYyIDM3MUMxOTAgMzQ2IDIyMCAzNTIgMjQ1IDM3NkwyNzMgNDEzQzMwNCAzNzcgMzM1IDMzMSAzNjcgMjk3QzM1OCAzNjYgMzMxIDQzMiAyOTEgNDgzQzI2OCA0NDIgMjM1IDQwNyAyMDQgMzg4QzE4OSAzNzkgMTc1IDM3NiAxNjIgMzgwWiIvPgogIDxjaXJjbGUgY3g9IjQwNSIgY3k9IjIxOCIgcj0iMTMiIGZpbGw9IiNGNkY1RjEiLz4KICA8cGF0aCBmaWxsPSIjRjVBNDAwIiBkPSJNNDk0IDIzMUM0NDUgMjMxIDQxNyAyNDEgNDA1IDI2N0MzODkgMzAwIDQwMSAzMzggNDAyIDM3MEM0MTMgMzQ5IDQyMCAzMjcgNDIzIDMwM0M0MjMgMjc1IDQyNiAyNTIgNDUwIDIzOFoiLz4KPC9zdmc+PC9nPjwvc3ZnPg==">
 <meta name="description" content="${esc(summary)} for Vakyartha ${esc(range)}. Every item is hash-pinned and arrives in Vakyartha as a draft you review.">
 <style>
@@ -110,7 +111,8 @@ header.top .wrap{display:flex;align-items:center;justify-content:space-between;g
 .brand-bird{width:30px;height:34px;background:var(--bird) center/contain no-repeat;flex:none}.brand-word{width:112px;height:24px;background:var(--word) center/contain no-repeat;flex:none}
 
 .brand span{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
-nav.links{display:flex;gap:18px;flex-wrap:wrap;font-size:.875rem}
+nav.links{display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:.875rem}
+.theme-button{display:grid;place-items:center;width:36px;height:36px;background:none;border:0;border-radius:10px;color:var(--ink);cursor:pointer}.theme-button svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round}
 nav.links a{color:var(--ink-2);text-decoration:none}
 nav.links a:hover{color:var(--ink);text-decoration:underline}
 .intro{padding-block:32px 8px;display:flex;justify-content:space-between;align-items:end;gap:24px;flex-wrap:wrap}
@@ -189,7 +191,7 @@ dialog::backdrop{background:rgba(10,14,22,.45)}
 <body>
 <header class="top"><div class="wrap">
 <a class="brand" href="./" aria-label="Vakyartha Capabilities"><i class="brand-bird" aria-hidden="true"></i><i class="brand-word" aria-hidden="true"></i><span>Capabilities</span></a>
-<nav class="links" aria-label="Vakyartha"><a href="https://nranjan2code.github.io/vakyartha-releases/">Download Vakyartha</a><a href="https://vakyartha.com">vakyartha.com</a><a href="index.json">index.json</a><a href="SHA256SUMS.txt">SHA256SUMS</a><a href="https://github.com/nranjan2code/vakyartha-capabilities/releases/tag/capabilities-v${esc(index.version)}">Release ${esc(index.version)}</a></nav>
+<nav class="links" aria-label="Vakyartha"><a href="https://nranjan2code.github.io/vakyartha-releases/">Download Vakyartha</a><a href="https://vakyartha.com">vakyartha.com</a><a href="index.json">index.json</a><a href="SHA256SUMS.txt">SHA256SUMS</a><button class="theme-button" id="theme" type="button" aria-label="Switch between light and dark"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button><a href="https://github.com/nranjan2code/vakyartha-capabilities/releases/tag/capabilities-v${esc(index.version)}">Release ${esc(index.version)}</a></nav>
 </div></header>
 <main class="wrap">
 <section class="intro">
@@ -220,6 +222,8 @@ ${items.map(card).join("\n")}
 <dialog id="detail" aria-labelledby="d-name"><div class="sheet" id="sheet" tabindex="-1"></div></dialog>
 <script id="catalog-data" type="application/json">${data}</script>
 <script>
+// The theme follows the system until a person chooses; the choice is shared with the download page.
+document.getElementById("theme").addEventListener("click",()=>{const set=document.documentElement.dataset.theme;const dark=set?set==="dark":matchMedia("(prefers-color-scheme: dark)").matches;const next=dark?"light":"dark";document.documentElement.dataset.theme=next;try{localStorage.setItem("vak-theme",next)}catch{}});
 (() => {
   const PAGE = 24;
   const items = JSON.parse(document.getElementById("catalog-data").textContent);
