@@ -44,3 +44,19 @@ pack("mcp", "catalog", files(path.join(tree, "mcp")));
 const index = { schema: 1, name: manifest.name, version: manifest.version, requires: manifest.requires, items };
 writeFileSync(path.join(out, "index.json"), `${JSON.stringify(index, null, 2)}\n`);
 console.log(`catalog ${manifest.version}: ${items.length} archives → ${path.relative(root, out) || out}`);
+
+// Static website: browse only. Installing happens in the desktop app, which verifies every hash.
+const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+const label = (k: string) => (k === "skill" ? "Skill" : k === "app" ? "App" : "MCP catalog");
+const rows = items.map((i) => `<li data-t="${esc(`${i.kind} ${i.id}`.toLowerCase())}"><strong>${esc(i.id)}</strong> <span>${label(i.kind)} · v${esc(i.version)} · ${Math.ceil(i.bytes / 1024)} KB</span><code>sha256 ${i.sha256.slice(0, 16)}…</code></li>`).join("\n");
+writeFileSync(path.join(out, "index.html"), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Vakyartha capabilities</title>
+<style>body{font:16px system-ui;max-width:48rem;margin:2rem auto;padding:0 1rem;color:#222}input{width:100%;padding:.6rem;font:inherit;margin:1rem 0}ul{list-style:none;padding:0}li{padding:.6rem 0;border-bottom:1px solid #ddd}li span{color:#666;margin-left:.5rem}code{display:block;color:#888;font-size:.8rem}@media(prefers-color-scheme:dark){body{background:#161616;color:#eee}li{border-color:#333}}</style></head>
+<body><h1>Vakyartha capabilities ${esc(manifest.version)}</h1>
+<p>For Vakyartha ${esc(manifest.requires.vakyartha.min)} up to (not including) ${esc(manifest.requires.vakyartha.below)}. To add one: open Vakyartha, then Settings → Library → Browse online catalog. Every item is hash-checked and arrives as a draft you review.</p>
+<input id="q" type="search" placeholder="Search skills and apps" aria-label="Search">
+<ul id="l">
+${rows}
+</ul>
+<script>document.getElementById("q").addEventListener("input",e=>{const v=e.target.value.toLowerCase();for(const li of document.querySelectorAll("#l li"))li.hidden=!li.dataset.t.includes(v)})</script>
+</body></html>
+`);
