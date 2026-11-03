@@ -1,6 +1,6 @@
 # Working on NSE Market Terminal
 
-Read [Building a Vakyartha app](../../../docs/development/BUILDING-APPS.md) first; this app follows its method. Then README.md, SKILLS.md and ARCHITECTURE.md here. This is app code, not Projection framework source.
+Read Building a Vakyartha app (Vakyartha's app-building guide, in the Vakyartha product documentation) first; this app follows its method. Then README.md, SKILLS.md and ARCHITECTURE.md here. This is app code, not Projection framework source.
 
 ## Invariants
 

@@ -1,6 +1,6 @@
 # Working on RBI Desk
 
-Read [Building a Vakyartha app](../../../docs/development/BUILDING-APPS.md), then README.md, SKILLS.md and ARCHITECTURE.md here. Follow the root repository rules.
+Read Building a Vakyartha app (Vakyartha's app-building guide, in the Vakyartha product documentation), then README.md, SKILLS.md and ARCHITECTURE.md here. Follow the root repository rules.
 
 ## Invariants
 

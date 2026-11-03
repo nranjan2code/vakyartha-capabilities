@@ -1,6 +1,6 @@
 # Working on Learning Desk
 
-Read [BUILDING-APPS.md](../../../docs/development/BUILDING-APPS.md), [SKILL-AUTHORING.md](../../../docs/development/SKILL-AUTHORING.md), [PROGRAMMES.md](../../../docs/features/PROGRAMMES.md) and this package's README, SKILLS and ARCHITECTURE before changes.
+Read BUILDING-APPS.md (Vakyartha's app-building guide, in the Vakyartha product documentation), SKILL-AUTHORING.md (Vakyartha's skill-authoring guide, in the Vakyartha product documentation), PROGRAMMES.md (Vakyartha's Listen and Watch guide, in the Vakyartha product documentation) and this package's README, SKILLS and ARCHITECTURE before changes.
 
 Keep one normalized state owner. Derive all five surfaces, quizzes, notes and spoken lesson from that state. Never call models or providers inside this sandbox, grant raw network, or create a parallel skill loader. AI content creation uses the host-owned studio, existing enabled skills and MCP permissions. assistant.compose prepares text only; it cannot submit it. Any exported state-changing tool must declare readOnly false, require the current expectedRevision and save only a draft. Never expose accept_draft as an assistant tool.
 

@@ -24,3 +24,6 @@ needs to run (its core skills and integrations) live in Vakyartha, not here.
    old and use the Node version in `.node-version`.
 7. **Plain capability language.** Describe what an item does and what it can
    reach in plain words. Do not name competitors.
+8. **Public boundary.** This repository is public. Never link to, name the path of, or pull from a private repository; never add a submodule; never commit local paths. `node scripts/public-boundary.ts` (part of `quick`) enforces it. Item documents describe Vakyartha's guides by name, without links.
+9. **Checks on the machine first.** `node scripts/ci.ts quick` before every push (the pre-push hook enforces it), `node scripts/ci.ts full` before signing. Run `node scripts/ci.ts hooks` once per clone; never bypass the hooks. `scripts/ci-core.ts` is shared with Vakyartha and Projection: keep the copies identical.
+10. **Documents in step.** Update an item's README, AGENTS, SKILLS and ARCHITECTURE documents, this repository's README counts and CHANGELOG in the same change as the item. Step-by-step maintenance: [dev-skills/capabilities-maintain](dev-skills/capabilities-maintain/SKILL.md).
