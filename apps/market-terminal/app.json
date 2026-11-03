@@ -1,0 +1,261 @@
+{
+  "id": "market-terminal",
+  "version": "1.0.0",
+  "name": "NSE Market Terminal",
+  "description": "Daily NSE workspace: live indices, breadth and India VIX, movers, a 30-symbol watchlist, portfolio P&L, price alerts, instrument research with benchmark comparison, and an index explorer, all from governed NSE reads with source receipts.",
+  "author": "Vakyartha",
+  "category": "finance",
+  "icon": "chart",
+  "entrypoints": {
+    "backend": "server.ts",
+    "surface": "surface.json",
+    "render": "renderApp"
+  },
+  "runtime": {
+    "engine": "node26",
+    "memoryLimitMb": 256,
+    "cpuTimeLimitSec": 30,
+    "maxStorageMb": 16
+  },
+  "entitlements": {
+    "network": {
+      "mode": "brokered",
+      "allowedDomains": []
+    },
+    "mcpTools": [
+      "nse-cmmkt__cm_get_live_indices",
+      "nse-cmmkt__cm_get_stock_quote",
+      "nse-cmmkt__nse_get_market_movers",
+      "nse__get_stock_history",
+      "nse__get_market_mood",
+      "nse__get_bulk_quote",
+      "nse__search_symbols",
+      "nse__get_52_week_high_low",
+      "nse__get_stock_vs_index",
+      "nse__get_corporate_actions",
+      "nse__get_volume_analysis",
+      "nse__get_top_by_volume",
+      "nse__get_index_movers",
+      "nse__get_index_performance",
+      "nse__get_index_history",
+      "nse__get_index_valuation",
+      "nse__compare_indices",
+      "nse__get_index_snapshot",
+      "app-news-desk__get_latest_articles"
+    ],
+    "storage": {
+      "sqlite": false,
+      "duckdb": true
+    },
+    "toolActions": {
+      "refreshMarket": [
+        "nse-cmmkt__cm_get_live_indices",
+        "nse-cmmkt__nse_get_market_movers",
+        "nse__get_market_mood",
+        "nse__get_bulk_quote",
+        "nse-cmmkt__cm_get_stock_quote"
+      ],
+      "refresh_market": [
+        "nse-cmmkt__cm_get_live_indices",
+        "nse-cmmkt__nse_get_market_movers",
+        "nse__get_market_mood",
+        "nse__get_bulk_quote",
+        "nse-cmmkt__cm_get_stock_quote"
+      ],
+      "search": [
+        "nse__search_symbols"
+      ],
+      "show_movers": [
+        "nse-cmmkt__nse_get_market_movers"
+      ],
+      "refresh_movers": [
+        "nse-cmmkt__nse_get_market_movers",
+        "nse__get_top_by_volume",
+        "nse__get_index_movers"
+      ],
+      "compare_indices": [
+        "nse__compare_indices"
+      ],
+      "fetch_instrument": [
+        "nse-cmmkt__cm_get_stock_quote",
+        "nse__get_stock_history",
+        "nse__get_52_week_high_low",
+        "nse__get_stock_vs_index",
+        "nse__get_corporate_actions",
+        "nse__get_volume_analysis"
+      ],
+      "open_instrument": [
+        "nse-cmmkt__cm_get_stock_quote",
+        "nse__get_stock_history",
+        "nse__get_52_week_high_low",
+        "nse__get_stock_vs_index",
+        "nse__get_corporate_actions",
+        "nse__get_volume_analysis"
+      ],
+      "study_index": [
+        "nse__get_index_snapshot",
+        "nse__get_index_performance",
+        "nse__get_index_history",
+        "nse__get_index_valuation"
+      ]
+    },
+    "toolPurposes": {
+      "nse-cmmkt__cm_get_live_indices": {
+        "reason": "Refresh the market overview’s exchange index levels.",
+        "optional": false
+      },
+      "nse-cmmkt__cm_get_stock_quote": {
+        "reason": "Read delayed quotes for tracked stocks, holdings and selected instruments.",
+        "optional": false
+      },
+      "nse-cmmkt__nse_get_market_movers": {
+        "reason": "Refresh exchange gainers and losers.",
+        "optional": false
+      },
+      "nse__get_market_mood": {
+        "reason": "Refresh the exchange’s market breadth and descriptive statistics.",
+        "optional": false
+      },
+      "nse__get_bulk_quote": {
+        "reason": "Refresh last-close prices beyond the bounded live-quote set.",
+        "optional": false
+      },
+      "nse__get_stock_history": {
+        "reason": "Load a selected instrument’s historical prices for analysis.",
+        "optional": true
+      },
+      "nse__search_symbols": {
+        "reason": "Search for an exchange-listed company or symbol.",
+        "optional": true
+      },
+      "nse__get_52_week_high_low": {
+        "reason": "Read the selected instrument’s published 52-week range.",
+        "optional": true
+      },
+      "nse__get_stock_vs_index": {
+        "reason": "Compare a selected instrument with its benchmark.",
+        "optional": true
+      },
+      "nse__get_corporate_actions": {
+        "reason": "Read corporate actions for a selected instrument.",
+        "optional": true
+      },
+      "nse__get_volume_analysis": {
+        "reason": "Inspect trading volume for a selected instrument.",
+        "optional": true
+      },
+      "nse__get_top_by_volume": {
+        "reason": "Browse the most actively traded stocks.",
+        "optional": true
+      },
+      "nse__get_index_movers": {
+        "reason": "Inspect the selected index’s contributors.",
+        "optional": true
+      },
+      "nse__get_index_performance": {
+        "reason": "Inspect historical returns for a selected index.",
+        "optional": true
+      },
+      "nse__get_index_history": {
+        "reason": "Chart the selected index’s source price history.",
+        "optional": true
+      },
+      "nse__get_index_valuation": {
+        "reason": "Inspect the selected index’s published valuation history.",
+        "optional": true
+      },
+      "nse__compare_indices": {
+        "reason": "Compare selected exchange indices.",
+        "optional": true
+      },
+      "nse__get_index_snapshot": {
+        "reason": "Read the exchange index directory for index exploration.",
+        "optional": true
+      },
+      "app-news-desk__get_latest_articles": {
+        "reason": "Read saved related stories from News Desk during instrument research; this is a local cross-app read.",
+        "optional": true
+      }
+    }
+  },
+  "triggers": [
+    {
+      "id": "startup-refresh",
+      "kind": "startup",
+      "action": "refreshMarket",
+      "maxDurationSec": 30
+    },
+    {
+      "id": "market-refresh",
+      "kind": "cron",
+      "expression": "*/5 * * * *",
+      "action": "refreshMarket",
+      "maxDurationSec": 30
+    }
+  ],
+  "exports": {
+    "tools": [
+      {
+        "name": "get_market_summary",
+        "description": "Latest delayed NSE indices, breadth and India VIX, top movers and tracked quotes, each with its time and basis",
+        "readOnly": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "watchlist": {
+              "type": "string",
+              "description": "Optional saved watchlist name; omitted uses the active list. Available names are returned in the result."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "get_market_brief",
+        "description": "A spoken-style market brief (indices, breadth, VIX, movers, sectors, watchlist, portfolio, alerts) written in sentences, and the same brief as a programme (segments with live charts and figures, and a price ticker) that another app can publish at its voice.listen path to play or watch",
+        "readOnly": true
+      },
+      {
+        "name": "get_portfolio",
+        "description": "The user's NSE holdings valued from the latest saved quotes: value, day change and unrealised P&L in INR",
+        "readOnly": true
+      },
+      {
+        "name": "get_instrument",
+        "description": "Saved research for one NSE symbol: quote, daily analytics, 52-week range, benchmark beta and correlation, corporate actions, volume profile and related news",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "symbol": {
+              "type": "string",
+              "description": "NSE symbol, such as TCS; defaults to the one open in Instrument"
+            }
+          }
+        },
+        "readOnly": true
+      }
+    ],
+    "feeds": [
+      {
+        "id": "market_feed",
+        "description": "NSE equity quotes and indices snapshot",
+        "dataPath": "/quotes"
+      }
+    ],
+    "skills": [
+      {
+        "name": "nse-market-analyst",
+        "description": "Analyze Indian market indices, price movements, and market breadth from NSE Market Terminal",
+        "path": "SKILLS.md"
+      }
+    ]
+  },
+  "voice": {
+    "listen": {
+      "surface": "overview",
+      "path": "/spoken/brief",
+      "label": "Listen to the market brief",
+      "live": 3
+    }
+  }
+}

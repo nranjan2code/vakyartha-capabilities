@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "name": "vakyartha-capabilities",
+  "version": "1.0.0",
+  "requires": {
+    "vakyartha": {
+      "min": "1.0.0",
+      "below": "2.0.0"
+    }
+  },
+  "provides": {
+    "skills": 49,
+    "apps": 11
+  }
+}

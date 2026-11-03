@@ -1,0 +1,252 @@
+{
+  "id": "rbi-desk",
+  "version": "1.0.0",
+  "name": "RBI Desk",
+  "description": "Official RBI rates, weekly foreign exchange reserves, notices and searchable Master Directions, with source dates and receipts.",
+  "author": "Vakyartha",
+  "icon": "chart",
+  "category": "finance",
+  "entrypoints": {
+    "backend": "server.ts",
+    "surface": "surface.json",
+    "render": "renderApp"
+  },
+  "runtime": {
+    "engine": "node26",
+    "memoryLimitMb": 256,
+    "cpuTimeLimitSec": 30,
+    "maxStorageMb": 16
+  },
+  "entitlements": {
+    "network": {
+      "mode": "brokered",
+      "allowedDomains": []
+    },
+    "mcpTools": [
+      "web__fetch_page"
+    ],
+    "storage": {
+      "sqlite": false,
+      "duckdb": false
+    },
+    "toolActions": {
+      "refresh": [
+        "web__fetch_page"
+      ]
+    },
+    "toolPurposes": {
+      "web__fetch_page": {
+        "reason": "Read official rates, releases, reserves and notices from the source destinations you approve.",
+        "optional": false
+      }
+    }
+  },
+  "triggers": [
+    {
+      "id": "startup-refresh",
+      "kind": "startup",
+      "action": "refresh",
+      "maxDurationSec": 30
+    },
+    {
+      "id": "refresh-rbi",
+      "kind": "cron",
+      "expression": "*/30 * * * *",
+      "action": "refresh",
+      "maxDurationSec": 30
+    }
+  ],
+  "exports": {
+    "tools": [
+      {
+        "name": "get_rbi_rates",
+        "description": "RBI's current policy repo, SDF, MSF and bank rates, CRR and SLR, FBIL reference exchange rates, lending and deposit rate ranges, call and T-bill rates, each exactly as published with its as-on date, plus the last change RBI Desk saw",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "rate": {
+              "type": "string",
+              "description": "Return only this rate, such as repo, crr, slr or usd. Omit for the full panel.",
+              "enum": [
+                "repo",
+                "sdf",
+                "msf",
+                "bank",
+                "reverse-repo",
+                "crr",
+                "slr",
+                "usd",
+                "gbp",
+                "eur",
+                "jpy",
+                "aed",
+                "base",
+                "mclr",
+                "savings",
+                "term-deposit",
+                "call",
+                "tbill-91",
+                "tbill-182",
+                "tbill-364",
+                "sensex",
+                "nifty"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "readOnly": true
+      },
+      {
+        "name": "get_rbi_briefing",
+        "description": "A spoken RBI briefing: current policy rates, ratios, the dollar reference rate, any changes seen and the latest RBI releases, as sentences to read aloud",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "readOnly": true
+      },
+      {
+        "name": "get_rate_history",
+        "description": "Stored daily values and change points of one RBI rate (repo, sdf, msf, bank, crr, slr or usd) since RBI Desk began reading",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "rate": {
+              "type": "string",
+              "description": "One of repo, sdf, msf, bank, crr, slr, usd",
+              "enum": [
+                "repo",
+                "sdf",
+                "msf",
+                "bank",
+                "crr",
+                "slr",
+                "usd"
+              ]
+            },
+            "since": {
+              "type": "string",
+              "description": "Optional YYYY-MM-DD start date"
+            }
+          },
+          "required": [
+            "rate"
+          ],
+          "additionalProperties": false
+        },
+        "readOnly": true
+      },
+      {
+        "name": "get_rbi_updates",
+        "description": "Official RBI press releases, notifications (circulars), bulletin, annual report and tenders, newest first, with links",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "feed": {
+              "type": "string",
+              "description": "Optional: Press releases, Notifications, Bulletin, Annual report or Tenders; omitted means all except Tenders",
+              "enum": [
+                "All",
+                "Press releases",
+                "Notifications",
+                "Bulletin",
+                "Annual report",
+                "Tenders"
+              ]
+            },
+            "tag": {
+              "type": "string",
+              "description": "Optional topic: policy, penalty, gold-bond, auction, deposit-rates, kyc, payments, forex-reserves",
+              "enum": [
+                "All",
+                "policy",
+                "penalty",
+                "gold-bond",
+                "auction",
+                "deposit-rates",
+                "kyc",
+                "payments",
+                "forex-reserves"
+              ]
+            },
+            "query": {
+              "type": "string",
+              "description": "Optional words that must all appear in the title or excerpt"
+            },
+            "since": {
+              "type": "string",
+              "description": "Optional YYYY-MM-DD"
+            },
+            "limit": {
+              "type": "integer",
+              "description": "1-30, default 10",
+              "minimum": 1,
+              "maximum": 30
+            }
+          },
+          "additionalProperties": false
+        },
+        "readOnly": true
+      },
+      {
+        "name": "get_forex_reserves",
+        "description": "Official RBI total foreign exchange reserves and FCA, gold, SDR and IMF components in US$ million and INR crore, with week-ending date and published weekly changes.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "weeks": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 104,
+              "description": "Stored weeks to return, default 1"
+            }
+          },
+          "additionalProperties": false
+        },
+        "readOnly": true
+      },
+      {
+        "name": "find_master_direction",
+        "description": "Search the official RBI Master Directions directory by topic, including KYC or payments. Returns exact titles, official links, categories, issue and amendment dates; not legal interpretation.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false
+        },
+        "readOnly": true
+      }
+    ],
+    "feeds": [
+      {
+        "id": "rbi_updates",
+        "description": "Official RBI feed items, newest first",
+        "dataPath": "/items"
+      }
+    ],
+    "skills": [
+      {
+        "name": "rbi-desk-reader",
+        "description": "Use the canonical RBI procedure to read RBI Desk rates, reserves, directions and notices",
+        "path": "SKILLS.md"
+      }
+    ]
+  },
+  "voice": {
+    "listen": {
+      "surface": "rates",
+      "path": "/spoken/programme",
+      "label": "Listen to the RBI briefing"
+    }
+  }
+}
