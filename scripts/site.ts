@@ -83,6 +83,7 @@ export function site(index: Index): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Vakyartha Capabilities</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDggNjA4Ij48cmVjdCB3aWR0aD0iNjA4IiBoZWlnaHQ9IjYwOCIgcng9IjExNCIgZmlsbD0iIzEwMUQzRCIvPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDU0LjcyIDU0LjcyKSI+PHN2ZyB3aWR0aD0iNDk4LjU2IiBoZWlnaHQ9IjQ5OC41NiIgdmlld0JveD0iODAgODAgNDQwIDQ0MCI+PHBhdGggZmlsbD0iI0Y2RjVGMSIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMjcwIDEwNUMyNzggMTMyIDMxMSAxNDYgMzQ4IDE1MkMzOTQgMTU2IDQyNSAxNzQgNDQ2IDIwMUw0OTQgMjMxTDQ1MCAyMzhDNDI2IDI0OSA0MjAgMjc0IDQyMyAzMDBDNDMwIDM1NyA0MDcgNDExIDM2OCA0NTFDMzMyIDQ4NyAyOTUgNTAyIDI1MyA0ODVMMTk1IDQ2MkMxNTkgNDQ3IDEzMSA0NTIgMTA4IDQ3OUMxMTQgNDI5IDEyNiAzODQgMTQ5IDM0N0MxNzcgMzAxIDIyMyAyNjUgMjU3IDIyOUMyNzMgMjEzIDI4MyAxOTkgMjg5IDE4MkMyNzQgMTg1IDI2NSAxODEgMjYzIDE3MkMyNzcgMTgwIDI5OCAxNzggMzE2IDE3MkMyODcgMTc0IDI2OCAxNjcgMjY5IDE0N0MyODEgMTYzIDMxMCAxNjYgMzMzIDE1OUMyOTkgMTU5IDI3MSAxNDEgMjcwIDEwNVpNNDQ4IDIzMUM0MzAgMjA3IDQxMCAxODggMzg5IDE4OUMzNjIgMTkwIDM1MSAyMTEgMzU2IDIzN0MzNTkgMjU3IDM3NCAyNzYgMzk4IDI5NkM0MDIgMjY3IDQxOCAyNDQgNDQ4IDIzMVpNMTYyIDM3MUMxOTAgMzQ2IDIyMCAzNTIgMjQ1IDM3NkwyNzMgNDEzQzMwNCAzNzcgMzM1IDMzMSAzNjcgMjk3QzM1OCAzNjYgMzMxIDQzMiAyOTEgNDgzQzI2OCA0NDIgMjM1IDQwNyAyMDQgMzg4QzE4OSAzNzkgMTc1IDM3NiAxNjIgMzgwWiIvPgogIDxjaXJjbGUgY3g9IjQwNSIgY3k9IjIxOCIgcj0iMTMiIGZpbGw9IiNGNkY1RjEiLz4KICA8cGF0aCBmaWxsPSIjRjVBNDAwIiBkPSJNNDk0IDIzMUM0NDUgMjMxIDQxNyAyNDEgNDA1IDI2N0MzODkgMzAwIDQwMSAzMzggNDAyIDM3MEM0MTMgMzQ5IDQyMCAzMjcgNDIzIDMwM0M0MjMgMjc1IDQyNiAyNTIgNDUwIDIzOFoiLz4KPC9zdmc+PC9nPjwvc3ZnPg==">
 <meta name="description" content="${esc(summary)} for Vakyartha ${esc(range)}. Every item is hash-pinned and arrives in Vakyartha as a draft you review.">
 <style>
 /* Layout: a catalog with a grouped shelf on the left, one results column with search, sort and paging, and one detail sheet. */
@@ -104,7 +105,8 @@ a{color:inherit}
 button{font:inherit;color:inherit}
 header.top{background:var(--surface);border-bottom:1px solid var(--rule)}
 header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-block:14px}
-.brand{display:flex;align-items:baseline;gap:10px;text-decoration:none}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.brand svg{border-radius:8px;flex:none}
 .brand b{font:600 1.25rem/1 var(--display)}
 .brand span{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
 nav.links{display:flex;gap:18px;flex-wrap:wrap;font-size:.875rem}
@@ -185,7 +187,7 @@ dialog::backdrop{background:rgba(10,14,22,.45)}
 </head>
 <body>
 <header class="top"><div class="wrap">
-<a class="brand" href="./"><b>Vakyartha</b><span>Capabilities</span></a>
+<a class="brand" href="./"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 608 608" width="32" height="32" aria-hidden="true" focusable="false"><rect width="608" height="608" rx="114" fill="#101D3D"/><g transform="translate(54.72 54.72)"><svg width="498.56" height="498.56" viewBox="80 80 440 440"><path fill="#F6F5F1" fill-rule="evenodd" d="M270 105C278 132 311 146 348 152C394 156 425 174 446 201L494 231L450 238C426 249 420 274 423 300C430 357 407 411 368 451C332 487 295 502 253 485L195 462C159 447 131 452 108 479C114 429 126 384 149 347C177 301 223 265 257 229C273 213 283 199 289 182C274 185 265 181 263 172C277 180 298 178 316 172C287 174 268 167 269 147C281 163 310 166 333 159C299 159 271 141 270 105ZM448 231C430 207 410 188 389 189C362 190 351 211 356 237C359 257 374 276 398 296C402 267 418 244 448 231ZM162 371C190 346 220 352 245 376L273 413C304 377 335 331 367 297C358 366 331 432 291 483C268 442 235 407 204 388C189 379 175 376 162 380Z"/>  <circle cx="405" cy="218" r="13" fill="#F6F5F1"/>  <path fill="#F5A400" d="M494 231C445 231 417 241 405 267C389 300 401 338 402 370C413 349 420 327 423 303C423 275 426 252 450 238Z"/></svg></g></svg><b>Vakyartha</b><span>Capabilities</span></a>
 <nav class="links" aria-label="Catalog files"><a href="index.json">index.json</a><a href="SHA256SUMS.txt">SHA256SUMS</a><a href="https://github.com/nranjan2code/vakyartha-capabilities/releases/tag/capabilities-v${esc(index.version)}">Release ${esc(index.version)}</a></nav>
 </div></header>
 <main class="wrap">

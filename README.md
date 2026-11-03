@@ -1,3 +1,16 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/brand/lockup-reverse.svg">
+    <img src="assets/brand/lockup-colour.svg" width="360" alt="Vakyartha">
+  </picture>
+</p>
+
+<p align="center"><b>The apps, skills and integrations published for Vakyartha.</b></p>
+
+<p align="center"><a href="https://nranjan2code.github.io/vakyartha-capabilities/"><b>Browse the catalog</b></a> · <a href="https://nranjan2code.github.io/vakyartha-releases/">Download Vakyartha</a> · <a href="https://vakyartha.com">vakyartha.com</a></p>
+
+---
+
 # Vakyartha Capabilities
 
 The apps, skills and integrations published for [Vakyartha](https://vakyartha.com), released on their own version line and signed by the owner.
