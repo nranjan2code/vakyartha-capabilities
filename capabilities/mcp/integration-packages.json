@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "packages": [
+    {
+      "id": "brave-search",
+      "package": "@brave/brave-search-mcp-server",
+      "version": "2.1.4",
+      "bin": "dist/index.js",
+      "folderArgs": false,
+      "env": {
+        "BRAVE_API_KEY": {
+          "kind": "vault"
+        }
+      }
+    },
+    {
+      "id": "context7",
+      "package": "@upstash/context7-mcp",
+      "version": "4.3.0",
+      "bin": "dist/index.js",
+      "folderArgs": false,
+      "env": {
+        "CONTEXT7_API_KEY": {
+          "kind": "vault"
+        }
+      }
+    },
+    {
+      "id": "files",
+      "package": "@modelcontextprotocol/server-filesystem",
+      "version": "2026.8.31",
+      "bin": "dist/index.js",
+      "folderArgs": true,
+      "env": {}
+    },
+    {
+      "id": "memory",
+      "package": "@modelcontextprotocol/server-memory",
+      "version": "2026.8.31",
+      "bin": "dist/index.js",
+      "folderArgs": false,
+      "env": {
+        "MEMORY_FILE_PATH": {
+          "kind": "file",
+          "path": "memory.jsonl"
+        }
+      }
+    },
+    {
+      "id": "notion",
+      "package": "@notionhq/notion-mcp-server",
+      "version": "2.5.2",
+      "bin": "bin/cli.mjs",
+      "folderArgs": false,
+      "env": {
+        "NOTION_TOKEN": {
+          "kind": "vault"
+        }
+      }
+    },
+    {
+      "id": "open-meteo",
+      "package": "open-meteo-mcp-server",
+      "version": "2.5.3",
+      "bin": "dist/index.js",
+      "folderArgs": false,
+      "env": {}
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+[
+  {
+    "id": "triage",
+    "title": "Triage",
+    "data": {
+      "repoDraft": "nranjan2code/vakyartha",
+      "emptyHint": "Use Access in the app header to review this app’s Web pages tools, destinations and background access. Then type a public owner/repository and press Refresh. Recent issues, pull requests and commits appear here, with lanes for your own triage."
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "repo-bar",
+          "triage-empty"
+        ]
+      },
+      {
+        "id": "repo-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
+        },
+        "children": [
+          "repo-input",
+          "refresh"
+        ]
+      },
+      {
+        "id": "repo-input",
+        "type": "input",
+        "props": {
+          "label": "Public repository",
+          "bind": "/repoDraft",
+          "placeholder": "owner/repository"
+        }
+      },
+      {
+        "id": "refresh",
+        "type": "button",
+        "props": {
+          "label": "Refresh",
+          "action": "refresh",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "triage-empty",
+        "type": "card",
+        "props": {
+          "title": "No repository activity yet",
+          "body": "{/emptyHint}"
+        }
+      }
+    ]
+  },
+  {
+    "id": "activity",
+    "title": "Activity",
+    "data": {},
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "activity-empty"
+        ]
+      },
+      {
+        "id": "activity-empty",
+        "type": "text",
+        "props": {
+          "content": "Open pull requests and recent commits appear here after a refresh on Triage.",
+          "variant": "caption"
+        }
+      }
+    ]
+  },
+  {
+    "id": "sources",
+    "title": "Sources",
+    "data": {},
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "ledger-section"
+        ]
+      },
+      {
+        "id": "ledger-section",
+        "type": "section",
+        "props": {
+          "title": "Source ledger",
+          "description": "The latest 24 reads of the public repository API. A scheduled refresh (off until you enable it under Manage) runs every 15 minutes while the app and computer are awake."
+        },
+        "children": [
+          "no-receipts"
+        ]
+      },
+      {
+        "id": "no-receipts",
+        "type": "text",
+        "props": {
+          "content": "Nothing read yet. Use Access in the app header to review this app’s Web pages tools, destinations and background access.",
+          "variant": "caption"
+        }
+      }
+    ]
+  }
+]

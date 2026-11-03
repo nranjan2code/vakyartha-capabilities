@@ -1,0 +1,1262 @@
+[
+  {
+    "id": "overview",
+    "title": "Overview",
+    "data": {
+      "status": "Not refreshed yet · INR · informational use, not advice",
+      "segment": "NIFTY",
+      "moversNote": "Choose an index to load its movers."
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "ov-bar",
+          "ov-empty"
+        ]
+      },
+      {
+        "id": "ov-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true,
+          "align": "center"
+        },
+        "children": [
+          "ov-status"
+        ]
+      },
+      {
+        "id": "ov-status",
+        "type": "text",
+        "props": {
+          "content": "{/status}",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "ov-empty",
+        "type": "card",
+        "props": {
+          "title": "No market data yet",
+          "body": "Use Access in the app header to review this app’s exchange tools, destinations and background access. Then press refresh at the top right: benchmark indices, breadth, India VIX, top movers, sector rotation and your watchlist appear here with their exchange times."
+        }
+      }
+    ]
+  },
+  {
+    "id": "watchlist",
+    "title": "Watchlist",
+    "data": {
+      "watchDraft": "",
+      "searchDraft": "",
+      "searchMessage": "",
+      "groupDraft": "",
+      "deleteLabel": "Delete Main",
+      "groupChips": [
+        {
+          "name": "Main",
+          "label": "Main · 8",
+          "style": "primary"
+        }
+      ],
+      "watch": [
+        {
+          "symbol": "RELIANCE",
+          "price": "—",
+          "change": "",
+          "changePct": 0,
+          "range": "—",
+          "volume": "—",
+          "basis": "Not read yet",
+          "tone": "neutral",
+          "body": "— · vol —\n\nNot read yet"
+        },
+        {
+          "symbol": "TCS",
+          "price": "—",
+          "change": "",
+          "changePct": 0,
+          "range": "—",
+          "volume": "—",
+          "basis": "Not read yet",
+          "tone": "neutral",
+          "body": "— · vol —\n\nNot read yet"
+        },
+        {
+          "symbol": "INFY",
+          "price": "—",
+          "change": "",
+          "changePct": 0,
+          "range": "—",
+          "volume": "—",
+          "basis": "Not read yet",
+          "tone": "neutral",
+          "body": "— · vol —\n\nNot read yet"
+        },
+        {
+          "symbol": "HDFCBANK",
+          "price": "—",
+          "change": "",
+          "changePct": 0,
+          "range": "—",
+          "volume": "—",
+          "basis": "Not read yet",
+          "tone": "neutral",
+          "body": "— · vol —\n\nNot read yet"
+        },
+        {
+          "symbol": "ICICIBANK",
+          "price": "—",
+          "change": "",
+          "changePct": 0,
+          "range": "—",
+          "volume": "—",
+          "basis": "Not read yet",
+          "tone": "neutral",
+          "body": "— · vol —\n\nNot read yet"
+        },
+        {
+          "symbol": "SBIN",
+          "price": "—",
+          "change": "",
+          "changePct": 0,
+          "range": "—",
+          "volume": "—",
+          "basis": "Not read yet",
+          "tone": "neutral",
+          "body": "— · vol —\n\nNot read yet"
+        },
+        {
+          "symbol": "BHARTIARTL",
+          "price": "—",
+          "change": "",
+          "changePct": 0,
+          "range": "—",
+          "volume": "—",
+          "basis": "Not read yet",
+          "tone": "neutral",
+          "body": "— · vol —\n\nNot read yet"
+        },
+        {
+          "symbol": "ITC",
+          "price": "—",
+          "change": "",
+          "changePct": 0,
+          "range": "—",
+          "volume": "—",
+          "basis": "Not read yet",
+          "tone": "neutral",
+          "body": "— · vol —\n\nNot read yet"
+        }
+      ]
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "wl-groups",
+          "wl-bar",
+          "wl-tabs"
+        ]
+      },
+      {
+        "id": "wl-tabs",
+        "type": "tabs",
+        "children": [
+          "wl-tabs-cards"
+        ]
+      },
+      {
+        "id": "wl-tabs-cards",
+        "type": "section",
+        "props": {
+          "title": "Cards"
+        },
+        "children": [
+          "wl-cards"
+        ]
+      },
+      {
+        "id": "wl-groups",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true,
+          "align": "end"
+        },
+        "children": [
+          "wl-group-chips",
+          "wl-group-name",
+          "wl-group-save"
+        ]
+      },
+      {
+        "id": "wl-group-chips",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true
+        },
+        "children": {
+          "each": "/groupChips",
+          "template": "wl-group-chip"
+        }
+      },
+      {
+        "id": "wl-group-chip",
+        "type": "button",
+        "props": {
+          "label": "{label}",
+          "action": "switch_group",
+          "payload": {
+            "group": "{name}"
+          },
+          "style": "{style}"
+        }
+      },
+      {
+        "id": "wl-group-name",
+        "type": "input",
+        "props": {
+          "label": "New watchlist from this one",
+          "bind": "/groupDraft",
+          "placeholder": "Banks"
+        }
+      },
+      {
+        "id": "wl-group-save",
+        "type": "button",
+        "props": {
+          "label": "Save as",
+          "action": "save_group",
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "wl-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true,
+          "align": "end"
+        },
+        "children": [
+          "wl-add-input",
+          "wl-add",
+          "wl-search-input",
+          "wl-search"
+        ]
+      },
+      {
+        "id": "wl-add-input",
+        "type": "input",
+        "props": {
+          "label": "Add symbols · 8 of 30",
+          "bind": "/watchDraft",
+          "placeholder": "WIPRO, LT"
+        }
+      },
+      {
+        "id": "wl-add",
+        "type": "button",
+        "props": {
+          "label": "Add",
+          "action": "add_watch",
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "wl-search-input",
+        "type": "input",
+        "props": {
+          "label": "Find a symbol",
+          "bind": "/searchDraft",
+          "placeholder": "TATA, BANK, PHARMA"
+        }
+      },
+      {
+        "id": "wl-search",
+        "type": "button",
+        "props": {
+          "label": "Search",
+          "action": "search",
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "wl-cards",
+        "type": "grid",
+        "props": {
+          "columns": 4,
+          "minItemWidth": "sm",
+          "gap": "sm",
+          "searchable": false,
+          "pageSize": 16
+        },
+        "children": {
+          "each": "/watch",
+          "template": "wl-card"
+        }
+      },
+      {
+        "id": "wl-card",
+        "type": "card",
+        "props": {
+          "title": "{symbol}",
+          "subtitle": "{price}",
+          "badge": "{change}",
+          "body": "{body}",
+          "tone": "{tone}"
+        },
+        "children": [
+          "wl-card-actions"
+        ]
+      },
+      {
+        "id": "wl-card-actions",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true
+        },
+        "children": [
+          "wl-open",
+          "wl-alert",
+          "wl-up",
+          "wl-remove"
+        ]
+      },
+      {
+        "id": "wl-open",
+        "type": "button",
+        "props": {
+          "label": "Open",
+          "action": "open_instrument",
+          "payload": {
+            "symbol": "{symbol}"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "wl-alert",
+        "type": "button",
+        "props": {
+          "label": "Alert",
+          "action": "prepare_alert",
+          "payload": {
+            "symbol": "{symbol}"
+          },
+          "style": "link"
+        }
+      },
+      {
+        "id": "wl-up",
+        "type": "button",
+        "props": {
+          "label": "Move up",
+          "action": "move_watch",
+          "payload": {
+            "symbol": "{symbol}"
+          },
+          "style": "link"
+        }
+      },
+      {
+        "id": "wl-remove",
+        "type": "button",
+        "props": {
+          "label": "Remove",
+          "action": "remove_watch",
+          "payload": {
+            "symbol": "{symbol}"
+          },
+          "style": "link"
+        }
+      }
+    ]
+  },
+  {
+    "id": "portfolio",
+    "title": "Portfolio",
+    "data": {
+      "holdingDraft": {
+        "symbol": "",
+        "qty": "",
+        "cost": ""
+      }
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "pf-form",
+          "pf-empty"
+        ]
+      },
+      {
+        "id": "pf-form",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true,
+          "align": "end"
+        },
+        "children": [
+          "pf-symbol",
+          "pf-qty",
+          "pf-cost",
+          "pf-save",
+          "pf-clear"
+        ]
+      },
+      {
+        "id": "pf-symbol",
+        "type": "input",
+        "props": {
+          "label": "Symbol",
+          "bind": "/holdingDraft/symbol",
+          "placeholder": "RELIANCE",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "pf-qty",
+        "type": "input",
+        "props": {
+          "label": "Shares",
+          "bind": "/holdingDraft/qty",
+          "placeholder": "Enter shares",
+          "kind": "number",
+          "min": 1,
+          "max": 10000000,
+          "step": 1,
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "pf-cost",
+        "type": "input",
+        "props": {
+          "label": "Average cost (₹)",
+          "bind": "/holdingDraft/cost",
+          "placeholder": "1250.50",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "pf-clear",
+        "type": "button",
+        "props": {
+          "label": "Clear fields",
+          "action": "clear_holding_draft",
+          "style": "link"
+        }
+      },
+      {
+        "id": "pf-save",
+        "type": "button",
+        "props": {
+          "label": "Add or update holding",
+          "action": "save_holding",
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "pf-empty",
+        "type": "text",
+        "props": {
+          "content": "Add each holding with its share count and average cost. Value, day change and unrealised P&L are computed exactly, in paise, from the latest NSE quotes; holdings stay on this computer.",
+          "variant": "caption"
+        }
+      }
+    ]
+  },
+  {
+    "id": "instrument",
+    "title": "Instrument",
+    "data": {
+      "symbolDraft": "RELIANCE",
+      "months": "3",
+      "benchmark": "Nifty 50",
+      "emptyHint": "Press Analyse for RELIANCE: delayed quote, daily candles, moving averages, risk, 52-week range, comparison with Nifty 50, volume profile, corporate actions and related News Desk stories. Use Access in the app header to review this app’s exchange tools, destinations and background access."
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "in-bar",
+          "in-selection-note",
+          "in-empty"
+        ]
+      },
+      {
+        "id": "in-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true,
+          "align": "end"
+        },
+        "children": [
+          "in-symbol",
+          "in-months",
+          "in-benchmark",
+          "in-fetch"
+        ]
+      },
+      {
+        "id": "in-selection-note",
+        "type": "text",
+        "props": {
+          "content": "Choose a symbol, history and benchmark, then press Analyse. Saved results below keep their original dates until a read succeeds.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "in-symbol",
+        "type": "input",
+        "props": {
+          "label": "NSE symbol",
+          "bind": "/symbolDraft",
+          "placeholder": "RELIANCE",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "in-months",
+        "type": "select",
+        "props": {
+          "label": "History",
+          "bind": "/months",
+          "presentation": "dropdown",
+          "maxWidth": "sm",
+          "options": [
+            {
+              "label": "1 month",
+              "value": "1"
+            },
+            {
+              "label": "3 months",
+              "value": "3"
+            },
+            {
+              "label": "6 months",
+              "value": "6"
+            },
+            {
+              "label": "1 year",
+              "value": "12"
+            }
+          ]
+        }
+      },
+      {
+        "id": "in-benchmark",
+        "type": "select",
+        "props": {
+          "label": "Benchmark",
+          "bind": "/benchmark",
+          "options": [
+            "Nifty 50",
+            "Nifty Bank",
+            "Nifty Next 50",
+            "Nifty Midcap 100",
+            "Nifty IT",
+            "Nifty 500"
+          ],
+          "presentation": "dropdown",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "in-fetch",
+        "type": "button",
+        "props": {
+          "label": "Analyse",
+          "action": "fetch_instrument",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "in-empty",
+        "type": "text",
+        "props": {
+          "content": "{/emptyHint}",
+          "variant": "caption"
+        }
+      }
+    ]
+  },
+  {
+    "id": "indices",
+    "title": "Indices",
+    "data": {
+      "studyDraft": "Nifty 50",
+      "compareSet": [
+        "Nifty 50",
+        "Nifty Bank",
+        "Nifty IT"
+      ],
+      "compareMonths": "6",
+      "indexGroup": "all",
+      "nameOptions": [
+        {
+          "label": "Nifty 50",
+          "value": "Nifty 50"
+        },
+        {
+          "label": "Nifty Bank",
+          "value": "Nifty Bank"
+        },
+        {
+          "label": "Nifty Next 50",
+          "value": "Nifty Next 50"
+        },
+        {
+          "label": "Nifty Midcap 100",
+          "value": "Nifty Midcap 100"
+        },
+        {
+          "label": "Nifty IT",
+          "value": "Nifty IT"
+        },
+        {
+          "label": "Nifty 500",
+          "value": "Nifty 500"
+        }
+      ]
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "ix-tabs"
+        ]
+      },
+      {
+        "id": "ix-tabs",
+        "type": "tabs",
+        "children": [
+          "ix-tabs-explore",
+          "ix-tabs-compare"
+        ]
+      },
+      {
+        "id": "ix-tabs-explore",
+        "type": "section",
+        "props": {
+          "title": "Explore"
+        },
+        "children": [
+          "ix-bar",
+          "ix-selection-note",
+          "ix-hint"
+        ]
+      },
+      {
+        "id": "ix-tabs-compare",
+        "type": "section",
+        "props": {
+          "title": "Compare"
+        },
+        "children": [
+          "ix-compare"
+        ]
+      },
+      {
+        "id": "ix-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true,
+          "align": "end",
+          "maxWidth": "md"
+        },
+        "children": [
+          "ix-select",
+          "ix-go"
+        ]
+      },
+      {
+        "id": "ix-selection-note",
+        "type": "text",
+        "props": {
+          "content": "Choose an index, then press Explore to read its results.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "ix-select",
+        "type": "select",
+        "props": {
+          "label": "Explore index",
+          "bind": "/studyDraft",
+          "options": "{/nameOptions}",
+          "presentation": "dropdown",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "ix-go",
+        "type": "button",
+        "props": {
+          "label": "Explore",
+          "action": "study_index",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "ix-hint",
+        "type": "text",
+        "props": {
+          "content": "Choose an index and press Explore: returns from one day to two years, a year of daily candles, published P/E and P/B, and where today’s valuation sits in its two-year range.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "ix-compare",
+        "type": "section",
+        "props": {
+          "title": "Compare indices",
+          "description": "Choose indices and a window, then press Compare. Same start and end dates for every index; dividends excluded."
+        },
+        "children": [
+          "ix-cmp-bar"
+        ]
+      },
+      {
+        "id": "ix-cmp-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true,
+          "align": "end"
+        },
+        "children": [
+          "ix-cmp-set",
+          "ix-cmp-months",
+          "ix-cmp-go"
+        ]
+      },
+      {
+        "id": "ix-cmp-set",
+        "type": "select",
+        "props": {
+          "label": "Indices (2–10)",
+          "bind": "/compareSet",
+          "options": "{/nameOptions}",
+          "multiple": true
+        }
+      },
+      {
+        "id": "ix-cmp-months",
+        "type": "select",
+        "props": {
+          "label": "Window",
+          "bind": "/compareMonths",
+          "presentation": "dropdown",
+          "maxWidth": "sm",
+          "options": [
+            {
+              "label": "3 months",
+              "value": "3"
+            },
+            {
+              "label": "6 months",
+              "value": "6"
+            },
+            {
+              "label": "1 year",
+              "value": "12"
+            }
+          ]
+        }
+      },
+      {
+        "id": "ix-cmp-go",
+        "type": "button",
+        "props": {
+          "label": "Compare",
+          "action": "compare_indices",
+          "style": "secondary"
+        }
+      }
+    ]
+  },
+  {
+    "id": "movers",
+    "title": "Movers",
+    "data": {
+      "segment": "NIFTY",
+      "period": "1D",
+      "selectionNote": "Choose an index to load its movers. Index ranking: not read yet; press Refresh movers to apply 1D."
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "mv-bar",
+          "mv-selection-note",
+          "mv-empty"
+        ]
+      },
+      {
+        "id": "mv-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true,
+          "align": "end"
+        },
+        "children": [
+          "mv-segment",
+          "mv-period",
+          "mv-go"
+        ]
+      },
+      {
+        "id": "mv-selection-note",
+        "type": "text",
+        "props": {
+          "content": "{/selectionNote}",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "mv-segment",
+        "type": "stack",
+        "props": {
+          "gap": "sm"
+        },
+        "children": [
+          "mv-segment-label",
+          "mv-segment-choices"
+        ]
+      },
+      {
+        "id": "mv-segment-label",
+        "type": "text",
+        "props": {
+          "content": "Stock movers in",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "mv-segment-choices",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true
+        },
+        "children": [
+          "mv-segment-NIFTY",
+          "mv-segment-BANKNIFTY",
+          "mv-segment-NIFTYNEXT50",
+          "mv-segment-ALL"
+        ]
+      },
+      {
+        "id": "mv-segment-NIFTY",
+        "type": "button",
+        "props": {
+          "label": "NIFTY 50",
+          "action": "show_movers",
+          "payload": {
+            "segment": "NIFTY"
+          },
+          "style": "primary"
+        }
+      },
+      {
+        "id": "mv-segment-BANKNIFTY",
+        "type": "button",
+        "props": {
+          "label": "NIFTY BANK",
+          "action": "show_movers",
+          "payload": {
+            "segment": "BANKNIFTY"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "mv-segment-NIFTYNEXT50",
+        "type": "button",
+        "props": {
+          "label": "NIFTY NEXT 50",
+          "action": "show_movers",
+          "payload": {
+            "segment": "NIFTYNEXT50"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "mv-segment-ALL",
+        "type": "button",
+        "props": {
+          "label": "All securities",
+          "action": "show_movers",
+          "payload": {
+            "segment": "ALL"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "mv-period",
+        "type": "select",
+        "props": {
+          "label": "Index movers over",
+          "bind": "/period",
+          "options": [
+            "1D",
+            "1W",
+            "1M",
+            "3M",
+            "6M",
+            "1Y"
+          ]
+        }
+      },
+      {
+        "id": "mv-go",
+        "type": "button",
+        "props": {
+          "label": "Refresh movers",
+          "action": "refresh_movers",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "mv-empty",
+        "type": "text",
+        "props": {
+          "content": "Press Refresh movers for live gainers and losers, the most traded stocks by value and by shares, and the best and worst indices over the period. Use Access in the app header to review this app’s exchange tools, destinations and background access.",
+          "variant": "caption"
+        }
+      }
+    ]
+  },
+  {
+    "id": "alerts",
+    "title": "Alerts",
+    "data": {
+      "alertDraft": {
+        "symbol": "",
+        "kind": "above",
+        "value": ""
+      }
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "al-form",
+          "al-note",
+          "al-empty"
+        ]
+      },
+      {
+        "id": "al-form",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true,
+          "align": "end"
+        },
+        "children": [
+          "al-symbol",
+          "al-kind",
+          "al-value",
+          "al-add",
+          "al-clear"
+        ]
+      },
+      {
+        "id": "al-symbol",
+        "type": "input",
+        "props": {
+          "label": "Symbol",
+          "bind": "/alertDraft/symbol",
+          "placeholder": "TCS"
+        }
+      },
+      {
+        "id": "al-kind",
+        "type": "select",
+        "props": {
+          "label": "When",
+          "bind": "/alertDraft/kind",
+          "options": [
+            {
+              "label": "Price at or above",
+              "value": "above"
+            },
+            {
+              "label": "Price at or below",
+              "value": "below"
+            },
+            {
+              "label": "Session move of at least (%)",
+              "value": "move"
+            }
+          ]
+        }
+      },
+      {
+        "id": "al-value",
+        "type": "input",
+        "props": {
+          "label": "Value",
+          "bind": "/alertDraft/value",
+          "placeholder": "2500 or 3"
+        }
+      },
+      {
+        "id": "al-clear",
+        "type": "button",
+        "props": {
+          "label": "Clear fields",
+          "action": "clear_alert_draft",
+          "style": "link"
+        }
+      },
+      {
+        "id": "al-add",
+        "type": "button",
+        "props": {
+          "label": "Add alert",
+          "action": "add_alert",
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "al-note",
+        "type": "text",
+        "props": {
+          "content": "Alerts are checked against the delayed quotes on every refresh, including the scheduled one under Manage. Only the first 12 tracked symbols get live quotes; the rest use the latest close.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "al-empty",
+        "type": "text",
+        "props": {
+          "content": "No alerts yet. Choose a symbol, a condition and a value; use Alert on any watchlist card to start one.",
+          "variant": "caption"
+        }
+      }
+    ]
+  },
+  {
+    "id": "sources",
+    "title": "Sources",
+    "data": {
+      "stats": {
+        "tracked": "8",
+        "reads": "0",
+        "failed": "0",
+        "failTone": "neutral",
+        "checked": "—"
+      }
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "src-stats",
+          "src-tabs"
+        ]
+      },
+      {
+        "id": "src-tabs",
+        "type": "tabs",
+        "children": [
+          "src-tabs-ledger",
+          "src-tabs-methods"
+        ]
+      },
+      {
+        "id": "src-tabs-ledger",
+        "type": "section",
+        "props": {
+          "title": "Ledger"
+        },
+        "children": [
+          "ledger-section"
+        ]
+      },
+      {
+        "id": "src-tabs-methods",
+        "type": "section",
+        "props": {
+          "title": "Methods"
+        },
+        "children": [
+          "methods-section"
+        ]
+      },
+      {
+        "id": "src-stats",
+        "type": "grid",
+        "props": {
+          "columns": 4,
+          "minItemWidth": "sm",
+          "gap": "sm"
+        },
+        "children": [
+          "src-tracked",
+          "src-reads",
+          "src-failed",
+          "src-checked"
+        ]
+      },
+      {
+        "id": "src-tracked",
+        "type": "stat",
+        "props": {
+          "label": "Tracked symbols",
+          "value": "{/stats/tracked}"
+        }
+      },
+      {
+        "id": "src-reads",
+        "type": "stat",
+        "props": {
+          "label": "Reads in ledger",
+          "value": "{/stats/reads}"
+        }
+      },
+      {
+        "id": "src-failed",
+        "type": "stat",
+        "props": {
+          "label": "Failed reads",
+          "value": "{/stats/failed}",
+          "tone": "{/stats/failTone}"
+        }
+      },
+      {
+        "id": "src-checked",
+        "type": "stat",
+        "props": {
+          "label": "Last market refresh",
+          "value": "{/stats/checked}"
+        }
+      },
+      {
+        "id": "ledger-section",
+        "type": "section",
+        "props": {
+          "title": "Source ledger",
+          "description": "The latest 60 reads. A failed read keeps earlier observations and never counts as fresh data."
+        },
+        "children": [
+          "no-receipts"
+        ]
+      },
+      {
+        "id": "no-receipts",
+        "type": "text",
+        "props": {
+          "content": "Nothing read yet. Use Access in the app header to review this app’s exchange tools, destinations and background access.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "methods-section",
+        "type": "section",
+        "props": {
+          "title": "Methods and limits"
+        },
+        "children": [
+          "methods"
+        ]
+      },
+      {
+        "id": "methods",
+        "type": "accordion",
+        "props": {
+          "items": [
+            {
+              "title": "Quotes and refresh",
+              "body": "Refresh reads every live index group, the movers for the chosen segment, end-of-day breadth and India VIX, and the tracked symbols: live delayed quotes for the first 12 (watchlist order, then holdings and alerts) and the latest close for the rest. NSE refreshes its live snapshot about every 5 minutes; the optional schedule under Manage matches that. Exchange holidays are not known to the session label."
+            },
+            {
+              "title": "Risk and returns",
+              "body": "Volatility is the sample standard deviation of daily simple returns × √252. Drawdown is measured from the running closing peak. Moving averages start at their twentieth or fiftieth observation, never zero-filled. Prices are unadjusted for dividends and corporate actions."
+            },
+            {
+              "title": "Portfolio",
+              "body": "Holdings are kept on this computer. Value, day change and P&L are computed in whole paise from the latest quote and that quote’s previous close; realised gains, charges and taxes are not included."
+            },
+            {
+              "title": "Benchmarks, breadth and valuation",
+              "body": "Comparisons, beta, correlation, breadth, India VIX percentiles and index valuation percentiles are NSE’s published calculations, shown with their dates and methods. They are descriptive statistics, not forecasts or advice."
+            },
+            {
+              "title": "Storage",
+              "body": "Daily stock OHLCV lives in this app’s DuckDB database; quotes, index snapshots, research, holdings, alerts and receipts are saved with the app. Actions run code only: no model request is made."
+            }
+          ]
+        }
+      }
+    ]
+  }
+]

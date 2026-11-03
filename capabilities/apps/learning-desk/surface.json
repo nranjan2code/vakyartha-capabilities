@@ -1,0 +1,1386 @@
+[
+  {
+    "id": "discover",
+    "title": "Discover",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "intro",
+          "browse",
+          "courses",
+          "questions"
+        ]
+      },
+      {
+        "id": "intro",
+        "type": "text",
+        "props": {
+          "content": "Find your next idea. Build knowledge you can put to use.",
+          "variant": "body"
+        }
+      },
+      {
+        "id": "browse",
+        "type": "section",
+        "props": {
+          "title": "Browse by category"
+        },
+        "children": [
+          "category-nav",
+          "course-count"
+        ]
+      },
+      {
+        "id": "category-nav",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm"
+        },
+        "children": [
+          "category-0",
+          "category-1",
+          "category-2",
+          "category-3"
+        ]
+      },
+      {
+        "id": "category-0",
+        "type": "button",
+        "props": {
+          "label": "All courses (3)",
+          "action": "choose_category",
+          "payload": {
+            "category": "All"
+          },
+          "style": "primary"
+        }
+      },
+      {
+        "id": "category-1",
+        "type": "button",
+        "props": {
+          "label": "Mathematics (1)",
+          "action": "choose_category",
+          "payload": {
+            "category": "Mathematics"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "category-2",
+        "type": "button",
+        "props": {
+          "label": "Science (1)",
+          "action": "choose_category",
+          "payload": {
+            "category": "Science"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "category-3",
+        "type": "button",
+        "props": {
+          "label": "Reading & media (1)",
+          "action": "choose_category",
+          "payload": {
+            "category": "Reading & media"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "course-count",
+        "type": "text",
+        "props": {
+          "content": "3 courses · all categories",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "courses",
+        "type": "grid",
+        "props": {
+          "columns": 2,
+          "minItemWidth": "md",
+          "gap": "sm",
+          "searchable": true,
+          "pageSize": 9
+        },
+        "children": {
+          "each": "/courses",
+          "template": "courses-card"
+        }
+      },
+      {
+        "id": "courses-card",
+        "type": "card",
+        "props": {
+          "title": "{title}",
+          "subtitle": "{meta}",
+          "body": "{summary}",
+          "titleLines": 2,
+          "image": "{cover}",
+          "imageLayout": "thumbnail"
+        },
+        "children": [
+          "courses-progress",
+          "courses-actions"
+        ]
+      },
+      {
+        "id": "courses-progress",
+        "type": "progress",
+        "props": {
+          "value": "{done}",
+          "max": "{total}",
+          "label": "{progressLabel}",
+          "kind": "bar",
+          "visibleIf": "{started}"
+        }
+      },
+      {
+        "id": "courses-actions",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm"
+        },
+        "children": [
+          "courses-open",
+          "courses-save",
+          "courses-remove"
+        ]
+      },
+      {
+        "id": "courses-open",
+        "type": "button",
+        "props": {
+          "label": "{openLabel}",
+          "action": "open_course",
+          "payload": {
+            "id": "{id}"
+          },
+          "style": "primary"
+        }
+      },
+      {
+        "id": "courses-save",
+        "type": "button",
+        "props": {
+          "label": "{saveLabel}",
+          "action": "save_course",
+          "payload": {
+            "id": "{id}"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "courses-remove",
+        "type": "button",
+        "props": {
+          "label": "Remove course",
+          "action": "ask_remove_course",
+          "payload": {
+            "id": "{id}"
+          },
+          "style": "link",
+          "visibleIf": "{personal}"
+        }
+      },
+      {
+        "id": "questions",
+        "type": "section",
+        "props": {
+          "title": "A good question is a beginning",
+          "description": "Course ideas to shape with your assistant. Choose one and make it yours."
+        },
+        "children": [
+          "ideas"
+        ]
+      },
+      {
+        "id": "ideas",
+        "type": "grid",
+        "props": {
+          "columns": 3,
+          "gap": "sm",
+          "pageSize": 6
+        },
+        "children": {
+          "each": "/ideas",
+          "template": "idea"
+        }
+      },
+      {
+        "id": "idea",
+        "type": "card",
+        "props": {
+          "title": "{title}",
+          "subtitle": "{category}",
+          "titleLines": 2
+        },
+        "children": [
+          "idea-open"
+        ]
+      },
+      {
+        "id": "idea-open",
+        "type": "button",
+        "props": {
+          "label": "Explore this question",
+          "action": "choose_idea",
+          "payload": {
+            "id": "{id}"
+          },
+          "style": "secondary"
+        }
+      }
+    ],
+    "data": {
+      "category": "All",
+      "continuing": [],
+      "courses": [
+        {
+          "started": false,
+          "id": "percentages",
+          "title": "Percentages you can use",
+          "summary": "Understand a percentage, compare a discount and explain a change. Three short lessons with everyday examples.",
+          "age": "12+",
+          "personal": false,
+          "cover": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMjAiIGhlaWdodD0iMjQwIiB2aWV3Qm94PSIwIDAgMzIwIDI0MCI+PHJlY3Qgd2lkdGg9IjMyMCIgaGVpZ2h0PSIyNDAiIHJ4PSIxOCIgZmlsbD0iIzMwMjM0MiIvPjxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2JmYWZmZiIgb3BhY2l0eT0iLjE2Ij48Y2lyY2xlIGN4PSIxNjAiIGN5PSIxMjAiIHI9IjgyIi8+PGNpcmNsZSBjeD0iMTYwIiBjeT0iMTIwIiByPSIxMDQiLz48L2c+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAwIDYwKSI+PHJlY3Qgd2lkdGg9IjU0IiBoZWlnaHQ9IjU0IiByeD0iMTIiIGZpbGw9IiNiZmFmZmYiLz48cmVjdCB4PSI2NiIgd2lkdGg9IjU0IiBoZWlnaHQ9IjU0IiByeD0iMTIiIGZpbGw9IiNiZmFmZmYiIG9wYWNpdHk9Ii4yMiIvPjxyZWN0IHk9IjY2IiB3aWR0aD0iNTQiIGhlaWdodD0iNTQiIHJ4PSIxMiIgZmlsbD0iI2JmYWZmZiIgb3BhY2l0eT0iLjIyIi8+PHJlY3QgeD0iNjYiIHk9IjY2IiB3aWR0aD0iNTQiIGhlaWdodD0iNTQiIHJ4PSIyNyIgZmlsbD0iI2ZmYjY5YyIvPjwvZz48Y2lyY2xlIGN4PSIyNzIiIGN5PSI0MCIgcj0iNCIgZmlsbD0iI2ZmYjY5YyIvPjxjaXJjbGUgY3g9IjQ4IiBjeT0iMTkxIiByPSIzIiBmaWxsPSIjYmZhZmZmIi8+PC9zdmc+",
+          "meta": "Mathematics · Beginner · 3 lessons · 8 min / lesson",
+          "done": 0,
+          "total": 3,
+          "progressLabel": "Not started",
+          "openLabel": "Start learning",
+          "saveLabel": "Save course"
+        },
+        {
+          "started": false,
+          "id": "news-literacy",
+          "title": "Read beyond the headline",
+          "summary": "Slow down a claim, find the evidence and notice what is missing. Use a real story from your reading as your small project.",
+          "age": "Teens and adults",
+          "personal": false,
+          "cover": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMjAiIGhlaWdodD0iMjQwIiB2aWV3Qm94PSIwIDAgMzIwIDI0MCI+PHJlY3Qgd2lkdGg9IjMyMCIgaGVpZ2h0PSIyNDAiIHJ4PSIxOCIgZmlsbD0iIzE3MmM0OSIvPjxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzg5Y2FmZiIgb3BhY2l0eT0iLjE2Ij48Y2lyY2xlIGN4PSIxNjAiIGN5PSIxMjAiIHI9IjgyIi8+PGNpcmNsZSBjeD0iMTYwIiBjeT0iMTIwIiByPSIxMDQiLz48L2c+PHJlY3QgeD0iODEiIHk9IjQ4IiB3aWR0aD0iMTQyIiBoZWlnaHQ9IjE1MiIgcng9IjEyIiBmaWxsPSIjODljYWZmIiBvcGFjaXR5PSIuMiIgdHJhbnNmb3JtPSJyb3RhdGUoLTkgMTUyIDEyNCkiLz48cmVjdCB4PSI5MSIgeT0iMzkiIHdpZHRoPSIxNDIiIGhlaWdodD0iMTUyIiByeD0iMTIiIGZpbGw9IiM4OWNhZmYiLz48cmVjdCB4PSIxMDkiIHk9IjYwIiB3aWR0aD0iMTA0IiBoZWlnaHQ9IjE0IiByeD0iNCIgZmlsbD0iIzE3MmM0OSIvPjxwYXRoIGQ9Ik0xMDkgOTNoMTA0bS0xMDQgMTVoNzdtLTc3IDI3aDEwNG0tMTA0IDE1aDcwIiBzdHJva2U9IiMxNzJjNDkiIHN0cm9rZS13aWR0aD0iNiIgb3BhY2l0eT0iLjciLz48Y2lyY2xlIGN4PSIyMzAiIGN5PSIxNzciIHI9IjI2IiBmaWxsPSIjZjdkYzhiIi8+PHBhdGggZD0ibTIxOSAxNzcgOCA4IDE1LTE4IiBmaWxsPSJub25lIiBzdHJva2U9IiMxNzJjNDkiIHN0cm9rZS13aWR0aD0iNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGNpcmNsZSBjeD0iMjcyIiBjeT0iNDAiIHI9IjQiIGZpbGw9IiNmN2RjOGIiLz48Y2lyY2xlIGN4PSI0OCIgY3k9IjE5MSIgcj0iMyIgZmlsbD0iIzg5Y2FmZiIvPjwvc3ZnPg==",
+          "meta": "Reading & media · Beginner · 2 lessons · 8 min / lesson",
+          "done": 0,
+          "total": 2,
+          "progressLabel": "Not started",
+          "openLabel": "Start learning",
+          "saveLabel": "Save course"
+        },
+        {
+          "started": false,
+          "id": "moon",
+          "title": "Make sense of the Moon",
+          "summary": "Turn a familiar sight into a spatial puzzle. Explain its changing appearance, then keep a small observing journal.",
+          "age": "10+ with guidance",
+          "personal": false,
+          "cover": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMjAiIGhlaWdodD0iMjQwIiB2aWV3Qm94PSIwIDAgMzIwIDI0MCI+PHJlY3Qgd2lkdGg9IjMyMCIgaGVpZ2h0PSIyNDAiIHJ4PSIxOCIgZmlsbD0iIzMwMjM0MiIvPjxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2JmYWZmZiIgb3BhY2l0eT0iLjE2Ij48Y2lyY2xlIGN4PSIxNjAiIGN5PSIxMjAiIHI9IjgyIi8+PGNpcmNsZSBjeD0iMTYwIiBjeT0iMTIwIiByPSIxMDQiLz48L2c+PGVsbGlwc2UgY3g9IjE2MCIgY3k9IjEyMCIgcng9IjExNSIgcnk9IjQ4IiB0cmFuc2Zvcm09InJvdGF0ZSgtMjQgMTYwIDEyMCkiIHN0cm9rZT0iI2JmYWZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiBvcGFjaXR5PSIuNSIvPjxjaXJjbGUgY3g9IjE2MCIgY3k9IjEyMCIgcj0iNTciIGZpbGw9IiNmZmI2OWMiLz48cGF0aCBkPSJNMTYwIDYzYTU3IDU3IDAgMCAwIDAgMTE0Yy0yOC0xOC0yOC05NiAwLTExNCIgZmlsbD0iIzMwMjM0MiIvPjxjaXJjbGUgY3g9IjI0NCIgY3k9IjcyIiByPSIxMCIgZmlsbD0iI2JmYWZmZiIvPjxjaXJjbGUgY3g9IjYzIiBjeT0iNjYiIHI9IjQiIGZpbGw9IiNmZmI2OWMiLz48Y2lyY2xlIGN4PSIyNzIiIGN5PSI0MCIgcj0iNCIgZmlsbD0iI2ZmYjY5YyIvPjxjaXJjbGUgY3g9IjQ4IiBjeT0iMTkxIiByPSIzIiBmaWxsPSIjYmZhZmZmIi8+PC9zdmc+",
+          "meta": "Science · Beginner · 2 lessons · 7 min / lesson",
+          "done": 0,
+          "total": 2,
+          "progressLabel": "Not started",
+          "openLabel": "Start learning",
+          "saveLabel": "Save course"
+        }
+      ],
+      "ideas": [
+        {
+          "id": "sky",
+          "title": "Why is the sky blue?",
+          "topic": "Light and the sky",
+          "goal": "Explain the colours of the daytime sky using a simple visual example.",
+          "category": "See the everyday differently"
+        },
+        {
+          "id": "news",
+          "title": "Can a headline mislead?",
+          "topic": "Reading news critically",
+          "goal": "Distinguish a headline, a reported fact, an interpretation and missing context.",
+          "category": "Understand your world"
+        },
+        {
+          "id": "money",
+          "title": "What does inflation change?",
+          "topic": "Inflation in everyday life",
+          "goal": "Compare a price change with purchasing power using a small household example.",
+          "category": "Make better sense of money"
+        },
+        {
+          "id": "ai",
+          "title": "How does a model learn?",
+          "topic": "An introduction to machine learning",
+          "goal": "Understand training examples, patterns and mistakes without assuming programming knowledge.",
+          "category": "Look inside technology"
+        },
+        {
+          "id": "power",
+          "title": "Where does electricity go?",
+          "topic": "Electricity at home",
+          "goal": "Understand energy, power and the meaning of a unit on an electricity bill.",
+          "category": "Try something practical"
+        },
+        {
+          "id": "moon",
+          "title": "Why does the Moon change shape?",
+          "topic": "The phases of the Moon",
+          "goal": "Use the positions of the Sun, Earth and Moon to explain the phases.",
+          "category": "Ask a bigger question"
+        }
+      ]
+    }
+  },
+  {
+    "id": "library",
+    "title": "My learning",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "intro",
+          "learning-summary",
+          "library-filters",
+          "empty"
+        ]
+      },
+      {
+        "id": "intro",
+        "type": "text",
+        "props": {
+          "content": "Your learning, at a glance. Keep moving at your own pace.",
+          "variant": "body"
+        }
+      },
+      {
+        "id": "learning-summary",
+        "type": "text",
+        "props": {
+          "content": "0 courses in progress · 0 fully practised · 0 lessons answered correctly. Practice progress is not a mastery assessment.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "library-filters",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm"
+        },
+        "children": [
+          "library-filter",
+          "library-apply"
+        ]
+      },
+      {
+        "id": "library-filter",
+        "type": "select",
+        "props": {
+          "label": "Show courses",
+          "bind": "/libraryFilter",
+          "options": [
+            {
+              "label": "All",
+              "value": "All"
+            },
+            {
+              "label": "In progress",
+              "value": "In progress"
+            },
+            {
+              "label": "Not started",
+              "value": "Not started"
+            },
+            {
+              "label": "Practised",
+              "value": "Practised"
+            }
+          ]
+        }
+      },
+      {
+        "id": "library-apply",
+        "type": "button",
+        "props": {
+          "label": "Show courses",
+          "action": "refresh",
+          "payload": {},
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "empty",
+        "type": "text",
+        "props": {
+          "content": "Save a course from Discover or add your own in Curate.",
+          "variant": "body"
+        }
+      }
+    ],
+    "data": {
+      "libraryFilter": "All",
+      "courses": []
+    }
+  },
+  {
+    "id": "lesson",
+    "title": "Lesson",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "maxWidth": "lg"
+        },
+        "children": [
+          "heading",
+          "basis",
+          "course-about",
+          "lesson-layout"
+        ]
+      },
+      {
+        "id": "lesson-layout",
+        "type": "split",
+        "props": {
+          "ratio": "2:1",
+          "gap": "md"
+        },
+        "children": [
+          "lesson-main",
+          "course-outline"
+        ]
+      },
+      {
+        "id": "lesson-main",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "maxWidth": "md"
+        },
+        "children": [
+          "lesson-position",
+          "lesson-title",
+          "objective",
+          "materials-percentages-lesson-1",
+          "lesson-nav"
+        ]
+      },
+      {
+        "id": "course-outline",
+        "type": "section",
+        "props": {
+          "title": "Course content",
+          "description": "3 lessons · 8 minutes each"
+        },
+        "children": [
+          "course-progress",
+          "outline"
+        ]
+      },
+      {
+        "id": "course-progress",
+        "type": "progress",
+        "props": {
+          "value": 0,
+          "max": 3,
+          "label": "Practice progress",
+          "kind": "bar"
+        }
+      },
+      {
+        "id": "materials-percentages-lesson-1",
+        "type": "tabs",
+        "props": {},
+        "children": [
+          "read-material",
+          "experiment-material",
+          "practice-material",
+          "notes-material"
+        ]
+      },
+      {
+        "id": "read-material",
+        "type": "section",
+        "props": {
+          "title": "Learn"
+        },
+        "children": [
+          "reading-steps",
+          "explanation",
+          "reading-actions",
+          "references"
+        ]
+      },
+      {
+        "id": "reading-steps",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm"
+        },
+        "children": [
+          "read-concept",
+          "read-example",
+          "read-activity"
+        ]
+      },
+      {
+        "id": "read-concept",
+        "type": "button",
+        "props": {
+          "label": "1 · Understand",
+          "action": "read_part",
+          "payload": {
+            "targetStep": "concept"
+          },
+          "style": "primary"
+        }
+      },
+      {
+        "id": "read-example",
+        "type": "button",
+        "props": {
+          "label": "2 · Example",
+          "action": "read_part",
+          "payload": {
+            "targetStep": "example"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "read-activity",
+        "type": "button",
+        "props": {
+          "label": "3 · Try it",
+          "action": "read_part",
+          "payload": {
+            "targetStep": "activity"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "reading-actions",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm"
+        },
+        "children": [
+          "read-next"
+        ]
+      },
+      {
+        "id": "read-next",
+        "type": "button",
+        "props": {
+          "label": "Next: See an example",
+          "action": "read_part",
+          "payload": {
+            "targetStep": "example"
+          },
+          "style": "primary"
+        }
+      },
+      {
+        "id": "experiment-material",
+        "type": "section",
+        "props": {
+          "title": "Explore"
+        },
+        "children": [
+          "lab"
+        ]
+      },
+      {
+        "id": "practice-material",
+        "type": "section",
+        "props": {
+          "title": "Practice"
+        },
+        "children": [
+          "practice"
+        ]
+      },
+      {
+        "id": "notes-material",
+        "type": "section",
+        "props": {
+          "title": "My notes"
+        },
+        "children": [
+          "notes"
+        ]
+      },
+      {
+        "id": "lesson-nav",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm"
+        },
+        "children": [
+          "next-lesson"
+        ]
+      },
+      {
+        "id": "next-lesson",
+        "type": "button",
+        "props": {
+          "label": "Next lesson",
+          "action": "open_lesson",
+          "payload": {
+            "id": "lesson-2"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "heading",
+        "type": "text",
+        "props": {
+          "content": "Percentages you can use",
+          "variant": "heading"
+        }
+      },
+      {
+        "id": "course-about",
+        "type": "accordion",
+        "props": {},
+        "children": [
+          "course-details"
+        ]
+      },
+      {
+        "id": "course-details",
+        "type": "section",
+        "props": {
+          "title": "About this course"
+        },
+        "children": [
+          "course-summary"
+        ]
+      },
+      {
+        "id": "course-summary",
+        "type": "text",
+        "props": {
+          "content": "Understand a percentage, compare a discount and explain a change. Three short lessons with everyday examples.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "basis",
+        "type": "text",
+        "props": {
+          "content": "12+ · Beginner · 8 min · 0/3 lessons answered correctly. Original introductory course; reference links are further reading.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "outline",
+        "type": "grid",
+        "props": {
+          "columns": 1,
+          "gap": "sm",
+          "pageSize": 12
+        },
+        "children": {
+          "each": "/outline",
+          "template": "outline-card"
+        }
+      },
+      {
+        "id": "outline-card",
+        "type": "stack",
+        "props": {
+          "gap": "xs"
+        },
+        "children": [
+          "outline-status",
+          "open-lesson"
+        ]
+      },
+      {
+        "id": "outline-status",
+        "type": "text",
+        "props": {
+          "content": "{status}",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "open-lesson",
+        "type": "button",
+        "props": {
+          "label": "{title}",
+          "action": "open_lesson",
+          "payload": {
+            "id": "{id}"
+          },
+          "style": "{style}"
+        }
+      },
+      {
+        "id": "lesson-position",
+        "type": "text",
+        "props": {
+          "content": "Lesson 1 of 3",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "lesson-title",
+        "type": "text",
+        "props": {
+          "content": "Out of a hundred",
+          "variant": "heading"
+        }
+      },
+      {
+        "id": "objective",
+        "type": "text",
+        "props": {
+          "content": "Express a share as a percentage.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "explanation",
+        "type": "text",
+        "props": {
+          "content": "Percent means per hundred. To express a share as a percentage, divide the part by the whole, then multiply by 100. The part and the whole must use the same units. A percentage describes a relationship; it does not tell you the size of the whole.",
+          "variant": "body"
+        }
+      },
+      {
+        "id": "lab",
+        "type": "section",
+        "props": {
+          "title": "Explore a share",
+          "description": "Compare a part with its whole. This optional experiment was included by the course author."
+        },
+        "children": [
+          "lab-inputs",
+          "lab-result",
+          "lab-chart"
+        ]
+      },
+      {
+        "id": "lab-inputs",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm"
+        },
+        "children": [
+          "lab-part",
+          "lab-whole",
+          "lab-apply"
+        ]
+      },
+      {
+        "id": "lab-part",
+        "type": "input",
+        "props": {
+          "label": "The part",
+          "kind": "number",
+          "bind": "/lab/part"
+        }
+      },
+      {
+        "id": "lab-whole",
+        "type": "input",
+        "props": {
+          "label": "The whole",
+          "kind": "number",
+          "bind": "/lab/whole"
+        }
+      },
+      {
+        "id": "lab-apply",
+        "type": "button",
+        "props": {
+          "label": "Try these values",
+          "action": "refresh",
+          "payload": {},
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "lab-result",
+        "type": "text",
+        "props": {
+          "content": "6 out of 24 is 25%. Change either value and see what happens.",
+          "variant": "body"
+        }
+      },
+      {
+        "id": "lab-chart",
+        "type": "chart",
+        "props": {
+          "kind": "pie",
+          "title": "Part and remainder",
+          "series": {
+            "records": "{/labRows}",
+            "label": "label",
+            "fields": [
+              "value"
+            ]
+          },
+          "height": "sm",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "practice",
+        "type": "section",
+        "props": {
+          "title": "Check your understanding"
+        },
+        "children": [
+          "question",
+          "answer",
+          "check"
+        ]
+      },
+      {
+        "id": "question",
+        "type": "text",
+        "props": {
+          "content": "What percentage is 6 out of 24?",
+          "variant": "body"
+        }
+      },
+      {
+        "id": "answer",
+        "type": "select",
+        "props": {
+          "label": "Your answer",
+          "bind": "/answer",
+          "presentation": "dropdown",
+          "options": [
+            {
+              "label": "Choose an answer",
+              "value": ""
+            },
+            {
+              "label": "6%",
+              "value": "0"
+            },
+            {
+              "label": "25%",
+              "value": "1"
+            },
+            {
+              "label": "40%",
+              "value": "2"
+            }
+          ]
+        }
+      },
+      {
+        "id": "check",
+        "type": "button",
+        "props": {
+          "label": "Check answer",
+          "action": "check_answer",
+          "payload": {},
+          "style": "primary"
+        }
+      },
+      {
+        "id": "notes",
+        "type": "section",
+        "props": {
+          "title": "Keep a thought"
+        },
+        "children": [
+          "note",
+          "save-note"
+        ]
+      },
+      {
+        "id": "note",
+        "type": "textarea",
+        "props": {
+          "label": "Your explanation, question or discovery",
+          "bind": "/note"
+        }
+      },
+      {
+        "id": "save-note",
+        "type": "button",
+        "props": {
+          "label": "Keep note",
+          "action": "refresh",
+          "payload": {},
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "references",
+        "type": "section",
+        "props": {
+          "title": "Sources and further reading"
+        },
+        "children": [
+          "source-list"
+        ]
+      },
+      {
+        "id": "source-list",
+        "type": "grid",
+        "props": {
+          "columns": 1,
+          "pageSize": 6
+        },
+        "children": {
+          "each": "/sources",
+          "template": "source-card"
+        }
+      },
+      {
+        "id": "source-card",
+        "type": "card",
+        "props": {
+          "title": "{title}",
+          "body": "{link}"
+        }
+      }
+    ],
+    "data": {
+      "lab": {
+        "part": "6",
+        "whole": "24"
+      },
+      "labRows": [
+        {
+          "label": "The part",
+          "value": 6
+        },
+        {
+          "label": "The remainder",
+          "value": 18
+        }
+      ],
+      "answer": "",
+      "note": "",
+      "outline": [
+        {
+          "id": "lesson-1",
+          "title": "Out of a hundred",
+          "status": "Lesson 1 · you are here",
+          "style": "primary"
+        },
+        {
+          "id": "lesson-2",
+          "title": "What does a discount save?",
+          "status": "Lesson 2",
+          "style": "secondary"
+        },
+        {
+          "id": "lesson-3",
+          "title": "Change needs a starting point",
+          "status": "Lesson 3",
+          "style": "secondary"
+        }
+      ],
+      "sources": [
+        {
+          "title": "Further reading: percentages",
+          "url": "https://en.wikipedia.org/wiki/Percentage",
+          "link": "[Open source](https://en.wikipedia.org/wiki/Percentage)"
+        }
+      ],
+      "spoken": {
+        "lesson": {
+          "title": "Percentages you can use: Out of a hundred",
+          "segments": [
+            {
+              "text": "Hello, and welcome to Learning Desk. Today's lesson is Out of a hundred, from Percentages you can use. Express a share as a percentage. This is an original introductory lesson. The course lists one reference; you'll find it in the app.",
+              "heading": "Out of a hundred",
+              "kicker": "Percentages you can use",
+              "delivery": "opening",
+              "cue": "intro",
+              "break": "short"
+            },
+            {
+              "text": "Percent means per hundred. To express a share as a percentage, divide the part by the whole, then multiply by 100. The part and the whole must use the same units. A percentage describes a relationship; it does not tell you the size of the whole.",
+              "figures": [
+                {
+                  "label": "The part",
+                  "value": "6"
+                },
+                {
+                  "label": "The whole",
+                  "value": "24"
+                },
+                {
+                  "label": "Share",
+                  "value": "25%"
+                }
+              ],
+              "chart": {
+                "kind": "bars",
+                "bars": [
+                  {
+                    "label": "The part",
+                    "value": 6
+                  },
+                  {
+                    "label": "The remainder",
+                    "value": 18
+                  }
+                ]
+              },
+              "heading": "Understand",
+              "kicker": "Out of a hundred",
+              "delivery": "story",
+              "break": "story"
+            },
+            {
+              "text": "If 15 of 60 books are borrowed, the share borrowed is 15 ÷ 60 × 100 = 25%. That is the same share as 25 of 100 books.",
+              "heading": "An example",
+              "kicker": "Out of a hundred",
+              "delivery": "story",
+              "break": "story"
+            },
+            {
+              "text": "Now, try this yourself. Choose a collection around you. Count a part and the whole, then work out the percentage.",
+              "heading": "Try it",
+              "kicker": "Out of a hundred",
+              "delivery": "story",
+              "break": "section"
+            },
+            {
+              "text": "That's the end of Out of a hundred. Take a moment with the activity, then check your answer in the app. Thanks for learning with us.",
+              "heading": "End of lesson",
+              "kicker": "Percentages you can use",
+              "delivery": "closing",
+              "cue": "outro",
+              "break": "section"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "create",
+    "title": "Create",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "intro",
+          "form",
+          "explain"
+        ]
+      },
+      {
+        "id": "intro",
+        "type": "text",
+        "props": {
+          "content": "What would you like to understand? Shape a short course around a question, an interest or something you found.",
+          "variant": "body"
+        }
+      },
+      {
+        "id": "form",
+        "type": "section",
+        "props": {
+          "title": "Make it yours"
+        },
+        "children": [
+          "topic",
+          "goal",
+          "setup",
+          "source",
+          "author-actions"
+        ]
+      },
+      {
+        "id": "topic",
+        "type": "input",
+        "props": {
+          "label": "Topic or question",
+          "bind": "/topic",
+          "placeholder": "Why does the Moon change shape?"
+        }
+      },
+      {
+        "id": "goal",
+        "type": "textarea",
+        "props": {
+          "label": "What would you like to be able to do?",
+          "bind": "/goal"
+        }
+      },
+      {
+        "id": "setup",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm"
+        },
+        "children": [
+          "age",
+          "level",
+          "minutes"
+        ]
+      },
+      {
+        "id": "source",
+        "type": "input",
+        "props": {
+          "label": "Start from a source (optional HTTPS link)",
+          "bind": "/sourceUrl",
+          "placeholder": "An article, a chapter or a page you trust"
+        }
+      },
+      {
+        "id": "age",
+        "type": "input",
+        "props": {
+          "label": "Age band and learning context",
+          "bind": "/age",
+          "placeholder": "For example: age 10, with a parent"
+        }
+      },
+      {
+        "id": "level",
+        "type": "input",
+        "props": {
+          "label": "What do you already know?",
+          "bind": "/level"
+        }
+      },
+      {
+        "id": "minutes",
+        "type": "input",
+        "props": {
+          "label": "Minutes per lesson (3–60)",
+          "bind": "/minutes"
+        }
+      },
+      {
+        "id": "author-actions",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm"
+        },
+        "children": [
+          "author",
+          "find-sources"
+        ]
+      },
+      {
+        "id": "find-sources",
+        "type": "button",
+        "props": {
+          "label": "Find courses and sources",
+          "action": "assistant.compose",
+          "payload": {
+            "path": "sourceRequest",
+            "workflowPath": "authorWorkflow"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "author",
+        "type": "button",
+        "props": {
+          "label": "Create with the assistant",
+          "action": "assistant.compose",
+          "payload": {
+            "path": "authorRequest",
+            "workflowPath": "authorWorkflow"
+          },
+          "style": "primary"
+        }
+      },
+      {
+        "id": "explain",
+        "type": "text",
+        "props": {
+          "content": "Opens your course studio here. Shape the outline with your assistant, then prepare lessons together. Enabled skills and MCP tools keep their normal permissions. The assistant may save a draft; you decide what belongs in your library.",
+          "variant": "caption"
+        }
+      }
+    ],
+    "data": {
+      "topic": "",
+      "goal": "",
+      "age": "Adult",
+      "level": "Beginner",
+      "minutes": "10",
+      "sourceUrl": "",
+      "authorRequest": "I'd like to learn about a topic we can choose together. My goal: understand the basics and try something practical. Age and context: Adult. What I already know: Beginner. I have 10 minutes per lesson. Please help me create this course in Learning Desk. Let's agree a short outline first, then prepare the lessons, examples and practice. Save a complete course as a draft in Learning Desk when I ask; I will review it before adding it to my library. Keep unknown facts, unverified sources and any paid work explicit.",
+      "authorWorkflow": {
+        "title": "Course studio",
+        "stages": [
+          "Outline",
+          "Create",
+          "Review"
+        ],
+        "brief": "Your learning brief",
+        "boundary": "You stay in control. Drafts need your review; nothing is added to your library automatically.",
+        "saved": "Draft saved. Review the lessons before adding the course to your library.",
+        "guide": {
+          "start": {
+            "heading": "Start with a clear direction",
+            "hint": "Send your topic and learning goal. Shape a short outline here before creating the lessons."
+          },
+          "responded": {
+            "heading": "Turn the outline into lessons",
+            "hint": "Create the lesson explanations, worked examples and practice. You’ll review the draft before it enters your library."
+          },
+          "saved": {
+            "heading": "Your draft is ready",
+            "hint": "Open the lessons, check the examples and answers, and make them yours before adding the course to your library."
+          }
+        },
+        "steps": [
+          {
+            "id": "create",
+            "label": "Create course draft",
+            "mode": "send",
+            "stage": 1,
+            "message": "Proceed with the outline we discussed. Create the complete course with explanations, worked examples, practical activities, questions, answer keys and feedback for every lesson. Use original examples; preserve the agreed learner, goal and time. Use only sources actually checked and make any uncertainty explicit. Read the current Learning Desk authoring context, then save the complete course with propose_course as an unreviewed draft for me to inspect. Do not add it to my library."
+          },
+          {
+            "id": "revise",
+            "label": "Revise outline",
+            "mode": "edit",
+            "message": "Please revise the outline with these changes: "
+          },
+          {
+            "id": "sources",
+            "label": "Check sources",
+            "mode": "send",
+            "message": "Check a small set of trustworthy public references for the course we are planning using currently enabled source tools. Explain what each source supports and any uncertainty or reuse limits. If tools are unavailable, say so; do not invent citations or claim a read. Do not create or save a course yet."
+          }
+        ],
+        "review": {
+          "label": "Review saved drafts",
+          "surface": "curate",
+          "tool": "propose_course",
+          "stage": 2
+        }
+      },
+      "sourceRequest": "Help me find trustworthy courses or learning material about a topic we can choose together for Adult, with this existing knowledge: Beginner. My goal is to understand the basics. Use the enabled learning-author and research skills and currently permitted search or source tools. Show sources, level, time and any cost or reuse restrictions. If online search is not available, say so. Do not invent courses or sources. Let's choose material before creating a course draft in Learning Desk."
+    }
+  },
+  {
+    "id": "curate",
+    "title": "Curate",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "notice",
+          "no-drafts",
+          "import"
+        ]
+      },
+      {
+        "id": "notice",
+        "type": "text",
+        "props": {
+          "content": "Collect, inspect and choose what belongs on your learning shelf. Drafts remain separate until you add them.",
+          "variant": "body"
+        }
+      },
+      {
+        "id": "no-drafts",
+        "type": "text",
+        "props": {
+          "content": "No drafts yet. Create with the assistant or import a course package below.",
+          "variant": "body"
+        }
+      },
+      {
+        "id": "import",
+        "type": "accordion",
+        "props": {},
+        "children": [
+          "package"
+        ]
+      },
+      {
+        "id": "package",
+        "type": "section",
+        "props": {
+          "title": "Import a course package",
+          "description": "For courses prepared elsewhere. Import validates structure and saves a draft; it does not verify facts or source rights."
+        },
+        "children": [
+          "import-text",
+          "import-button"
+        ]
+      },
+      {
+        "id": "import-text",
+        "type": "textarea",
+        "props": {
+          "label": "Course JSON",
+          "bind": "/importText"
+        }
+      },
+      {
+        "id": "import-button",
+        "type": "button",
+        "props": {
+          "label": "Review imported course",
+          "action": "import_course",
+          "payload": {},
+          "style": "secondary"
+        }
+      }
+    ],
+    "data": {
+      "edit": {},
+      "reviewDraft": "",
+      "reviewLesson": "",
+      "importText": ""
+    }
+  }
+]

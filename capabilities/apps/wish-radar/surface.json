@@ -1,0 +1,806 @@
+[
+  {
+    "id": "overview",
+    "title": "Overview",
+    "data": {
+      "newWish": {
+        "title": "",
+        "targetPrice": "",
+        "category": "Electronics",
+        "store": "Amazon.in",
+        "url": "",
+        "image": "",
+        "pincode": "560001",
+        "notes": ""
+      },
+      "newRecord": {
+        "wishId": "",
+        "price": "",
+        "store": "Amazon.in",
+        "inStock": true,
+        "rating": "",
+        "deliveryInfo": "",
+        "pincode": "560001",
+        "offerNotes": ""
+      },
+      "categoryOptions": [
+        {
+          "label": "Electronics",
+          "value": "Electronics"
+        },
+        {
+          "label": "Beauty & Personal Care",
+          "value": "Beauty & Personal Care"
+        },
+        {
+          "label": "Fashion & Apparel",
+          "value": "Fashion & Apparel"
+        },
+        {
+          "label": "Books & Stationery",
+          "value": "Books & Stationery"
+        },
+        {
+          "label": "Home & Kitchen",
+          "value": "Home & Kitchen"
+        },
+        {
+          "label": "Other",
+          "value": "Other"
+        }
+      ],
+      "storeOptions": [
+        {
+          "label": "Amazon.in",
+          "value": "Amazon.in"
+        },
+        {
+          "label": "Flipkart",
+          "value": "Flipkart"
+        },
+        {
+          "label": "Nykaa",
+          "value": "Nykaa"
+        },
+        {
+          "label": "Croma",
+          "value": "Croma"
+        },
+        {
+          "label": "Tata CLiQ",
+          "value": "Tata CLiQ"
+        },
+        {
+          "label": "Reliance Digital",
+          "value": "Reliance Digital"
+        },
+        {
+          "label": "Brand Store",
+          "value": "Brand Store"
+        },
+        {
+          "label": "Other Store",
+          "value": "Other Store"
+        }
+      ],
+      "wishOptions": [],
+      "statTotal": "0",
+      "statDeals": "0",
+      "statDealsTone": "neutral",
+      "statSavings": "₹0",
+      "statSavingsTone": "neutral",
+      "statChecks": "0",
+      "toggleViewLabel": "Switch to Table View",
+      "problemText": "",
+      "spoken": {
+        "programme": {
+          "title": "Wish Radar Broadcast",
+          "badge": "Empty Wishlist",
+          "segments": [
+            {
+              "text": "Good morning. This is your Wish Radar shopping bulletin for Sunday 1 November. You are not tracking any wishes yet. Add your favourite products or paste an offer in Wish Radar to monitor price drops, delivery speeds and store comparisons.",
+              "delivery": "opening",
+              "cue": "intro",
+              "kicker": "Welcome",
+              "heading": "Wish Radar is ready"
+            },
+            {
+              "text": "Open the Overview surface to add your first wish or import your shopping list. Thanks for listening.",
+              "delivery": "closing",
+              "cue": "outro",
+              "kicker": "Wish Radar",
+              "heading": "Add your wishes to begin"
+            }
+          ],
+          "ticker": [
+            {
+              "text": "Wish Radar is ready. Add items with target prices in INR to monitor price drops across Indian stores."
+            }
+          ]
+        },
+        "bulletin": "Good morning. This is your Wish Radar shopping bulletin for Sunday 1 November. You are not tracking any wishes yet. Add your favourite products or paste an offer in Wish Radar to monitor price drops, delivery speeds and store comparisons. Open the Overview surface to add your first wish or import your shopping list. Thanks for listening."
+      },
+      "dealSpotlightTitle": "",
+      "dealSpotlightSubtitle": "",
+      "dealSpotlightBody": "",
+      "advisorRequest": "Here is my current Wish Radar status:\nLocation PIN: 560001\nTotal wishes tracked: 0\nDeals meeting target: 0\nPotential savings: ₹0\nItems:\nNo items tracked yet.\n\nPlease review these items, compare their recorded prices, delivery speeds, ratings and target prices in Indian Rupees, and advise on which items are ready to buy vs hold off on.",
+      "wishWorkflow": {
+        "title": "Deal Advisor Studio",
+        "stages": [
+          "Analyze",
+          "Review"
+        ],
+        "brief": "Your wishlist analysis brief",
+        "boundary": "Your records and wishes stay on this computer. Price analysis is private and requires no subscriptions.",
+        "saved": "Deal analysis complete.",
+        "guide": {
+          "start": {
+            "heading": "Analyze Wishlist & Trends",
+            "hint": "Ask the assistant to evaluate your recorded price points, compare deals across stores, or review pasted offer text."
+          },
+          "responded": {
+            "heading": "Review Recommendations",
+            "hint": "Inspect suggested timing, delivery speeds, and discounts before logging new observations or making a purchase."
+          },
+          "saved": {
+            "heading": "Analysis ready",
+            "hint": "Your price comparison is updated in Wish Radar."
+          }
+        },
+        "steps": [
+          {
+            "id": "evaluate-trends",
+            "label": "Evaluate Price Trends",
+            "mode": "send",
+            "stage": 0,
+            "message": "Analyze my active Wish Radar items, ratings and their price histories. Which items have dropped closest to their target price in INR? Highlight any current deals or price rises."
+          },
+          {
+            "id": "parse-offer",
+            "label": "Parse Copied Deal / SMS",
+            "mode": "edit",
+            "stage": 0,
+            "message": "Paste promotional email, SMS or deal text here (e.g. Nykaa Pink Friday sale or Amazon Great Indian Festival offer): "
+          },
+          {
+            "id": "timing-advice",
+            "label": "Buy or Wait Advice",
+            "mode": "send",
+            "stage": 1,
+            "message": "Based on the all-time low, current ratings and latest prices recorded in Wish Radar, is it a good time to buy now, or should I wait for upcoming festival sales in India?"
+          }
+        ],
+        "review": {
+          "label": "Review wishes & deals",
+          "surface": "overview",
+          "tool": "remember_wish",
+          "stage": 1
+        }
+      },
+      "cards": [],
+      "productOptionsList": [],
+      "wishesTable": [],
+      "selectedTrendTitle": "Price Trend",
+      "selectedTrendDesc": "",
+      "selectedLatest": "—",
+      "selectedTarget": "—",
+      "selectedLow": "—",
+      "selectedDiff": "—",
+      "selectedDiffTone": "success",
+      "trendRecords": [],
+      "selectedCompareRows": []
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "actions-bar",
+          "stats-grid",
+          "empty-card"
+        ]
+      },
+      {
+        "id": "actions-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "center"
+        },
+        "children": [
+          "btn-add-wish",
+          "btn-log-price",
+          "btn-advisor",
+          "btn-toggle-view"
+        ]
+      },
+      {
+        "id": "btn-add-wish",
+        "type": "button",
+        "props": {
+          "label": "Add a Wish",
+          "action": "show_add",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "btn-log-price",
+        "type": "button",
+        "props": {
+          "label": "Log Price Check",
+          "action": "show_record",
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "btn-advisor",
+        "type": "button",
+        "props": {
+          "label": "Deal Advisor Studio",
+          "action": "assistant.compose",
+          "payload": {
+            "path": "advisorRequest",
+            "workflowPath": "wishWorkflow"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "btn-toggle-view",
+        "type": "button",
+        "props": {
+          "label": "{/toggleViewLabel}",
+          "action": "toggle_view_mode",
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "stats-grid",
+        "type": "grid",
+        "props": {
+          "columns": 4,
+          "minItemWidth": "sm",
+          "gap": "sm"
+        },
+        "children": [
+          "stat-total",
+          "stat-deals",
+          "stat-savings",
+          "stat-observations"
+        ]
+      },
+      {
+        "id": "stat-total",
+        "type": "stat",
+        "props": {
+          "label": "Tracked Items",
+          "value": "{/statTotal}"
+        }
+      },
+      {
+        "id": "stat-deals",
+        "type": "stat",
+        "props": {
+          "label": "Target Met Deals",
+          "value": "{/statDeals}",
+          "tone": "{/statDealsTone}"
+        }
+      },
+      {
+        "id": "stat-savings",
+        "type": "stat",
+        "props": {
+          "label": "Potential Savings",
+          "value": "{/statSavings}",
+          "tone": "{/statSavingsTone}"
+        }
+      },
+      {
+        "id": "stat-observations",
+        "type": "stat",
+        "props": {
+          "label": "Price Checks Logged",
+          "value": "{/statChecks}"
+        }
+      },
+      {
+        "id": "empty-card",
+        "type": "card",
+        "props": {
+          "title": "No wishes tracked yet",
+          "body": "Add your first wish with a target price in INR. Track price drops, rises, ratings, delivery speed and deals privately without third-party subscriptions or automated scraping."
+        },
+        "children": [
+          "empty-add-btn"
+        ]
+      },
+      {
+        "id": "empty-add-btn",
+        "type": "button",
+        "props": {
+          "label": "Add your first wish",
+          "action": "show_add",
+          "style": "primary"
+        }
+      }
+    ]
+  },
+  {
+    "id": "history",
+    "title": "Price History",
+    "data": {
+      "exportCsv": "date,item,store,price_inr,rating,delivery,pincode,in_stock,notes\n",
+      "historyRows": []
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "history-bar",
+          "history-empty"
+        ]
+      },
+      {
+        "id": "history-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "center"
+        },
+        "children": [
+          "btn-back-overview",
+          "btn-export-csv"
+        ]
+      },
+      {
+        "id": "btn-back-overview",
+        "type": "button",
+        "props": {
+          "label": "Back to Overview",
+          "action": "show_overview",
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "btn-export-csv",
+        "type": "button",
+        "props": {
+          "label": "Export History (CSV)",
+          "action": "file.save",
+          "payload": {
+            "name": "wish-radar-prices",
+            "text": "/exportCsv"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "history-empty",
+        "type": "text",
+        "props": {
+          "content": "No price checks recorded yet. Observations you log or check appear here in chronological order.",
+          "variant": "caption"
+        }
+      }
+    ]
+  },
+  {
+    "id": "import",
+    "title": "Import & Settings",
+    "data": {
+      "importText": "",
+      "receipt": "No external imports yet. Use your own CSV/JSON records.",
+      "sandboxSummary": "6 of 6 merchant preferences enabled · Host permissions still apply",
+      "storesList": [
+        {
+          "id": "amazon",
+          "name": "Amazon India",
+          "subtitle": "www.amazon.in · General & Electronics",
+          "statusBadge": "Configured",
+          "statusTone": "neutral",
+          "healthLine": "Amazon search parsing available · Live access unverified",
+          "toggleLabel": "Disable",
+          "toggleStyle": "secondary",
+          "isCustom": ""
+        },
+        {
+          "id": "flipkart",
+          "name": "Flipkart",
+          "subtitle": "www.flipkart.com · General & Electronics",
+          "statusBadge": "Configured",
+          "statusTone": "neutral",
+          "healthLine": "Direct product link required · Live prices unverified",
+          "toggleLabel": "Disable",
+          "toggleStyle": "secondary",
+          "isCustom": ""
+        },
+        {
+          "id": "nykaa",
+          "name": "Nykaa",
+          "subtitle": "www.nykaa.com · Beauty & Personal Care",
+          "statusBadge": "Configured",
+          "statusTone": "neutral",
+          "healthLine": "Direct product link required · Live prices unverified",
+          "toggleLabel": "Disable",
+          "toggleStyle": "secondary",
+          "isCustom": ""
+        },
+        {
+          "id": "croma",
+          "name": "Croma",
+          "subtitle": "www.croma.com · Electronics & Appliances",
+          "statusBadge": "Configured",
+          "statusTone": "neutral",
+          "healthLine": "Direct product link required · Live prices unverified",
+          "toggleLabel": "Disable",
+          "toggleStyle": "secondary",
+          "isCustom": ""
+        },
+        {
+          "id": "tatacliq",
+          "name": "Tata CLiQ",
+          "subtitle": "www.tatacliq.com · Fashion & Luxury",
+          "statusBadge": "Configured",
+          "statusTone": "neutral",
+          "healthLine": "Direct product link required · Live prices unverified",
+          "toggleLabel": "Disable",
+          "toggleStyle": "secondary",
+          "isCustom": ""
+        },
+        {
+          "id": "reliancedigital",
+          "name": "Reliance Digital",
+          "subtitle": "www.reliancedigital.in · Electronics & Gadgets",
+          "statusBadge": "Configured",
+          "statusTone": "neutral",
+          "healthLine": "Direct product link required · Live prices unverified",
+          "toggleLabel": "Disable",
+          "toggleStyle": "secondary",
+          "isCustom": ""
+        }
+      ],
+      "newStore": {
+        "name": "",
+        "domain": "",
+        "category": "General & Electronics"
+      },
+      "storeCatOptions": [
+        {
+          "label": "General & Electronics",
+          "value": "General & Electronics"
+        },
+        {
+          "label": "Electronics & Appliances",
+          "value": "Electronics & Appliances"
+        },
+        {
+          "label": "Beauty & Personal Care",
+          "value": "Beauty & Personal Care"
+        },
+        {
+          "label": "Fashion & Luxury",
+          "value": "Fashion & Luxury"
+        },
+        {
+          "label": "Other",
+          "value": "Other"
+        }
+      ]
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "import-header-bar",
+          "retailers-section",
+          "import-section",
+          "format-section",
+          "network-section"
+        ]
+      },
+      {
+        "id": "import-header-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm"
+        },
+        "children": [
+          "btn-import-back"
+        ]
+      },
+      {
+        "id": "btn-import-back",
+        "type": "button",
+        "props": {
+          "label": "Back to Overview",
+          "action": "show_overview",
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "retailers-section",
+        "type": "section",
+        "props": {
+          "title": "Merchant Preferences",
+          "description": "{/sandboxSummary}"
+        },
+        "children": [
+          "stores-grid",
+          "add-store-card"
+        ]
+      },
+      {
+        "id": "stores-grid",
+        "type": "grid",
+        "props": {
+          "columns": 3,
+          "minItemWidth": "sm",
+          "gap": "md"
+        },
+        "children": {
+          "each": "/storesList",
+          "template": "store-card"
+        }
+      },
+      {
+        "id": "store-card",
+        "type": "card",
+        "props": {
+          "title": "{name}",
+          "subtitle": "{subtitle}",
+          "badge": "{statusBadge}",
+          "tone": "{statusTone}",
+          "body": "{healthLine}"
+        },
+        "children": [
+          "store-actions"
+        ]
+      },
+      {
+        "id": "store-actions",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true
+        },
+        "children": [
+          "store-toggle-btn",
+          "store-test-btn",
+          "store-remove-btn"
+        ]
+      },
+      {
+        "id": "store-toggle-btn",
+        "type": "button",
+        "props": {
+          "label": "{toggleLabel}",
+          "action": "toggle_store",
+          "payload": {
+            "id": "{id}"
+          },
+          "style": "{toggleStyle}"
+        }
+      },
+      {
+        "id": "store-test-btn",
+        "type": "button",
+        "props": {
+          "label": "Test Connection",
+          "action": "test_store",
+          "payload": {
+            "id": "{id}"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "store-remove-btn",
+        "type": "button",
+        "props": {
+          "label": "Remove",
+          "action": "remove_store",
+          "payload": {
+            "id": "{id}"
+          },
+          "style": "link",
+          "visibleIf": "{isCustom}"
+        }
+      },
+      {
+        "id": "add-store-card",
+        "type": "card",
+        "props": {
+          "title": "Allow Merchant or Domain in Sandbox",
+          "subtitle": "Add an Indian shopping destination or direct store domain for live price checks."
+        },
+        "children": [
+          "add-store-stack"
+        ]
+      },
+      {
+        "id": "add-store-stack",
+        "type": "stack",
+        "props": {
+          "gap": "sm"
+        },
+        "children": [
+          "add-store-name",
+          "add-store-domain",
+          "add-store-cat",
+          "add-store-btn-bar"
+        ]
+      },
+      {
+        "id": "add-store-name",
+        "type": "input",
+        "props": {
+          "label": "Store Name",
+          "bind": "/newStore/name",
+          "placeholder": "e.g. boAt Lifestyle or Myntra"
+        }
+      },
+      {
+        "id": "add-store-domain",
+        "type": "input",
+        "props": {
+          "label": "Store Domain / URL",
+          "bind": "/newStore/domain",
+          "placeholder": "e.g. boat-lifestyle.com"
+        }
+      },
+      {
+        "id": "add-store-cat",
+        "type": "select",
+        "props": {
+          "label": "Category",
+          "bind": "/newStore/category",
+          "options": "{/storeCatOptions}"
+        }
+      },
+      {
+        "id": "add-store-btn-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "align": "center"
+        },
+        "children": [
+          "btn-add-store",
+          "btn-restore-stores"
+        ]
+      },
+      {
+        "id": "btn-add-store",
+        "type": "button",
+        "props": {
+          "label": "Add Merchant",
+          "action": "add_store",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "btn-restore-stores",
+        "type": "button",
+        "props": {
+          "label": "Restore Default Retailers",
+          "action": "restore_stores",
+          "style": "link"
+        }
+      },
+      {
+        "id": "import-section",
+        "type": "section",
+        "props": {
+          "title": "Import wishes and items",
+          "description": "{/receipt}"
+        },
+        "children": [
+          "import-text",
+          "import-bar"
+        ]
+      },
+      {
+        "id": "import-text",
+        "type": "textarea",
+        "props": {
+          "label": "Paste CSV or JSON",
+          "bind": "/importText",
+          "placeholder": "title,targetPrice,category,store,url,image\nSony WH-1000XM5,20000,Electronics,Amazon.in,https://www.amazon.in/dp/B09XS7JWHH,https://m.media-amazon.com/images/I/61O3iMlnJIL._SL1500_.jpg\nMinimalist Vitamin C Serum,650,Beauty & Personal Care,Nykaa,https://www.nykaa.com/...,https://...",
+          "rows": 8
+        }
+      },
+      {
+        "id": "import-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm"
+        },
+        "children": [
+          "btn-run-import"
+        ]
+      },
+      {
+        "id": "btn-run-import",
+        "type": "button",
+        "props": {
+          "label": "Import Items",
+          "action": "import_records",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "format-section",
+        "type": "section",
+        "props": {
+          "title": "Format & Privacy"
+        },
+        "children": [
+          "format-description",
+          "format-example",
+          "privacy-note"
+        ]
+      },
+      {
+        "id": "format-description",
+        "type": "text",
+        "props": {
+          "content": "Import a CSV with **title, targetPrice, category, store, url, image** or a JSON array of wishes. Prices are in Indian Rupees."
+        }
+      },
+      {
+        "id": "format-example",
+        "type": "text",
+        "props": {
+          "content": "title,targetPrice,category,store,url,image\nSony WH-1000XM5,20000,Electronics,Amazon.in,https://www.amazon.in/dp/B09XS7JWHH,https://m.media-amazon.com/images/I/61O3iMlnJIL._SL1500_.jpg\nMinimalist Vitamin C Serum,650,Beauty & Personal Care,Nykaa,https://www.nykaa.com/...,https://...",
+          "variant": "code"
+        }
+      },
+      {
+        "id": "privacy-note",
+        "type": "text",
+        "props": {
+          "content": "All records stay in your private local DuckDB file on this computer. No third-party APIs, no credentials, no tracking.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "network-section",
+        "type": "section",
+        "props": {
+          "title": "Network Sandbox Status",
+          "description": "Public web price checks use the governed Web pages integration without third-party subscriptions."
+        },
+        "children": [
+          "network-info"
+        ]
+      },
+      {
+        "id": "network-info",
+        "type": "text",
+        "props": {
+          "content": "Wish Radar accesses online stores through Vakyartha's governed **Web pages** sandbox integration. No cookies, session tokens or personal account logins are ever transmitted.",
+          "variant": "caption"
+        }
+      }
+    ]
+  }
+]

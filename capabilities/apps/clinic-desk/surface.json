@@ -1,0 +1,1259 @@
+[
+  {
+    "id": "today",
+    "title": "Schedule",
+    "data": {
+      "date": "2026-11-01",
+      "notToday": false,
+      "isToday": true,
+      "canBook": false,
+      "title": "Today · Sun 1 Nov",
+      "subtitle": "Our Clinic · 0 appointments · 0 doctors on duty. Attendance estimates appear after 20 completed or missed visits (0 so far). They are learned from this clinic's own history.",
+      "filter": "all",
+      "doctorFilterOptions": [
+        {
+          "label": "All doctors",
+          "value": "all"
+        }
+      ],
+      "stats": {
+        "booked": 0,
+        "checkedIn": 0,
+        "completed": 0,
+        "missed": 0,
+        "free": 0
+      },
+      "load": {
+        "value": 0,
+        "max": 1,
+        "note": "No clinic hours this day",
+        "tone": "info"
+      },
+      "events": [],
+      "monthLabel": "November 2026",
+      "attention": [],
+      "appts": [],
+      "hasAppts": false,
+      "emptyText": "No doctor is available that day, or every slot is taken.",
+      "export": {
+        "name": "appointments-2026-11-01",
+        "csv": "Date,Time,Doctor,Patient,Phone,Type,Reason,Status"
+      },
+      "quick": [],
+      "waitlist": [],
+      "waitText": "0 patients waiting for a slot. Find a slot books them and clears the entry.",
+      "remindText": "0 patients booked for Monday 2 November. The messages are written for you to send yourself.",
+      "remindLines": [],
+      "remind": {
+        "name": "reminders-2026-11-02",
+        "csv": "Phone,Patient,Doctor,Date,Time,Message"
+      },
+      "chart": {
+        "labels": [
+          "Sun 1",
+          "Mon 2",
+          "Tue 3",
+          "Wed 4",
+          "Thu 5",
+          "Fri 6",
+          "Sat 7"
+        ],
+        "series": [
+          {
+            "name": "Booked",
+            "values": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "Free",
+            "values": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "week": [
+        {
+          "date": "2026-11-01",
+          "label": "Sun 1",
+          "word": "Closed",
+          "tone": "neutral",
+          "summary": "No clinic"
+        },
+        {
+          "date": "2026-11-02",
+          "label": "Mon 2",
+          "word": "Closed",
+          "tone": "neutral",
+          "summary": "No clinic"
+        },
+        {
+          "date": "2026-11-03",
+          "label": "Tue 3",
+          "word": "Closed",
+          "tone": "neutral",
+          "summary": "No clinic"
+        },
+        {
+          "date": "2026-11-04",
+          "label": "Wed 4",
+          "word": "Closed",
+          "tone": "neutral",
+          "summary": "No clinic"
+        },
+        {
+          "date": "2026-11-05",
+          "label": "Thu 5",
+          "word": "Closed",
+          "tone": "neutral",
+          "summary": "No clinic"
+        },
+        {
+          "date": "2026-11-06",
+          "label": "Fri 6",
+          "word": "Closed",
+          "tone": "neutral",
+          "summary": "No clinic"
+        },
+        {
+          "date": "2026-11-07",
+          "label": "Sat 7",
+          "word": "Closed",
+          "tone": "neutral",
+          "summary": "No clinic"
+        }
+      ],
+      "assistantRequest": "Help me with the front desk at Our Clinic for 2026-11-01. Read the clinic context first. I may ask about the day's schedule, free slots, or who is likely to miss their visit. To book, find a free slot and prepare the booking: that only fills in the Book form for me to review and confirm. Never invent patients, times or doctors, and do not state medical advice.",
+      "assistantWorkflow": {
+        "title": "Front desk assistant",
+        "brief": "Your request",
+        "boundary": "The assistant can read the schedule and fill in the Book form. Nothing is booked until you press Book.",
+        "saved": "The Book form is filled in. Check the details, then press Book.",
+        "steps": [
+          {
+            "id": "day",
+            "label": "Summarise the day",
+            "mode": "send",
+            "message": "Read the clinic context and summarise the day: who is waiting, who is flagged as likely to miss, and where the gaps are. Use only what the context returned."
+          },
+          {
+            "id": "slots",
+            "label": "Find a slot",
+            "mode": "edit",
+            "message": "Find the earliest free slot for: "
+          },
+          {
+            "id": "book",
+            "label": "Prepare a booking",
+            "mode": "edit",
+            "message": "Prepare a booking for this patient (name, phone, reason and preferred doctor or day): "
+          }
+        ],
+        "review": {
+          "label": "Review the booking",
+          "surface": "book",
+          "tool": "prepare_booking"
+        }
+      },
+      "spoken": {
+        "brief": {
+          "title": "Our Clinic: Today",
+          "badge": "Today",
+          "segments": [
+            {
+              "delivery": "opening",
+              "cue": "intro",
+              "kicker": "Day brief",
+              "heading": "Our Clinic",
+              "figures": [
+                {
+                  "label": "Waiting",
+                  "value": "0"
+                },
+                {
+                  "label": "Checked in",
+                  "value": "0"
+                },
+                {
+                  "label": "Completed",
+                  "value": "0"
+                },
+                {
+                  "label": "Free slots",
+                  "value": "0"
+                }
+              ],
+              "text": "Today there are no appointments at Our Clinic. No doctor is available that day."
+            },
+            {
+              "delivery": "closing",
+              "cue": "outro",
+              "break": "section",
+              "kicker": "Sign off",
+              "heading": "Our Clinic",
+              "text": "That is today at Our Clinic."
+            }
+          ],
+          "ticker": []
+        }
+      }
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "lg"
+        },
+        "children": [
+          "setup-alert"
+        ]
+      },
+      {
+        "id": "setup-alert",
+        "type": "card",
+        "props": {
+          "title": "Welcome to Clinic Desk",
+          "body": "Add your first doctor and their weekly hours. Bookings, the day's schedule and the waiting list appear as soon as one is set up.",
+          "tone": "info"
+        },
+        "children": [
+          "setup-go"
+        ]
+      },
+      {
+        "id": "setup-go",
+        "type": "button",
+        "props": {
+          "label": "Set up doctors",
+          "action": "go_setup",
+          "style": "primary"
+        }
+      }
+    ]
+  },
+  {
+    "id": "book",
+    "title": "Book",
+    "data": {
+      "draft": {
+        "doctorId": "",
+        "date": "2026-11-01",
+        "name": "",
+        "phone": "",
+        "reason": "",
+        "kind": "Consultation",
+        "patientId": ""
+      },
+      "doctorOptions": [],
+      "patientOptions": [],
+      "slotHint": "",
+      "strip": [
+        {
+          "date": "2026-11-01",
+          "label": "Sun 1 · none",
+          "style": "primary"
+        },
+        {
+          "date": "2026-11-02",
+          "label": "Mon 2 · none",
+          "style": "secondary"
+        },
+        {
+          "date": "2026-11-03",
+          "label": "Tue 3 · none",
+          "style": "secondary"
+        },
+        {
+          "date": "2026-11-04",
+          "label": "Wed 4 · none",
+          "style": "secondary"
+        },
+        {
+          "date": "2026-11-05",
+          "label": "Thu 5 · none",
+          "style": "secondary"
+        },
+        {
+          "date": "2026-11-06",
+          "label": "Fri 6 · none",
+          "style": "secondary"
+        },
+        {
+          "date": "2026-11-07",
+          "label": "Sat 7 · none",
+          "style": "secondary"
+        }
+      ],
+      "slots": {
+        "am": [],
+        "pm": [],
+        "eve": []
+      },
+      "noSlots": "Choose a doctor. Try another day above, or use Next available.",
+      "summary": "Pick a time on the left first.",
+      "confirmTitle": "No time chosen yet",
+      "confirmBody": "Choose a day and a time slot.",
+      "movingText": "",
+      "returningText": ""
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "lg"
+        },
+        "children": [
+          "none"
+        ]
+      },
+      {
+        "id": "none",
+        "type": "card",
+        "props": {
+          "title": "No doctor to book",
+          "body": "Add or restore a doctor in Setup, then come back to book.",
+          "tone": "warning"
+        },
+        "children": [
+          "none-go"
+        ]
+      },
+      {
+        "id": "none-go",
+        "type": "button",
+        "props": {
+          "label": "Open Setup",
+          "action": "go_setup",
+          "style": "primary"
+        }
+      }
+    ]
+  },
+  {
+    "id": "patients",
+    "title": "Patients",
+    "data": {
+      "subtitle": "0 patients on record. Records stay on this computer.",
+      "stats": {
+        "all": 0,
+        "upcoming": 0,
+        "missed": 0,
+        "missedTone": "neutral"
+      },
+      "newPatient": {
+        "name": "",
+        "phone": "",
+        "dob": ""
+      },
+      "patients": [],
+      "patient": {
+        "name": "",
+        "phone": "",
+        "dob": "",
+        "notes": "",
+        "email": "",
+        "allergies": "",
+        "emergency": ""
+      },
+      "facts": {
+        "attendance": "",
+        "tone": "neutral",
+        "last": "",
+        "next": "",
+        "doctor": ""
+      },
+      "detail": {
+        "title": "",
+        "summary": ""
+      },
+      "history": []
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "lg"
+        },
+        "children": [
+          "head",
+          "stats",
+          "add",
+          "empty"
+        ]
+      },
+      {
+        "id": "head",
+        "type": "stack",
+        "props": {
+          "gap": "xs"
+        },
+        "children": [
+          "title",
+          "subtitle"
+        ]
+      },
+      {
+        "id": "title",
+        "type": "text",
+        "props": {
+          "content": "Patients",
+          "variant": "heading"
+        }
+      },
+      {
+        "id": "subtitle",
+        "type": "text",
+        "props": {
+          "content": "{/subtitle}",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "stats",
+        "type": "grid",
+        "props": {
+          "columns": 3,
+          "gap": "sm"
+        },
+        "children": [
+          "st-all",
+          "st-up",
+          "st-miss"
+        ]
+      },
+      {
+        "id": "st-all",
+        "type": "stat",
+        "props": {
+          "label": "Patients",
+          "value": "{/stats/all}"
+        }
+      },
+      {
+        "id": "st-up",
+        "type": "stat",
+        "props": {
+          "label": "Upcoming visits",
+          "value": "{/stats/upcoming}",
+          "tone": "info"
+        }
+      },
+      {
+        "id": "st-miss",
+        "type": "stat",
+        "props": {
+          "label": "Missed visits",
+          "value": "{/stats/missed}",
+          "tone": "{/stats/missedTone}"
+        }
+      },
+      {
+        "id": "add",
+        "type": "section",
+        "props": {
+          "title": "Add a patient",
+          "description": "Name and phone are enough. Booking also creates the record."
+        },
+        "children": [
+          "add-bar"
+        ]
+      },
+      {
+        "id": "add-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
+        },
+        "children": [
+          "np-name",
+          "np-phone",
+          "np-dob",
+          "np-add"
+        ]
+      },
+      {
+        "id": "np-name",
+        "type": "input",
+        "props": {
+          "label": "Name",
+          "bind": "/newPatient/name",
+          "placeholder": "Full name"
+        }
+      },
+      {
+        "id": "np-phone",
+        "type": "input",
+        "props": {
+          "label": "Phone",
+          "bind": "/newPatient/phone",
+          "placeholder": "Number the clinic can call"
+        }
+      },
+      {
+        "id": "np-dob",
+        "type": "date",
+        "props": {
+          "label": "Date of birth",
+          "bind": "/newPatient/dob"
+        }
+      },
+      {
+        "id": "np-add",
+        "type": "button",
+        "props": {
+          "label": "Add patient",
+          "action": "add_patient",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "empty",
+        "type": "card",
+        "props": {
+          "title": "No patients yet",
+          "body": "Add the first patient above, or book an appointment and the record is created for you.",
+          "tone": "neutral"
+        },
+        "children": [
+          "empty-book"
+        ]
+      },
+      {
+        "id": "empty-book",
+        "type": "button",
+        "props": {
+          "label": "Book an appointment",
+          "action": "go_book",
+          "style": "primary"
+        }
+      }
+    ]
+  },
+  {
+    "id": "doctors",
+    "title": "Doctors",
+    "data": {
+      "subtitle": "Add a doctor in Setup to begin.",
+      "doctors": [],
+      "profile": {
+        "title": "",
+        "summary": "",
+        "visits": 0,
+        "noShow": "",
+        "noShowTone": "neutral",
+        "util": "",
+        "nextFree": "",
+        "week": "2026-10-26",
+        "weekLabel": "",
+        "events": [],
+        "chart": {
+          "labels": [],
+          "series": []
+        },
+        "upcoming": []
+      }
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "lg"
+        },
+        "children": [
+          "head",
+          "empty"
+        ]
+      },
+      {
+        "id": "head",
+        "type": "stack",
+        "props": {
+          "gap": "xs"
+        },
+        "children": [
+          "title",
+          "subtitle"
+        ]
+      },
+      {
+        "id": "title",
+        "type": "text",
+        "props": {
+          "content": "Doctors",
+          "variant": "heading"
+        }
+      },
+      {
+        "id": "subtitle",
+        "type": "text",
+        "props": {
+          "content": "{/subtitle}",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "empty",
+        "type": "card",
+        "props": {
+          "title": "No doctors yet",
+          "body": "Add a doctor and their weekly hours in Setup. Their profile, week calendar and results appear here.",
+          "tone": "info"
+        },
+        "children": [
+          "empty-go"
+        ]
+      },
+      {
+        "id": "empty-go",
+        "type": "button",
+        "props": {
+          "label": "Set up doctors",
+          "action": "go_setup",
+          "style": "primary"
+        }
+      }
+    ]
+  },
+  {
+    "id": "insights",
+    "title": "Insights",
+    "data": {
+      "subtitle": "Our Clinic · Sat 3 Oct to Sun 1 Nov · 0 appointments",
+      "insightDays": "30",
+      "insightDoctor": "all",
+      "doctorOptions": [
+        {
+          "label": "All doctors",
+          "value": "all"
+        }
+      ],
+      "k": {
+        "completed": 0,
+        "attendance": "-",
+        "noShow": "-",
+        "noShowTone": "success",
+        "util": "-",
+        "lead": "-",
+        "newPatients": 0
+      },
+      "notes": [
+        "No appointments in this period yet. Figures appear as visits are booked and completed."
+      ],
+      "trend": {
+        "labels": [
+          "3 Oct",
+          "4 Oct",
+          "5 Oct",
+          "6 Oct",
+          "7 Oct",
+          "8 Oct",
+          "9 Oct",
+          "10 Oct",
+          "11 Oct",
+          "12 Oct",
+          "13 Oct",
+          "14 Oct",
+          "15 Oct",
+          "16 Oct",
+          "17 Oct",
+          "18 Oct",
+          "19 Oct",
+          "20 Oct",
+          "21 Oct",
+          "22 Oct",
+          "23 Oct",
+          "24 Oct",
+          "25 Oct",
+          "26 Oct",
+          "27 Oct",
+          "28 Oct",
+          "29 Oct",
+          "30 Oct",
+          "31 Oct",
+          "1 Nov"
+        ],
+        "series": [
+          {
+            "name": "Completed",
+            "values": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "Upcoming",
+            "values": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "No-show",
+            "values": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "Cancelled",
+            "values": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "hours": {
+        "labels": [
+          "9a",
+          "10a",
+          "11a",
+          "12p",
+          "1p",
+          "2p",
+          "3p",
+          "4p",
+          "5p"
+        ],
+        "series": [
+          {
+            "name": "Visits",
+            "values": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "weekdays": {
+        "labels": [
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri",
+          "Sat",
+          "Sun"
+        ],
+        "series": [
+          {
+            "name": "No-show %",
+            "values": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "kinds": {
+        "labels": [],
+        "series": [
+          {
+            "name": "Visits",
+            "values": []
+          }
+        ]
+      },
+      "doctorRows": [],
+      "forecast": {
+        "labels": [
+          "Sun 1",
+          "Mon 2",
+          "Tue 3",
+          "Wed 4",
+          "Thu 5",
+          "Fri 6",
+          "Sat 7"
+        ],
+        "series": [
+          {
+            "name": "Booked",
+            "values": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "name": "Expected",
+            "values": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "report": {
+        "name": "clinic-report-2026-10-03-to-2026-11-01.csv",
+        "csv": "Metric,Value\nPeriod,2026-10-03 to 2026-11-01\nDoctor,All\nAppointments,0\nCompleted,0\nNo-shows,0\nCancelled,0\nNo-show rate,0%\nSlots used,0%\nAverage days booked ahead,0.0\nNew patients,0\n\nDoctor,Visits,Completed,No-shows,Cancelled,Slots used\n"
+      }
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "lg"
+        },
+        "children": [
+          "head",
+          "bar",
+          "empty"
+        ]
+      },
+      {
+        "id": "head",
+        "type": "stack",
+        "props": {
+          "gap": "xs"
+        },
+        "children": [
+          "title",
+          "subtitle"
+        ]
+      },
+      {
+        "id": "title",
+        "type": "text",
+        "props": {
+          "content": "Insights",
+          "variant": "heading"
+        }
+      },
+      {
+        "id": "subtitle",
+        "type": "text",
+        "props": {
+          "content": "{/subtitle}",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
+        },
+        "children": [
+          "period",
+          "who",
+          "export"
+        ]
+      },
+      {
+        "id": "period",
+        "type": "select",
+        "props": {
+          "label": "Period",
+          "bind": "/insightDays",
+          "options": [
+            {
+              "label": "7 days",
+              "value": "7"
+            },
+            {
+              "label": "30 days",
+              "value": "30"
+            },
+            {
+              "label": "90 days",
+              "value": "90"
+            }
+          ]
+        }
+      },
+      {
+        "id": "who",
+        "type": "select",
+        "props": {
+          "label": "Doctor",
+          "bind": "/insightDoctor",
+          "options": "{/doctorOptions}"
+        }
+      },
+      {
+        "id": "export",
+        "type": "button",
+        "props": {
+          "label": "Export report (CSV)",
+          "action": "file.save",
+          "style": "secondary",
+          "payload": {
+            "name": "/report/name",
+            "text": "/report/csv"
+          }
+        }
+      },
+      {
+        "id": "empty",
+        "type": "card",
+        "props": {
+          "title": "No data yet",
+          "body": "Add a doctor and book visits to see results here.",
+          "tone": "info"
+        }
+      }
+    ]
+  },
+  {
+    "id": "setup",
+    "title": "Setup",
+    "data": {
+      "subtitle": "Our Clinic · 0 doctors taking bookings",
+      "clinic": {
+        "name": "Our Clinic",
+        "timezone": "UTC",
+        "tagline": "",
+        "phone": "",
+        "address": ""
+      },
+      "newDoctor": "",
+      "doctorText": "Add the first doctor to start booking.",
+      "doctors": [],
+      "doctor": {
+        "name": "",
+        "room": "",
+        "specialty": "",
+        "days": [],
+        "start": "09:00",
+        "end": "17:00",
+        "slot": "15",
+        "breakStart": "none",
+        "breakEnd": "none"
+      },
+      "leave": {
+        "from": "",
+        "to": "",
+        "note": ""
+      },
+      "leaveText": "Leave removes that doctor's slots on those days.",
+      "leaveList": [],
+      "editor": {
+        "title": "",
+        "summary": "",
+        "toggle": "",
+        "toggleStyle": "secondary"
+      }
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "lg"
+        },
+        "children": [
+          "head",
+          "clinic",
+          "doctors"
+        ]
+      },
+      {
+        "id": "head",
+        "type": "stack",
+        "props": {
+          "gap": "xs"
+        },
+        "children": [
+          "title",
+          "subtitle"
+        ]
+      },
+      {
+        "id": "title",
+        "type": "text",
+        "props": {
+          "content": "Setup",
+          "variant": "heading"
+        }
+      },
+      {
+        "id": "subtitle",
+        "type": "text",
+        "props": {
+          "content": "{/subtitle}",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "clinic",
+        "type": "section",
+        "props": {
+          "title": "Clinic and branding",
+          "description": "The name, tagline, phone and address head the schedule, reminders and exports. The time zone decides what \"today\" and \"now\" mean for slots."
+        },
+        "children": [
+          "clinic-bar"
+        ]
+      },
+      {
+        "id": "clinic-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
+        },
+        "children": [
+          "c-name",
+          "c-tag",
+          "c-phone",
+          "c-addr",
+          "c-zone",
+          "c-save"
+        ]
+      },
+      {
+        "id": "c-tag",
+        "type": "input",
+        "props": {
+          "label": "Tagline",
+          "bind": "/clinic/tagline",
+          "placeholder": "Care that listens"
+        }
+      },
+      {
+        "id": "c-phone",
+        "type": "input",
+        "props": {
+          "label": "Clinic phone",
+          "bind": "/clinic/phone"
+        }
+      },
+      {
+        "id": "c-addr",
+        "type": "input",
+        "props": {
+          "label": "Address",
+          "bind": "/clinic/address"
+        }
+      },
+      {
+        "id": "c-name",
+        "type": "input",
+        "props": {
+          "label": "Clinic name",
+          "bind": "/clinic/name"
+        }
+      },
+      {
+        "id": "c-zone",
+        "type": "input",
+        "props": {
+          "label": "Time zone",
+          "bind": "/clinic/timezone",
+          "placeholder": "Asia/Kolkata"
+        }
+      },
+      {
+        "id": "c-save",
+        "type": "button",
+        "props": {
+          "label": "Save",
+          "action": "save_clinic",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "doctors",
+        "type": "section",
+        "props": {
+          "title": "Doctors",
+          "description": "{/doctorText}"
+        },
+        "children": [
+          "add-bar"
+        ]
+      },
+      {
+        "id": "add-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
+        },
+        "children": [
+          "new-doc",
+          "add-doc"
+        ]
+      },
+      {
+        "id": "new-doc",
+        "type": "input",
+        "props": {
+          "label": "New doctor",
+          "bind": "/newDoctor",
+          "placeholder": "Dr. Name"
+        }
+      },
+      {
+        "id": "add-doc",
+        "type": "button",
+        "props": {
+          "label": "Add doctor",
+          "action": "add_doctor",
+          "style": "primary"
+        }
+      }
+    ]
+  }
+]

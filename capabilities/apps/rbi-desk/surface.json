@@ -1,0 +1,404 @@
+[
+  {
+    "id": "rates",
+    "title": "Rates",
+    "data": {
+      "spoken": {
+        "briefing": "RBI Desk has not read the Reserve Bank of India yet. Use Refresh at the top right.",
+        "programme": {
+          "title": "RBI Desk",
+          "segments": []
+        }
+      }
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "empty"
+        ]
+      },
+      {
+        "id": "empty",
+        "type": "card",
+        "props": {
+          "title": "No RBI rates yet",
+          "body": "Use Refresh at the top right to read the Current Rates panel and the official RBI feeds from rbi.org.in. Use Access in the app header to review this app’s Web pages tools, destinations and background access."
+        }
+      }
+    ]
+  },
+  {
+    "id": "reserves",
+    "title": "Reserves",
+    "data": {},
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "empty"
+        ]
+      },
+      {
+        "id": "empty",
+        "type": "text",
+        "props": {
+          "content": "No reserves table read yet. Use Refresh at the top right; the weekly RBI press release supplies the figures."
+        }
+      }
+    ]
+  },
+  {
+    "id": "updates",
+    "title": "Updates",
+    "data": {
+      "filters": {
+        "feed": "All",
+        "tag": "All",
+        "query": ""
+      },
+      "feedOptions": [
+        {
+          "label": "All notices",
+          "value": "All"
+        },
+        {
+          "label": "Press releases",
+          "value": "Press releases"
+        },
+        {
+          "label": "Notifications",
+          "value": "Notifications"
+        },
+        {
+          "label": "Bulletin",
+          "value": "Bulletin"
+        },
+        {
+          "label": "Annual report",
+          "value": "Annual report"
+        },
+        {
+          "label": "Tenders",
+          "value": "Tenders"
+        }
+      ],
+      "tagOptions": [
+        {
+          "label": "All",
+          "value": "All"
+        },
+        {
+          "label": "policy",
+          "value": "policy"
+        },
+        {
+          "label": "penalty",
+          "value": "penalty"
+        },
+        {
+          "label": "gold bond",
+          "value": "gold-bond"
+        },
+        {
+          "label": "auction",
+          "value": "auction"
+        },
+        {
+          "label": "deposit rates",
+          "value": "deposit-rates"
+        },
+        {
+          "label": "kyc",
+          "value": "kyc"
+        },
+        {
+          "label": "payments",
+          "value": "payments"
+        },
+        {
+          "label": "forex reserves",
+          "value": "forex-reserves"
+        }
+      ],
+      "shown": []
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "filter-bar",
+          "none"
+        ]
+      },
+      {
+        "id": "filter-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
+        },
+        "children": [
+          "feed",
+          "tag",
+          "query",
+          "clear"
+        ]
+      },
+      {
+        "id": "feed",
+        "type": "select",
+        "props": {
+          "label": "Feed",
+          "bind": "/filters/feed",
+          "options": "{/feedOptions}"
+        }
+      },
+      {
+        "id": "tag",
+        "type": "select",
+        "props": {
+          "label": "Topic",
+          "bind": "/filters/tag",
+          "options": "{/tagOptions}"
+        }
+      },
+      {
+        "id": "query",
+        "type": "input",
+        "props": {
+          "label": "Search",
+          "bind": "/filters/query",
+          "placeholder": "KYC, penalty, gold bond"
+        }
+      },
+      {
+        "id": "clear",
+        "type": "button",
+        "props": {
+          "label": "Clear",
+          "action": "clear_filters",
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "none",
+        "type": "text",
+        "props": {
+          "content": "No items yet. Use Refresh at the top right.",
+          "variant": "caption"
+        }
+      }
+    ]
+  },
+  {
+    "id": "rulebook",
+    "title": "Rulebook",
+    "data": {
+      "intro": "0 of 0 direction titles. Last read never. Open the official link for the full rule; titles are not a legal interpretation.",
+      "directionQuery": "",
+      "rows": []
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "intro",
+          "search-bar",
+          "empty"
+        ]
+      },
+      {
+        "id": "intro",
+        "type": "text",
+        "props": {
+          "content": "{/intro}"
+        }
+      },
+      {
+        "id": "search-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true,
+          "align": "end"
+        },
+        "children": [
+          "query",
+          "search"
+        ]
+      },
+      {
+        "id": "query",
+        "type": "input",
+        "props": {
+          "label": "Search direction titles or categories",
+          "bind": "/directionQuery",
+          "placeholder": "KYC, payments, commercial banks"
+        }
+      },
+      {
+        "id": "search",
+        "type": "button",
+        "props": {
+          "label": "Search",
+          "action": "search_directions",
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "empty",
+        "type": "text",
+        "props": {
+          "content": "Use Refresh at the top right to read RBI’s directory."
+        }
+      }
+    ]
+  },
+  {
+    "id": "sources",
+    "title": "Sources",
+    "data": {
+      "health": [
+        {
+          "source": "Current rates",
+          "status": "Not read yet",
+          "last": "never"
+        },
+        {
+          "source": "Press releases",
+          "status": "Not read yet",
+          "last": "never"
+        },
+        {
+          "source": "Notifications",
+          "status": "Not read yet",
+          "last": "never"
+        },
+        {
+          "source": "Bulletin",
+          "status": "Not read yet",
+          "last": "never"
+        },
+        {
+          "source": "Annual report",
+          "status": "Not read yet",
+          "last": "never"
+        },
+        {
+          "source": "Tenders",
+          "status": "Not read yet",
+          "last": "never"
+        },
+        {
+          "source": "Forex reserves",
+          "status": "Not read yet",
+          "last": "never"
+        },
+        {
+          "source": "Master Directions",
+          "status": "Not read yet",
+          "last": "never"
+        },
+        {
+          "source": "Gold bond notice",
+          "status": "Not read yet",
+          "last": "never"
+        }
+      ],
+      "receipts": []
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "health",
+          "receipts-section"
+        ]
+      },
+      {
+        "id": "health",
+        "type": "table",
+        "props": {
+          "rows": "{/health}",
+          "columns": [
+            {
+              "key": "source",
+              "label": "Source"
+            },
+            {
+              "key": "status",
+              "label": "Status"
+            },
+            {
+              "key": "last",
+              "label": "Last good read"
+            }
+          ]
+        }
+      },
+      {
+        "id": "receipts-section",
+        "type": "section",
+        "props": {
+          "title": "Recent reads",
+          "description": "Every read goes through the Web pages integration to rbi.org.in only."
+        },
+        "children": [
+          "receipts"
+        ]
+      },
+      {
+        "id": "receipts",
+        "type": "table",
+        "props": {
+          "rows": "{/receipts}",
+          "columns": [
+            {
+              "key": "source",
+              "label": "Source"
+            },
+            {
+              "key": "at",
+              "label": "Time"
+            },
+            {
+              "key": "rows",
+              "label": "Rows",
+              "align": "end"
+            },
+            {
+              "key": "status",
+              "label": "Status"
+            }
+          ],
+          "pageSize": 10
+        }
+      }
+    ]
+  }
+]

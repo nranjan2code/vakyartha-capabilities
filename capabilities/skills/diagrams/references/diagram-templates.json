@@ -1,0 +1,664 @@
+{
+  "flowchart": {
+    "type": "diagram",
+    "props": {
+      "kind": "flow",
+      "directed": true,
+      "nodes": [
+        {
+          "id": "start",
+          "label": "Start Process",
+          "group": "Boundary",
+          "shape": "pill"
+        },
+        {
+          "id": "validate",
+          "label": "Validate Input",
+          "group": "Process",
+          "shape": "box"
+        },
+        {
+          "id": "check",
+          "label": "Checks Pass?",
+          "group": "Decision",
+          "shape": "diamond"
+        },
+        {
+          "id": "fix",
+          "label": "Request Correction",
+          "group": "Exception",
+          "shape": "box"
+        },
+        {
+          "id": "execute",
+          "label": "Execute Action",
+          "group": "Process",
+          "shape": "box"
+        },
+        {
+          "id": "end",
+          "label": "Completed",
+          "group": "Boundary",
+          "shape": "pill"
+        }
+      ],
+      "edges": [
+        {
+          "from": "start",
+          "to": "validate",
+          "label": "initiates"
+        },
+        {
+          "from": "validate",
+          "to": "check",
+          "label": "evaluates"
+        },
+        {
+          "from": "check",
+          "to": "execute",
+          "label": "yes"
+        },
+        {
+          "from": "check",
+          "to": "fix",
+          "label": "no"
+        },
+        {
+          "from": "fix",
+          "to": "validate",
+          "label": "resubmits"
+        },
+        {
+          "from": "execute",
+          "to": "end",
+          "label": "finishes"
+        }
+      ]
+    }
+  },
+  "architecture": {
+    "type": "diagram",
+    "props": {
+      "kind": "flow",
+      "directed": true,
+      "nodes": [
+        {
+          "id": "client",
+          "label": "Web & Mobile Client",
+          "group": "Frontend",
+          "shape": "pill"
+        },
+        {
+          "id": "gateway",
+          "label": "API Gateway",
+          "group": "Edge",
+          "shape": "box"
+        },
+        {
+          "id": "auth",
+          "label": "Auth Service",
+          "group": "Core",
+          "shape": "box"
+        },
+        {
+          "id": "app",
+          "label": "Application Service",
+          "group": "Core",
+          "shape": "box"
+        },
+        {
+          "id": "cache",
+          "label": "Cache",
+          "group": "Data",
+          "shape": "cylinder"
+        },
+        {
+          "id": "db",
+          "label": "Primary database",
+          "group": "Data",
+          "shape": "cylinder"
+        }
+      ],
+      "edges": [
+        {
+          "from": "client",
+          "to": "gateway",
+          "label": "HTTPS / JSON"
+        },
+        {
+          "from": "gateway",
+          "to": "auth",
+          "label": "validates JWT"
+        },
+        {
+          "from": "gateway",
+          "to": "app",
+          "label": "routes request"
+        },
+        {
+          "from": "app",
+          "to": "cache",
+          "label": "reads cache"
+        },
+        {
+          "from": "app",
+          "to": "db",
+          "label": "queries & persists"
+        }
+      ],
+      "subgraphs": [
+        {
+          "id": "sg-edge",
+          "label": "Edge Tier",
+          "nodes": [
+            "gateway",
+            "auth"
+          ]
+        },
+        {
+          "id": "sg-core",
+          "label": "Backend Tier",
+          "nodes": [
+            "app"
+          ]
+        },
+        {
+          "id": "sg-data",
+          "label": "Data Tier",
+          "nodes": [
+            "cache",
+            "db"
+          ]
+        }
+      ]
+    }
+  },
+  "feedback_control_loop": {
+    "type": "diagram",
+    "props": {
+      "kind": "flow",
+      "directed": true,
+      "nodes": [
+        {
+          "id": "objective",
+          "label": "System Goal",
+          "group": "Strategy",
+          "shape": "pill"
+        },
+        {
+          "id": "sensor",
+          "label": "Telemetry & Inputs",
+          "group": "Perception",
+          "shape": "cylinder"
+        },
+        {
+          "id": "controller",
+          "label": "Inference Controller",
+          "group": "Processing",
+          "shape": "box"
+        },
+        {
+          "id": "guard",
+          "label": "Safety Policy",
+          "group": "Governance",
+          "shape": "diamond"
+        },
+        {
+          "id": "actuator",
+          "label": "Actuator / Action",
+          "group": "Execution",
+          "shape": "box"
+        },
+        {
+          "id": "observer",
+          "label": "Outcome Observer",
+          "group": "Evaluation",
+          "shape": "pill"
+        }
+      ],
+      "edges": [
+        {
+          "from": "objective",
+          "to": "sensor",
+          "label": "sets parameters"
+        },
+        {
+          "from": "sensor",
+          "to": "controller",
+          "label": "streams telemetry"
+        },
+        {
+          "from": "controller",
+          "to": "guard",
+          "label": "proposes change"
+        },
+        {
+          "from": "guard",
+          "to": "actuator",
+          "label": "enforces bounds"
+        },
+        {
+          "from": "actuator",
+          "to": "observer",
+          "label": "affects environment"
+        },
+        {
+          "from": "observer",
+          "to": "objective",
+          "label": "corrects drift"
+        },
+        {
+          "from": "observer",
+          "to": "sensor",
+          "label": "calibrates baselines"
+        }
+      ]
+    }
+  },
+  "data_pipeline": {
+    "type": "diagram",
+    "props": {
+      "kind": "flow",
+      "directed": true,
+      "nodes": [
+        {
+          "id": "source",
+          "label": "Raw Event Streams",
+          "group": "Ingest",
+          "shape": "cylinder"
+        },
+        {
+          "id": "kafka",
+          "label": "Event Ingestion",
+          "group": "Ingest",
+          "shape": "box"
+        },
+        {
+          "id": "spark",
+          "label": "Cleanse & Transform",
+          "group": "Transform",
+          "shape": "box"
+        },
+        {
+          "id": "lakehouse",
+          "label": "Analytics Store",
+          "group": "Storage",
+          "shape": "cylinder"
+        },
+        {
+          "id": "features",
+          "label": "Feature Store",
+          "group": "Serving",
+          "shape": "cylinder"
+        },
+        {
+          "id": "models",
+          "label": "Real-time Scorer",
+          "group": "Serving",
+          "shape": "box"
+        }
+      ],
+      "edges": [
+        {
+          "from": "source",
+          "to": "kafka",
+          "label": "publishes events"
+        },
+        {
+          "from": "kafka",
+          "to": "spark",
+          "label": "consumes batch"
+        },
+        {
+          "from": "spark",
+          "to": "lakehouse",
+          "label": "writes tables"
+        },
+        {
+          "from": "lakehouse",
+          "to": "features",
+          "label": "extracts features"
+        },
+        {
+          "from": "features",
+          "to": "models",
+          "label": "serves embeddings"
+        }
+      ]
+    }
+  },
+  "state_machine": {
+    "type": "diagram",
+    "props": {
+      "kind": "state",
+      "directed": true,
+      "nodes": [
+        {
+          "id": "draft",
+          "label": "Draft",
+          "group": "Open",
+          "shape": "pill"
+        },
+        {
+          "id": "submitted",
+          "label": "Submitted",
+          "group": "Open"
+        },
+        {
+          "id": "review",
+          "label": "In review",
+          "group": "Open",
+          "shape": "diamond"
+        },
+        {
+          "id": "approved",
+          "label": "Approved",
+          "group": "Closed",
+          "shape": "pill"
+        },
+        {
+          "id": "rejected",
+          "label": "Rejected",
+          "group": "Closed",
+          "shape": "pill"
+        }
+      ],
+      "edges": [
+        {
+          "from": "draft",
+          "to": "submitted",
+          "label": "submit [fields complete]"
+        },
+        {
+          "from": "submitted",
+          "to": "review",
+          "label": "assign reviewer"
+        },
+        {
+          "from": "review",
+          "to": "approved",
+          "label": "approve"
+        },
+        {
+          "from": "review",
+          "to": "rejected",
+          "label": "reject"
+        },
+        {
+          "from": "review",
+          "to": "draft",
+          "label": "request changes"
+        }
+      ]
+    }
+  },
+  "entity_relationship": {
+    "type": "diagram",
+    "props": {
+      "kind": "er",
+      "directed": true,
+      "nodes": [
+        {
+          "id": "customer",
+          "label": "Customer",
+          "group": "Entity",
+          "fields": [
+            "id",
+            "name",
+            "email"
+          ]
+        },
+        {
+          "id": "order",
+          "label": "Order",
+          "group": "Entity",
+          "fields": [
+            "id",
+            "customer_id",
+            "placed_at",
+            "status"
+          ]
+        },
+        {
+          "id": "line",
+          "label": "Order line",
+          "group": "Entity",
+          "fields": [
+            "order_id",
+            "product_id",
+            "quantity",
+            "price"
+          ]
+        },
+        {
+          "id": "product",
+          "label": "Product",
+          "group": "Entity",
+          "fields": [
+            "id",
+            "name",
+            "unit_price"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "customer",
+          "to": "order",
+          "label": "1:N places"
+        },
+        {
+          "from": "order",
+          "to": "line",
+          "label": "1:N contains"
+        },
+        {
+          "from": "product",
+          "to": "line",
+          "label": "1:N appears in"
+        }
+      ]
+    }
+  },
+  "sequence": {
+    "type": "diagram",
+    "props": {
+      "kind": "sequence",
+      "directed": true,
+      "nodes": [
+        {
+          "id": "user",
+          "label": "User",
+          "group": "Actor",
+          "shape": "pill"
+        },
+        {
+          "id": "app",
+          "label": "App",
+          "group": "Client"
+        },
+        {
+          "id": "auth",
+          "label": "Auth service",
+          "group": "Server"
+        },
+        {
+          "id": "api",
+          "label": "Resource API",
+          "group": "Server"
+        }
+      ],
+      "edges": [
+        {
+          "from": "user",
+          "to": "app",
+          "label": "1. signs in"
+        },
+        {
+          "from": "app",
+          "to": "auth",
+          "label": "2. sends credentials"
+        },
+        {
+          "from": "auth",
+          "to": "app",
+          "label": "3. returns token"
+        },
+        {
+          "from": "app",
+          "to": "api",
+          "label": "4. calls with token"
+        },
+        {
+          "from": "api",
+          "to": "app",
+          "label": "5. returns data"
+        }
+      ]
+    }
+  },
+  "mindmap": {
+    "type": "diagram",
+    "props": {
+      "kind": "mindmap",
+      "nodes": [
+        {
+          "id": "trip",
+          "label": "Weekend trip"
+        },
+        {
+          "id": "food",
+          "label": "Food"
+        },
+        {
+          "id": "stay",
+          "label": "Stay"
+        },
+        {
+          "id": "do",
+          "label": "Things to do"
+        },
+        {
+          "id": "cafes",
+          "label": "Cafes"
+        },
+        {
+          "id": "homestay",
+          "label": "Homestay"
+        },
+        {
+          "id": "walk",
+          "label": "Fort walk"
+        }
+      ],
+      "edges": [
+        {
+          "from": "trip",
+          "to": "food"
+        },
+        {
+          "from": "trip",
+          "to": "stay"
+        },
+        {
+          "from": "trip",
+          "to": "do"
+        },
+        {
+          "from": "food",
+          "to": "cafes"
+        },
+        {
+          "from": "stay",
+          "to": "homestay"
+        },
+        {
+          "from": "do",
+          "to": "walk"
+        }
+      ]
+    }
+  },
+  "swimlane": {
+    "type": "diagram",
+    "props": {
+      "kind": "swimlane",
+      "nodes": [
+        {
+          "id": "submit",
+          "label": "Submit expense",
+          "shape": "pill"
+        },
+        {
+          "id": "review",
+          "label": "Review claim"
+        },
+        {
+          "id": "policy",
+          "label": "Within policy?",
+          "shape": "diamond"
+        },
+        {
+          "id": "pay",
+          "label": "Pay claim"
+        },
+        {
+          "id": "notify",
+          "label": "Notify employee"
+        }
+      ],
+      "edges": [
+        {
+          "from": "submit",
+          "to": "review",
+          "label": "sends"
+        },
+        {
+          "from": "review",
+          "to": "policy",
+          "label": "checks"
+        },
+        {
+          "from": "policy",
+          "to": "pay",
+          "label": "yes"
+        },
+        {
+          "from": "policy",
+          "to": "notify",
+          "label": "no"
+        },
+        {
+          "from": "pay",
+          "to": "notify",
+          "label": "confirms"
+        }
+      ],
+      "subgraphs": [
+        {
+          "id": "emp",
+          "label": "Employee",
+          "nodes": [
+            "submit"
+          ]
+        },
+        {
+          "id": "mgr",
+          "label": "Manager",
+          "nodes": [
+            "review",
+            "policy"
+          ]
+        },
+        {
+          "id": "fin",
+          "label": "Finance",
+          "nodes": [
+            "pay",
+            "notify"
+          ]
+        }
+      ]
+    }
+  }
+}

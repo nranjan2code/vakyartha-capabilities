@@ -1,0 +1,637 @@
+[
+  {
+    "id": "today",
+    "title": "Today",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "empty",
+          "choose-place",
+          "source-caption"
+        ]
+      },
+      {
+        "id": "empty",
+        "type": "text",
+        "props": {
+          "content": "Your weather starts with a place. Search by city or postal code in Places.",
+          "variant": "body"
+        }
+      },
+      {
+        "id": "choose-place",
+        "type": "button",
+        "props": {
+          "label": "Choose a place",
+          "action": "open_places",
+          "payload": {},
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "source-caption",
+        "type": "text",
+        "props": {
+          "content": "Source: [Open-Meteo](https://open-meteo.com/) · Air quality: [CAMS via Open-Meteo](https://open-meteo.com/en/docs/air-quality-api) · Place search: GeoNames.",
+          "variant": "caption"
+        }
+      }
+    ],
+    "data": {
+      "place": "No place selected",
+      "summary": "Your weather starts with a place. Search by city or postal code in Places.",
+      "freshness": "Save a place, then use Refresh in the header to read its weather.",
+      "selected": "",
+      "placeOptions": [],
+      "spoken": {
+        "programme": {
+          "title": "Weather Desk",
+          "badge": "Saved / needs refresh",
+          "segments": [
+            {
+              "delivery": "opening",
+              "cue": "intro",
+              "kicker": "Weather Desk",
+              "heading": "Choose your place",
+              "source": "Open-Meteo",
+              "text": "Hello, and welcome to Weather Desk. Save a place and refresh to hear a weather briefing."
+            },
+            {
+              "delivery": "closing",
+              "cue": "outro",
+              "kicker": "Source & limits",
+              "heading": "Forecasts can change",
+              "source": "Open-Meteo",
+              "text": "These are modelled estimates from Open-Meteo. Forecasts can change, and this app does not carry official emergency warnings. Thanks for listening to Weather Desk."
+            }
+          ]
+        }
+      },
+      "stats": [
+        {
+          "label": "Temperature",
+          "value": "Unavailable"
+        },
+        {
+          "label": "Feels like",
+          "value": "Unavailable"
+        },
+        {
+          "label": "Humidity",
+          "value": "Unavailable"
+        },
+        {
+          "label": "Wind",
+          "value": "Unavailable"
+        }
+      ],
+      "hours": [],
+      "details": [],
+      "authorRequest": "Use Weather Desk's read-only get_weather tool for placeId (choose a place first). Explain the saved forecast, its source times, missing values and practical weather considerations. Follow the weather skill. Do not invent warnings, current readings or air quality scales. Any fresh external read uses the normal integration permissions."
+    }
+  },
+  {
+    "id": "forecast",
+    "title": "Forecast & planning",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "empty",
+          "choose-place",
+          "source-caption"
+        ]
+      },
+      {
+        "id": "empty",
+        "type": "text",
+        "props": {
+          "content": "Choose a saved place to plan around its forecast.",
+          "variant": "body"
+        }
+      },
+      {
+        "id": "choose-place",
+        "type": "button",
+        "props": {
+          "label": "Choose a place",
+          "action": "open_places",
+          "payload": {},
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "source-caption",
+        "type": "text",
+        "props": {
+          "content": "Source: [Open-Meteo](https://open-meteo.com/) · Air quality: [CAMS via Open-Meteo](https://open-meteo.com/en/docs/air-quality-api) · Place search: GeoNames.",
+          "variant": "caption"
+        }
+      }
+    ],
+    "data": {
+      "place": "No place selected",
+      "summary": "Your weather starts with a place. Search by city or postal code in Places.",
+      "freshness": "Save a place, then use Refresh in the header to read its weather.",
+      "selected": "",
+      "placeOptions": [],
+      "spoken": {
+        "programme": {
+          "title": "Weather Desk",
+          "badge": "Saved / needs refresh",
+          "segments": [
+            {
+              "delivery": "opening",
+              "cue": "intro",
+              "kicker": "Weather Desk",
+              "heading": "Choose your place",
+              "source": "Open-Meteo",
+              "text": "Hello, and welcome to Weather Desk. Save a place and refresh to hear a weather briefing."
+            },
+            {
+              "delivery": "closing",
+              "cue": "outro",
+              "kicker": "Source & limits",
+              "heading": "Forecasts can change",
+              "source": "Open-Meteo",
+              "text": "These are modelled estimates from Open-Meteo. Forecasts can change, and this app does not carry official emergency warnings. Thanks for listening to Weather Desk."
+            }
+          ]
+        }
+      },
+      "hours": [],
+      "days": [],
+      "maxRain": 30,
+      "maxWind": 25,
+      "matches": [],
+      "export": {
+        "csv": "\"place\",\"timezone\",\"date\",\"low_°C\",\"high_°C\",\"precipitation_mm\",\"precipitation_probability_percent\",\"wind_max_km/h\",\"uv_index_max\",\"condition\",\"retrieved_at_utc\",\"source\""
+      }
+    }
+  },
+  {
+    "id": "air",
+    "title": "Air quality",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "empty",
+          "choose-place",
+          "source-caption"
+        ]
+      },
+      {
+        "id": "empty",
+        "type": "text",
+        "props": {
+          "content": "Choose a place to inspect modelled air quality.",
+          "variant": "body"
+        }
+      },
+      {
+        "id": "choose-place",
+        "type": "button",
+        "props": {
+          "label": "Choose a place",
+          "action": "open_places",
+          "payload": {},
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "source-caption",
+        "type": "text",
+        "props": {
+          "content": "Source: [Open-Meteo](https://open-meteo.com/) · Air quality: [CAMS via Open-Meteo](https://open-meteo.com/en/docs/air-quality-api) · Place search: GeoNames.",
+          "variant": "caption"
+        }
+      }
+    ],
+    "data": {
+      "place": "No place selected",
+      "summary": "Your weather starts with a place. Search by city or postal code in Places.",
+      "freshness": "Save a place, then use Refresh in the header to read its weather.",
+      "selected": "",
+      "placeOptions": [],
+      "spoken": {
+        "programme": {
+          "title": "Weather Desk",
+          "badge": "Saved / needs refresh",
+          "segments": [
+            {
+              "delivery": "opening",
+              "cue": "intro",
+              "kicker": "Weather Desk",
+              "heading": "Choose your place",
+              "source": "Open-Meteo",
+              "text": "Hello, and welcome to Weather Desk. Save a place and refresh to hear a weather briefing."
+            },
+            {
+              "delivery": "closing",
+              "cue": "outro",
+              "kicker": "Source & limits",
+              "heading": "Forecasts can change",
+              "source": "Open-Meteo",
+              "text": "These are modelled estimates from Open-Meteo. Forecasts can change, and this app does not carry official emergency warnings. Thanks for listening to Weather Desk."
+            }
+          ]
+        }
+      },
+      "airStats": [
+        {
+          "label": "US AQI",
+          "value": "Unavailable"
+        },
+        {
+          "label": "European AQI",
+          "value": "Unavailable"
+        },
+        {
+          "label": "PM2.5",
+          "value": "Unavailable"
+        },
+        {
+          "label": "PM10",
+          "value": "Unavailable"
+        }
+      ],
+      "airRows": []
+    }
+  },
+  {
+    "id": "places",
+    "title": "Places",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "search-place",
+          "source-caption"
+        ]
+      },
+      {
+        "id": "place-search",
+        "type": "input",
+        "props": {
+          "label": "City or postal code",
+          "bind": "/search",
+          "placeholder": "Search for a place"
+        }
+      },
+      {
+        "id": "search-button",
+        "type": "button",
+        "props": {
+          "label": "Search places",
+          "action": "search_places",
+          "payload": {},
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "dictate-place",
+        "type": "button",
+        "props": {
+          "label": "Dictate place",
+          "action": "voice.dictate",
+          "payload": {
+            "into": "place-search"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "search-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
+        },
+        "children": [
+          "place-search",
+          "search-button",
+          "dictate-place"
+        ]
+      },
+      {
+        "id": "search-place",
+        "type": "section",
+        "props": {
+          "title": "Your places",
+          "description": "Keep up to five places. Search results are never selected automatically. Saving a place is local; Refresh reads all saved places (up to 15 governed calls)."
+        },
+        "children": [
+          "search-bar"
+        ]
+      },
+      {
+        "id": "source-caption",
+        "type": "text",
+        "props": {
+          "content": "Source: [Open-Meteo](https://open-meteo.com/) · Air quality: [CAMS via Open-Meteo](https://open-meteo.com/en/docs/air-quality-api) · Place search: GeoNames.",
+          "variant": "caption"
+        }
+      }
+    ],
+    "data": {
+      "place": "No place selected",
+      "summary": "Your weather starts with a place. Search by city or postal code in Places.",
+      "freshness": "Save a place, then use Refresh in the header to read its weather.",
+      "selected": "",
+      "placeOptions": [],
+      "spoken": {
+        "programme": {
+          "title": "Weather Desk",
+          "badge": "Saved / needs refresh",
+          "segments": [
+            {
+              "delivery": "opening",
+              "cue": "intro",
+              "kicker": "Weather Desk",
+              "heading": "Choose your place",
+              "source": "Open-Meteo",
+              "text": "Hello, and welcome to Weather Desk. Save a place and refresh to hear a weather briefing."
+            },
+            {
+              "delivery": "closing",
+              "cue": "outro",
+              "kicker": "Source & limits",
+              "heading": "Forecasts can change",
+              "source": "Open-Meteo",
+              "text": "These are modelled estimates from Open-Meteo. Forecasts can change, and this app does not carry official emergency warnings. Thanks for listening to Weather Desk."
+            }
+          ]
+        }
+      },
+      "search": "",
+      "candidates": [],
+      "saved": [],
+      "removeId": ""
+    }
+  },
+  {
+    "id": "explore",
+    "title": "Explore",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "empty",
+          "choose-place",
+          "source-caption"
+        ]
+      },
+      {
+        "id": "empty",
+        "type": "text",
+        "props": {
+          "content": "Select a saved place before exploring other weather datasets.",
+          "variant": "body"
+        }
+      },
+      {
+        "id": "choose-place",
+        "type": "button",
+        "props": {
+          "label": "Choose a place",
+          "action": "open_places",
+          "payload": {},
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "source-caption",
+        "type": "text",
+        "props": {
+          "content": "Source: [Open-Meteo](https://open-meteo.com/) · Air quality: [CAMS via Open-Meteo](https://open-meteo.com/en/docs/air-quality-api) · Place search: GeoNames.",
+          "variant": "caption"
+        }
+      }
+    ],
+    "data": {
+      "place": "No place selected",
+      "summary": "Your weather starts with a place. Search by city or postal code in Places.",
+      "freshness": "Save a place, then use Refresh in the header to read its weather.",
+      "selected": "",
+      "placeOptions": [],
+      "spoken": {
+        "programme": {
+          "title": "Weather Desk",
+          "badge": "Saved / needs refresh",
+          "segments": [
+            {
+              "delivery": "opening",
+              "cue": "intro",
+              "kicker": "Weather Desk",
+              "heading": "Choose your place",
+              "source": "Open-Meteo",
+              "text": "Hello, and welcome to Weather Desk. Save a place and refresh to hear a weather briefing."
+            },
+            {
+              "delivery": "closing",
+              "cue": "outro",
+              "kicker": "Source & limits",
+              "heading": "Forecasts can change",
+              "source": "Open-Meteo",
+              "text": "These are modelled estimates from Open-Meteo. Forecasts can change, and this app does not carry official emergency warnings. Thanks for listening to Weather Desk."
+            }
+          ]
+        }
+      },
+      "archive": [],
+      "marine": [],
+      "river": [],
+      "archiveStart": "",
+      "archiveEnd": ""
+    }
+  },
+  {
+    "id": "sources",
+    "title": "Sources & preferences",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "preferences",
+          "setup",
+          "lifecycle",
+          "limits",
+          "no-receipts",
+          "source-caption"
+        ]
+      },
+      {
+        "id": "units",
+        "type": "select",
+        "props": {
+          "label": "Display units",
+          "bind": "/units",
+          "presentation": "dropdown",
+          "options": [
+            {
+              "label": "Metric · °C, km/h, mm",
+              "value": "metric"
+            },
+            {
+              "label": "Imperial · °F, mph, in",
+              "value": "imperial"
+            }
+          ]
+        }
+      },
+      {
+        "id": "include-air",
+        "type": "checkbox",
+        "props": {
+          "label": "Include air quality on refresh",
+          "bind": "/includeAir"
+        }
+      },
+      {
+        "id": "save-preferences",
+        "type": "button",
+        "props": {
+          "label": "Apply preferences",
+          "action": "apply",
+          "payload": {},
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "preference-controls",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
+        },
+        "children": [
+          "units",
+          "include-air",
+          "save-preferences"
+        ]
+      },
+      {
+        "id": "preferences",
+        "type": "section",
+        "props": {
+          "title": "Preferences",
+          "description": "Unit changes reproject saved weather without a source call. Planning wind limits and Explore datasets stay metric."
+        },
+        "children": [
+          "preference-controls"
+        ]
+      },
+      {
+        "id": "setup",
+        "type": "text",
+        "props": {
+          "content": "In Integrations, install and enable Weather (Open-Meteo). Enable the exact tools you need. App reads require their existing Allow policy; Ask and Off are never bypassed. Core refresh uses weather_forecast and optional air_quality; place search uses geocoding. Explore uses weather_archive, marine_weather and flood_forecast only on explicit reads.",
+          "variant": "body"
+        }
+      },
+      {
+        "id": "lifecycle",
+        "type": "text",
+        "props": {
+          "content": "Use Background operation in the header or Operation Center to opt into Keep running. Startup refresh and the hourly app schedule read the core datasets for saved places only while Vakyartha runs and the computer is awake. Manual Refresh is separate. The host owns timing, retries and recovery; playback never schedules source reads.",
+          "variant": "body"
+        }
+      },
+      {
+        "id": "limits",
+        "type": "text",
+        "props": {
+          "content": "The connector uses free public weather access for non-commercial use, with service limits and no uptime guarantee. There is no account lookup or paid-key support. Reads older than two hours need refresh; a recent receipt does not make a model estimate a live observation. This app has no radar, push notifications or official emergency-warning feed.",
+          "variant": "body"
+        }
+      },
+      {
+        "id": "no-receipts",
+        "type": "text",
+        "props": {
+          "content": "Source reads and failures will appear here. App run receipts are also available in the shared host controls.",
+          "variant": "body"
+        }
+      },
+      {
+        "id": "source-caption",
+        "type": "text",
+        "props": {
+          "content": "Source: [Open-Meteo](https://open-meteo.com/) · Air quality: [CAMS via Open-Meteo](https://open-meteo.com/en/docs/air-quality-api) · Place search: GeoNames.",
+          "variant": "caption"
+        }
+      }
+    ],
+    "data": {
+      "place": "No place selected",
+      "summary": "Your weather starts with a place. Search by city or postal code in Places.",
+      "freshness": "Save a place, then use Refresh in the header to read its weather.",
+      "selected": "",
+      "placeOptions": [],
+      "spoken": {
+        "programme": {
+          "title": "Weather Desk",
+          "badge": "Saved / needs refresh",
+          "segments": [
+            {
+              "delivery": "opening",
+              "cue": "intro",
+              "kicker": "Weather Desk",
+              "heading": "Choose your place",
+              "source": "Open-Meteo",
+              "text": "Hello, and welcome to Weather Desk. Save a place and refresh to hear a weather briefing."
+            },
+            {
+              "delivery": "closing",
+              "cue": "outro",
+              "kicker": "Source & limits",
+              "heading": "Forecasts can change",
+              "source": "Open-Meteo",
+              "text": "These are modelled estimates from Open-Meteo. Forecasts can change, and this app does not carry official emergency warnings. Thanks for listening to Weather Desk."
+            }
+          ]
+        }
+      },
+      "units": "metric",
+      "includeAir": true,
+      "health": [],
+      "receipts": []
+    }
+  }
+]

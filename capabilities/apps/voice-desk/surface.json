@@ -1,0 +1,139 @@
+[
+  {
+    "id": "desk",
+    "title": "Notes",
+    "data": {
+      "capture": "",
+      "listTitle": "0 notes",
+      "notes": []
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "lg"
+        },
+        "children": [
+          "capture",
+          "no-notes"
+        ]
+      },
+      {
+        "id": "capture",
+        "type": "section",
+        "props": {
+          "title": "New note",
+          "description": "Dictate (⌘D) or type, or both, then save. It opens below for editing."
+        },
+        "children": [
+          "capture-text",
+          "capture-bar"
+        ]
+      },
+      {
+        "id": "capture-text",
+        "type": "textarea",
+        "props": {
+          "label": "What is on your mind?",
+          "bind": "/capture",
+          "placeholder": "Speak or type…"
+        }
+      },
+      {
+        "id": "capture-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm"
+        },
+        "children": [
+          "capture-dictate",
+          "capture-save"
+        ]
+      },
+      {
+        "id": "capture-dictate",
+        "type": "button",
+        "props": {
+          "label": "Dictate",
+          "action": "voice.dictate",
+          "payload": {
+            "into": "capture-text"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "capture-save",
+        "type": "button",
+        "props": {
+          "label": "Save note",
+          "action": "save_capture",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "no-notes",
+        "type": "text",
+        "props": {
+          "content": "Saved notes appear here, with their action items as a checklist.",
+          "variant": "caption"
+        }
+      }
+    ]
+  },
+  {
+    "id": "actions",
+    "title": "Action items",
+    "data": {
+      "summary": "Nothing open.",
+      "open": [],
+      "spoken": {
+        "actions": "Nothing is open."
+      }
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "tasks-bar",
+          "tasks-empty"
+        ]
+      },
+      {
+        "id": "tasks-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "center"
+        },
+        "children": [
+          "tasks-count"
+        ]
+      },
+      {
+        "id": "tasks-count",
+        "type": "text",
+        "props": {
+          "content": "{/summary}"
+        }
+      },
+      {
+        "id": "tasks-empty",
+        "type": "text",
+        "props": {
+          "content": "Action items you add to notes appear here until they are done.",
+          "variant": "caption"
+        }
+      }
+    ]
+  }
+]

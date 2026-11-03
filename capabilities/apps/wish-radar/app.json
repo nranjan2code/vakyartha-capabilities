@@ -1,0 +1,362 @@
+{
+  "id": "wish-radar",
+  "version": "1.0.8",
+  "name": "Wish Radar",
+  "description": "Track personal wishes, recorded price changes and deal alerts in a private INR ledger. Public merchant reads use the governed Web pages integration; live coverage varies by store.",
+  "author": "Vakyartha",
+  "icon": "tag",
+  "category": "finance",
+  "entrypoints": {
+    "backend": "server.ts",
+    "surface": "surface.json",
+    "render": "renderApp"
+  },
+  "runtime": {
+    "engine": "node24",
+    "memoryLimitMb": 256,
+    "cpuTimeLimitSec": 30,
+    "maxStorageMb": 16
+  },
+  "entitlements": {
+    "network": {
+      "mode": "brokered",
+      "allowedDomains": []
+    },
+    "mcpTools": [
+      "web__fetch_page"
+    ],
+    "storage": {
+      "sqlite": false,
+      "duckdb": true
+    },
+    "toolActions": {
+      "refresh": [
+        "web__fetch_page"
+      ],
+      "check_amazon": [
+        "web__fetch_page"
+      ],
+      "check_amazon_price": [
+        "web__fetch_page"
+      ],
+      "check_live_price": [
+        "web__fetch_page"
+      ],
+      "test_store": [
+        "web__fetch_page"
+      ]
+    },
+    "toolPurposes": {
+      "web__fetch_page": {
+        "reason": "Read merchant search candidates and selected product pages for explicit or scheduled price checks. Manual records remain local.",
+        "optional": false
+      }
+    }
+  },
+  "triggers": [
+    {
+      "id": "morning-check",
+      "kind": "cron",
+      "expression": "0 9 * * *",
+      "action": "refresh",
+      "maxDurationSec": 30
+    }
+  ],
+  "exports": {
+    "tools": [
+      {
+        "name": "get_wishlist",
+        "title": "Read tracked wishes & deals",
+        "description": "Read active wishes, target prices, latest observed prices in INR, deal statuses, star ratings, delivery speeds, destination PIN code, and current expectedRevision for remembering updates.",
+        "readOnly": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "filter": {
+              "type": "string",
+              "enum": [
+                "all",
+                "deals",
+                "drops"
+              ],
+              "description": "Filter by 'all' (default), 'deals' (items at or below target), or 'drops' (recent price drops)"
+            },
+            "category": {
+              "type": "string",
+              "description": "Optional category filter (e.g. Electronics, Beauty & Personal Care)"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "get_price_history",
+        "title": "Read price history & comparisons",
+        "description": "Read historical price observations, star ratings, delivery speeds, and cross-merchant price comparisons from the local DuckDB ledger.",
+        "readOnly": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "wishId": {
+              "type": "string",
+              "description": "Optional wish item ID to inspect history for a specific item"
+            },
+            "itemTitle": {
+              "type": "string",
+              "description": "Optional item title to search for if wishId is not known"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "description": "Maximum number of observations to return (default 20)"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "get_broadcast_script",
+        "title": "Generate broadcast TTS & Watch script",
+        "description": "Generate an audio-visual studio production script and structured Watch programme with presenter tone cues, theme music beds, video lower thirds, dynamic charts, and crawling live ticker for Wish Radar.",
+        "readOnly": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "format": {
+              "type": "string",
+              "enum": [
+                "both",
+                "script",
+                "programme"
+              ],
+              "description": "Format to return: 'script' (TTS studio production markdown), 'programme' (structured JSON segments & ticker for Watch player), or 'both' (default)"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "remember_wish",
+        "title": "Remember new wish",
+        "description": "Add and track a new wish in Wish Radar with target price in INR, preferred merchant, delivery PIN, optional direct URL, and personal timing notes. Requires current expectedRevision from get_wishlist.",
+        "readOnly": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "expectedRevision": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Current app revision from get_wishlist"
+            },
+            "id": {
+              "type": "string",
+              "description": "Optional existing wish id to update"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "description": "Item name or title"
+            },
+            "targetPrice": {
+              "type": "string",
+              "description": "Optional target price in Indian Rupees (e.g. 1499 or 1499.50)"
+            },
+            "category": {
+              "type": "string",
+              "enum": [
+                "Electronics",
+                "Beauty & Personal Care",
+                "Fashion & Apparel",
+                "Books & Stationery",
+                "Home & Kitchen",
+                "Other"
+              ],
+              "description": "Product category"
+            },
+            "store": {
+              "type": "string",
+              "enum": [
+                "Amazon.in",
+                "Flipkart",
+                "Nykaa",
+                "Croma",
+                "Tata CLiQ",
+                "Reliance Digital",
+                "Brand Store",
+                "Other Store"
+              ],
+              "description": "Preferred merchant"
+            },
+            "url": {
+              "type": "string",
+              "description": "Direct product URL (e.g. https://www.amazon.in/dp/...)"
+            },
+            "image": {
+              "type": "string",
+              "description": "Optional product image URL"
+            },
+            "pincode": {
+              "type": "string",
+              "description": "Delivery destination PIN code (e.g. 560001)"
+            },
+            "notes": {
+              "type": "string",
+              "maxLength": 300,
+              "description": "Personal notes or sale timing notes"
+            }
+          },
+          "required": [
+            "expectedRevision",
+            "title"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "record_price",
+        "title": "Remember price check",
+        "description": "Log an observed price check, star rating, delivery speed, PIN code and current offer notes into the DuckDB price ledger. Requires current expectedRevision from get_wishlist.",
+        "readOnly": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "expectedRevision": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Current app revision from get_wishlist"
+            },
+            "wishId": {
+              "type": "string",
+              "description": "ID of the tracked wish item (or use itemTitle)"
+            },
+            "itemTitle": {
+              "type": "string",
+              "description": "Item title to match if wishId is not known"
+            },
+            "price": {
+              "type": "string",
+              "description": "Observed price in Indian Rupees (e.g. 1299 or 1299.50)"
+            },
+            "store": {
+              "type": "string",
+              "enum": [
+                "Amazon.in",
+                "Flipkart",
+                "Nykaa",
+                "Croma",
+                "Tata CLiQ",
+                "Reliance Digital",
+                "Brand Store",
+                "Other Store"
+              ],
+              "description": "Merchant where price was observed"
+            },
+            "inStock": {
+              "type": "boolean",
+              "description": "Whether the product is currently in stock (default true)"
+            },
+            "rating": {
+              "type": "string",
+              "description": "Merchant customer star rating (e.g. 4.4)"
+            },
+            "ratingCount": {
+              "type": "string",
+              "description": "Number of customer ratings or reviews (e.g. 17,381)"
+            },
+            "deliveryInfo": {
+              "type": "string",
+              "description": "Delivery speed or promised date (e.g. FREE delivery by Friday)"
+            },
+            "pincode": {
+              "type": "string",
+              "description": "Delivery destination PIN code (e.g. 560001)"
+            },
+            "offerNotes": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Current deal, bank offer, coupon or festival note"
+            }
+          },
+          "required": [
+            "expectedRevision",
+            "price"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "check_amazon_price",
+        "title": "Check merchant price or find Amazon candidates",
+        "description": "Read a linked merchant product through Web pages. Without a link, Amazon wishes discover candidates for personal selection; search alone never records an observation. Other merchants require a direct product link. Access challenges and unreadable or ambiguous prices remain failures. Requires current expectedRevision.",
+        "readOnly": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "expectedRevision": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Current app revision from get_wishlist"
+            },
+            "wishId": {
+              "type": "string",
+              "description": "ID of the tracked wish item (or use itemTitle)"
+            },
+            "itemTitle": {
+              "type": "string",
+              "description": "Item title to match if wishId is not known"
+            }
+          },
+          "required": [
+            "expectedRevision"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "remove_wish",
+        "title": "Remove tracked wish",
+        "description": "Remove a wish from Wish Radar and clean up all its historical price observations from DuckDB. Requires expectedRevision.",
+        "readOnly": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "expectedRevision": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Current app revision from get_wishlist"
+            },
+            "wishId": {
+              "type": "string",
+              "description": "ID of the tracked wish item to remove (or use itemTitle)"
+            },
+            "itemTitle": {
+              "type": "string",
+              "description": "Item title to match if wishId is not known"
+            }
+          },
+          "required": [
+            "expectedRevision"
+          ],
+          "additionalProperties": false
+        }
+      }
+    ],
+    "skills": [
+      {
+        "name": "wish-radar-advisor",
+        "description": "Evaluate price trends, calculate savings in Indian Rupees, and advise on deals across Indian stores",
+        "path": "SKILLS.md"
+      }
+    ]
+  },
+  "voice": {
+    "listen": {
+      "surface": "overview",
+      "path": "/spoken/programme",
+      "label": "Listen to deal radar briefing",
+      "live": 2
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "id": "voice-desk",
+  "version": "2.0.3",
+  "name": "Voice Desk & Note Taker",
+  "description": "Speak or type notes, keep their action items as a checklist, and hear any note or your open items read back. Everything stays on this computer.",
+  "author": "Vakyartha",
+  "icon": "voice",
+  "category": "productivity",
+  "entrypoints": {
+    "backend": "server.ts",
+    "surface": "surface.json",
+    "render": "renderApp"
+  },
+  "runtime": {
+    "engine": "node24",
+    "memoryLimitMb": 256,
+    "cpuTimeLimitSec": 30,
+    "maxStorageMb": 16
+  },
+  "entitlements": {
+    "network": {
+      "mode": "airgap",
+      "allowedDomains": []
+    },
+    "mcpTools": [],
+    "storage": {
+      "sqlite": false,
+      "duckdb": false
+    },
+    "toolActions": {},
+    "toolPurposes": {}
+  },
+  "triggers": []
+}

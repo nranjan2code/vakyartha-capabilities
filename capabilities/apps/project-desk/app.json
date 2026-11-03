@@ -1,0 +1,59 @@
+{
+  "id": "project-desk",
+  "version": "2.0.4",
+  "name": "Project Activity Desk",
+  "description": "A public repository activity workbench with local triage, exact issue and pull-request records, commit history and source receipts.",
+  "author": "Vakyartha",
+  "icon": "page",
+  "category": "developer",
+  "entrypoints": {
+    "backend": "server.ts",
+    "surface": "surface.json",
+    "render": "renderApp"
+  },
+  "runtime": {
+    "engine": "node24",
+    "memoryLimitMb": 256,
+    "cpuTimeLimitSec": 30,
+    "maxStorageMb": 16
+  },
+  "entitlements": {
+    "network": {
+      "mode": "brokered",
+      "allowedDomains": []
+    },
+    "mcpTools": [
+      "web__fetch_page"
+    ],
+    "storage": {
+      "sqlite": false,
+      "duckdb": false
+    },
+    "toolActions": {
+      "refresh": [
+        "web__fetch_page"
+      ]
+    },
+    "toolPurposes": {
+      "web__fetch_page": {
+        "reason": "Read the selected public repository’s issues, pull requests and commits.",
+        "optional": false
+      }
+    }
+  },
+  "triggers": [
+    {
+      "id": "startup-refresh",
+      "kind": "startup",
+      "action": "refresh",
+      "maxDurationSec": 30
+    },
+    {
+      "id": "refresh-sources",
+      "kind": "cron",
+      "expression": "*/15 * * * *",
+      "action": "refresh",
+      "maxDurationSec": 30
+    }
+  ]
+}

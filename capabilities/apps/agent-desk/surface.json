@@ -1,0 +1,251 @@
+[
+  {
+    "id": "brief",
+    "title": "Tasks",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "intro",
+          "brief",
+          "empty"
+        ]
+      },
+      {
+        "id": "intro",
+        "type": "text",
+        "props": {
+          "content": "Give work a clear goal. Keep the evidence that tells you whether it succeeded.",
+          "variant": "body"
+        }
+      },
+      {
+        "id": "brief",
+        "type": "section",
+        "props": {
+          "title": "New task contract",
+          "description": "Criteria and supplied inputs stay fixed across attempts. Start a new contract if the goal changes."
+        },
+        "children": [
+          "title",
+          "goal",
+          "inputs",
+          "criteria",
+          "create"
+        ]
+      },
+      {
+        "id": "title",
+        "type": "input",
+        "props": {
+          "label": "Task name",
+          "bind": "/draft/title",
+          "placeholder": "A useful name for this work"
+        }
+      },
+      {
+        "id": "goal",
+        "type": "textarea",
+        "props": {
+          "label": "What should be accomplished?",
+          "bind": "/draft/goal"
+        }
+      },
+      {
+        "id": "inputs",
+        "type": "textarea",
+        "props": {
+          "label": "Supplied inputs and source references",
+          "bind": "/draft/inputs",
+          "placeholder": "Paste evidence or exact references. A link alone is not a source read."
+        }
+      },
+      {
+        "id": "criteria",
+        "type": "textarea",
+        "props": {
+          "label": "Complete when — one observable criterion per line",
+          "bind": "/draft/criteria",
+          "placeholder": "What result, source, value, interaction or receipt must be checked?"
+        }
+      },
+      {
+        "id": "create",
+        "type": "button",
+        "props": {
+          "label": "Save task contract",
+          "action": "create_task",
+          "payload": {},
+          "style": "primary"
+        }
+      },
+      {
+        "id": "empty",
+        "type": "text",
+        "props": {
+          "content": "No tasks saved yet. No model request starts when you save a contract.",
+          "variant": "body"
+        }
+      }
+    ],
+    "data": {
+      "draft": {
+        "title": "",
+        "goal": "",
+        "inputs": "",
+        "criteria": ""
+      },
+      "tasks": []
+    }
+  },
+  {
+    "id": "workspace",
+    "title": "Workspace",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {},
+        "children": [
+          "empty"
+        ]
+      },
+      {
+        "id": "empty",
+        "type": "text",
+        "props": {
+          "content": "Open Tasks to create or choose a task.",
+          "variant": "body"
+        }
+      }
+    ],
+    "data": {
+      "task": {
+        "goal": ""
+      },
+      "criteria": [],
+      "approach": "Read the supplied inputs, perform the work, and check every completion criterion.",
+      "attempts": [],
+      "request": "Create a task contract first.",
+      "workflow": {
+        "saveTool": "propose_attempt",
+        "title": "Task workspace",
+        "stages": [
+          "Work",
+          "Probe",
+          "Review"
+        ],
+        "brief": "Goal and evidence",
+        "boundary": "Send starts work through your selected assistant and existing approvals. Saving a candidate never accepts it.",
+        "saved": "Candidate saved. Check each criterion before accepting the result.",
+        "steps": [
+          {
+            "id": "probe",
+            "saveTool": "propose_attempt",
+            "label": "Try a different approach",
+            "mode": "edit",
+            "stage": 1,
+            "message": "Try a materially different approach on the same frozen task. State what changed and why it may help; keep previous failed evidence. Perform the work through permitted tools, then save a separate propose_attempt with fresh expectedRevision. Do not change the task criteria. My approach: "
+          },
+          {
+            "id": "compose",
+            "saveTool": "propose_attempt",
+            "label": "Combine supported findings",
+            "mode": "send",
+            "stage": 1,
+            "message": "Read current Agent Desk task context. Compare the saved attempts against the same frozen criteria. Combine only findings supported by actual evidence, perform remaining checks with permitted tools, preserve failures and uncertainty, and save a new unreviewed propose_attempt. Do not change permissions, instructions or criteria."
+          }
+        ],
+        "review": {
+          "label": "Review saved evidence",
+          "surface": "review",
+          "tool": "propose_attempt",
+          "stage": 2
+        }
+      },
+      "background": {
+        "goal": "",
+        "criteria": "",
+        "inputs": ""
+      },
+      "spoken": {
+        "summary": "Agent Desk has no selected task. Define a goal, supplied inputs and observable completion criteria to begin."
+      }
+    }
+  },
+  {
+    "id": "review",
+    "title": "Evidence",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {},
+        "children": [
+          "empty"
+        ]
+      },
+      {
+        "id": "empty",
+        "type": "text",
+        "props": {
+          "content": "Open a saved attempt in Workspace to review its evidence.",
+          "variant": "body"
+        }
+      }
+    ],
+    "data": {
+      "candidate": {
+        "identity": "",
+        "result": "",
+        "limits": "No limits recorded by the assistant. Check for omissions."
+      },
+      "checks": [],
+      "lesson": "",
+      "export": {
+        "markdown": "No task selected."
+      }
+    }
+  },
+  {
+    "id": "compare",
+    "title": "Compare",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "intro",
+          "empty"
+        ]
+      },
+      {
+        "id": "intro",
+        "type": "text",
+        "props": {
+          "content": "{/summary}",
+          "variant": "body"
+        }
+      },
+      {
+        "id": "empty",
+        "type": "text",
+        "props": {
+          "content": "Attempts will appear after the assistant saves candidates. Earlier failures remain visible.",
+          "variant": "body"
+        }
+      }
+    ],
+    "data": {
+      "summary": "Choose a task in Tasks.",
+      "rows": []
+    }
+  }
+]

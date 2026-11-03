@@ -1,0 +1,162 @@
+[
+  {
+    "id": "overview",
+    "title": "Overview",
+    "data": {},
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "fin-empty"
+        ]
+      },
+      {
+        "id": "fin-empty",
+        "type": "card",
+        "props": {
+          "title": "No transactions yet",
+          "body": "Import your own records as CSV or JSON: positive amounts are money in, negative amounts are money out. Totals, a budget and charts appear here. Nothing leaves this computer."
+        },
+        "children": [
+          "start-import"
+        ]
+      },
+      {
+        "id": "start-import",
+        "type": "button",
+        "props": {
+          "label": "Import transactions",
+          "action": "show_import",
+          "style": "primary"
+        }
+      }
+    ]
+  },
+  {
+    "id": "ledger",
+    "title": "Ledger",
+    "data": {},
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "ledger-empty"
+        ]
+      },
+      {
+        "id": "ledger-empty",
+        "type": "text",
+        "props": {
+          "content": "Imported transactions are listed here exactly as stored.",
+          "variant": "caption"
+        }
+      }
+    ]
+  },
+  {
+    "id": "import",
+    "title": "Import",
+    "data": {
+      "importText": "",
+      "receipt": "Nothing imported yet. Use your own records; no sample data is supplied."
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "import-section",
+          "format-section"
+        ]
+      },
+      {
+        "id": "import-section",
+        "type": "section",
+        "props": {
+          "title": "Import transactions",
+          "description": "{/receipt}"
+        },
+        "children": [
+          "import-text",
+          "import-bar"
+        ]
+      },
+      {
+        "id": "import-text",
+        "type": "textarea",
+        "props": {
+          "label": "Paste CSV or JSON",
+          "bind": "/importText",
+          "placeholder": "id,date,description,category,amount\nsalary-2026-10,2026-10-01,October salary,Income,85000.00\nrent-2026-10,2026-10-03,Rent,Housing,-25000.00",
+          "rows": 10
+        }
+      },
+      {
+        "id": "import-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm"
+        },
+        "children": [
+          "import"
+        ]
+      },
+      {
+        "id": "import",
+        "type": "button",
+        "props": {
+          "label": "Import",
+          "action": "import_records",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "format-section",
+        "type": "section",
+        "props": {
+          "title": "Format"
+        },
+        "children": [
+          "format",
+          "format-example",
+          "privacy"
+        ]
+      },
+      {
+        "id": "format",
+        "type": "text",
+        "props": {
+          "content": "One row per transaction with **id, date, description, category, amount**. Amounts are INR decimals with up to two places: positive for money in, negative for money out. IDs must be unique and stay fixed, so importing the same file twice adds nothing. Up to 200 rows per import and 2,000 in the ledger; a batch is added whole or not at all."
+        }
+      },
+      {
+        "id": "format-example",
+        "type": "text",
+        "props": {
+          "content": "id,date,description,category,amount\nsalary-2026-10,2026-10-01,October salary,Income,85000.00\nrent-2026-10,2026-10-03,Rent,Housing,-25000.00",
+          "variant": "code"
+        }
+      },
+      {
+        "id": "privacy",
+        "type": "text",
+        "props": {
+          "content": "Records stay in this app’s local database. No bank login, sync or network access. Net flow is not an account balance; classify transfers and refunds yourself.",
+          "variant": "caption"
+        }
+      }
+    ]
+  }
+]
