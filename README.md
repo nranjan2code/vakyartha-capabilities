@@ -30,7 +30,7 @@ Find something useful on the catalog page, then add it from inside Vakyartha. No
 | `keys/catalog.pub` | The public key every release is verified with |
 | `signatures/` | One signature per release |
 
-This release: 11 apps, 29 skills and 17 integrations, for Vakyartha 1.0.0 up to (not including) 2.0.0.
+See the [catalog page](https://nranjan2code.github.io/vakyartha-capabilities/) for what is available now; `capabilities.json` names the Vakyartha versions this release works with.
 
 ## Verify a release
 
