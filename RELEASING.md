@@ -4,7 +4,10 @@ Every step marked **owner** is done by a person at the owner's Mac. Nothing in
 CI signs, tags or changes a version.
 
 1. Merge the reviewed changes to `main`; `node scripts/ci.ts full` passes on the owner's machine (the Check workflow mirrors it; a release never waits on hosted minutes).
-2. **Owner:** `node scripts/version.ts X.Y.Z` and type the version again. This
+2. **Owner:** `node scripts/version.ts --list` shows every app and skill changed
+   since the last signed tag whose version did not change. Then
+   `node scripts/version.ts X.Y.Z`: type the catalog version again, then type a new
+   version for each listed item (a suggestion is shown, never applied). This
    also refreshes the counts in `capabilities.json`. Widen `requires` only after
    Vakyartha has been tested against the release.
 3. `node scripts/ci.ts full` again on the versioned tree.

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Release tooling: `version.ts` asks the person to type a new version for every app and skill changed since the last signed tag; `--list` shows them.
 - Learning Desk: the learning-author skill is a 5,594-character ordered procedure; app operation, access and refresh cost move to `references/app-operation.md`, course browsing, progress and lesson media to `references/course-browsing.md`. Version unchanged (set by a person at release).
 - Project Activity Desk 1.0.1: the starting repository is this public catalog, so a public app never names a private repository.
 - Public boundary check: CI fails on any link to a private repository or local path.
