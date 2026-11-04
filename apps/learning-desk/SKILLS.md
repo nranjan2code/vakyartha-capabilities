@@ -4,7 +4,7 @@
 
 These skills are installed, updated and removed with the app. While the app is installed they can be turned off in Skills but not uninstalled.
 
-- `learning-author` (`skills/learning-author/SKILL.md`): Create and curate source-aware short courses for Learning Desk, adapting teaching to a learner's age, prior knowledge and goal; propose drafts for personal review.
+- `learning-author` (`skills/learning-author/SKILL.md`): Create and curate source-aware short courses for Learning Desk, adapting teaching to a learner's age, prior knowledge and goal; propose drafts for personal review. The procedure is short and ordered; app operation, access and refresh-cost detail is in `references/app-operation.md` and browsing, progress and lesson media in `references/course-browsing.md`, both read on demand with read_skill_file.
 
 ## Vakyartha skills that apply
 

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Learning Desk: the learning-author skill is a 5,594-character ordered procedure; app operation, access and refresh cost move to `references/app-operation.md`, course browsing, progress and lesson media to `references/course-browsing.md`. Version unchanged (set by a person at release).
 - Project Activity Desk 1.0.1: the starting repository is this public catalog, so a public app never names a private repository.
 - Public boundary check: CI fails on any link to a private repository or local path.
 - Clinic Desk, News Desk, Personal Finance Workbench, Weather Desk and Wish Radar: buttons that only open another view use the host's `view.open`, so they no longer run the app; RBI Desk drops an unused view action. Needs a Vakyartha host with `view.open`. Versions unchanged (set by a person at release).
