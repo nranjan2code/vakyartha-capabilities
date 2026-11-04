@@ -4,7 +4,8 @@
   "name": "Weather Desk",
   "description": "Your places, current estimates, 48-hour planning, 16-day forecasts and air quality, with historical, marine and river exploration.",
   "author": "Vakyartha",
-  "icon": "sun",
+  "icon": "cloud",
+  "brand": "#0369a1",
   "category": "utilities",
   "entrypoints": {
     "backend": "server.ts",

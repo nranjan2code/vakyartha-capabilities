@@ -5,6 +5,7 @@
   "description": "Follow a question into a short course. Discover, save, practise, listen and watch; create course drafts with your assistant and curate your own learning library.",
   "author": "Vakyartha",
   "icon": "book",
+  "brand": "#c2410c",
   "category": "productivity",
   "entrypoints": {
     "backend": "server.ts",

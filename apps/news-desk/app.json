@@ -5,6 +5,7 @@
   "description": "Publisher feeds grouped into stories and ranked by freshness, coverage and your follows: top stories, sections, full coverage, followed topics, saved articles and feed health.",
   "author": "Vakyartha",
   "icon": "page",
+  "brand": "#0f172a",
   "category": "productivity",
   "entrypoints": {
     "backend": "server.ts",

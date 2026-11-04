@@ -4,7 +4,8 @@
   "name": "Wish Radar",
   "description": "Track personal wishes, recorded price changes and deal alerts in a private INR ledger. Public merchant reads use the governed Web pages integration; live coverage varies by store.",
   "author": "Vakyartha",
-  "icon": "tag",
+  "icon": "search",
+  "brand": "#a21caf",
   "category": "finance",
   "entrypoints": {
     "backend": "server.ts",

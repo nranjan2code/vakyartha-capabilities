@@ -5,6 +5,7 @@
   "description": "Carry out research, coding and other tasks through your assistant; compare approaches against fixed criteria and review source evidence before acceptance.",
   "author": "Vakyartha",
   "icon": "cpu",
+  "brand": "#6d28d9",
   "category": "productivity",
   "entrypoints": {
     "backend": "server.ts",

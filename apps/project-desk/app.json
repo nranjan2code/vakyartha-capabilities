@@ -4,7 +4,8 @@
   "name": "Project Activity Desk",
   "description": "A public repository activity workbench with local triage, exact issue and pull-request records, commit history and source receipts.",
   "author": "Vakyartha",
-  "icon": "page",
+  "icon": "branch",
+  "brand": "#4338ca",
   "category": "developer",
   "entrypoints": {
     "backend": "server.ts",

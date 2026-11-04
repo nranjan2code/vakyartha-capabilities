@@ -4,7 +4,8 @@
   "name": "RBI Desk",
   "description": "Official RBI rates, weekly foreign exchange reserves, notices and searchable Master Directions, with source dates and receipts.",
   "author": "Vakyartha",
-  "icon": "chart",
+  "icon": "shield",
+  "brand": "#92400e",
   "category": "finance",
   "entrypoints": {
     "backend": "server.ts",

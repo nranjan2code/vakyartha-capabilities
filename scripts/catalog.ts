@@ -176,6 +176,7 @@ function app(id: string): Item {
     if (fm["metadata.author"] !== "Vakyartha") throw new Error(`${where}: metadata.author must be Vakyartha`);
     return { name: s.name, description: s.description, path: s.path, requires: requirements(fm["metadata.requires"], where) };
   });
+  if (m.brand !== undefined && !/^#[0-9a-f]{6}$/i.test(String(m.brand))) throw new Error(`apps/${id}: brand must be a #rrggbb colour`);
   const declared = skills.map(s => `skills/${s.name}/`);
   for (const [name] of files) if (name.startsWith("skills/") && !declared.some(d => name.startsWith(d))) throw new Error(`apps/${id}/${name}: not part of a declared skill`);
   return {

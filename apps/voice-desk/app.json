@@ -5,6 +5,7 @@
   "description": "Speak or type notes, keep their action items as a checklist, and hear any note or your open items read back. Everything stays on this computer.",
   "author": "Vakyartha",
   "icon": "voice",
+  "brand": "#be185d",
   "category": "productivity",
   "entrypoints": {
     "backend": "server.ts",

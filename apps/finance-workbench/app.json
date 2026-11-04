@@ -5,6 +5,7 @@
   "description": "A private imported INR ledger with exact paise arithmetic, monthly cash-flow analysis, spending categories and atomic duplicate-safe imports.",
   "author": "Vakyartha",
   "icon": "chart",
+  "brand": "#15803d",
   "category": "finance",
   "entrypoints": {
     "backend": "server.ts",

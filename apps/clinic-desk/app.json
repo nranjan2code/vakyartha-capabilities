@@ -4,7 +4,8 @@
   "name": "Clinic Desk",
   "description": "Front-desk appointment booking for a clinic: doctors' weekly hours, profiles and leave, free slots that cannot be double-booked, day, week and month calendars, a patient directory, results and attention prompts, and a spoken day brief. Everything stays on this computer.",
   "author": "Vakyartha",
-  "icon": "page",
+  "icon": "calendar",
+  "brand": "#0f766e",
   "category": "productivity",
   "entrypoints": {
     "backend": "server.ts",

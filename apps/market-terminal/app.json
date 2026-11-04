@@ -5,7 +5,8 @@
   "description": "Daily NSE workspace: live indices, breadth and India VIX, movers, a 30-symbol watchlist, portfolio P&L, price alerts, instrument research with benchmark comparison, and an index explorer, all from governed NSE reads with source receipts.",
   "author": "Vakyartha",
   "category": "finance",
-  "icon": "chart",
+  "icon": "pulse",
+  "brand": "#1d4ed8",
   "entrypoints": {
     "backend": "server.ts",
     "surface": "surface.json",
