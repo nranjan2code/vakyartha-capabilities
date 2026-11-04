@@ -268,7 +268,7 @@
         "type": "button",
         "props": {
           "label": "Import programme",
-          "action": "import_source",
+          "action": "import_news",
           "payload": {},
           "style": "secondary"
         }

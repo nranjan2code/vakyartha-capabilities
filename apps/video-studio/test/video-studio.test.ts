@@ -18,7 +18,7 @@ test('validates actual source programme and rejects missing scenes', () => {
 test('imports one selected source as a local review draft and keeps its freshness time', async () => {
   const checkedAt = '2026-11-04T09:30:00.000Z';
   const c = context({ source: 'news' }, { checkedAt, programme: sample });
-  await handleAction('', {}, c, 'import_source');
+  await handleAction('', {}, c, 'import_news');
   assert.equal(c.state.videos?.[0]?.status, 'draft');
   assert.equal(c.state.videos?.[0]?.source, 'News Desk');
   assert.equal(c.state.videos?.[0]?.sourceCheckedAt, checkedAt);
@@ -190,5 +190,5 @@ test('removing a video drops it from progress, history and playlists', async () 
 
 test('an unavailable source fails with a clear message', async () => {
   const c: Context = { state: { source: 'markets' }, appRevision: 1, async callTool() { throw new Error('Unknown tool'); } };
-  await assert.rejects(handleAction('', {}, c, 'import_source'), /Market Terminal could not be read.*installed, turned on and allowed in Access/);
+  await assert.rejects(handleAction('', {}, c, 'import_markets'), /Market Terminal could not be read.*installed, turned on and allowed in Access/);
 });

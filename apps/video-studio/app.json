@@ -33,10 +33,16 @@
       "duckdb": false
     },
     "toolActions": {
-      "import_source": [
-        "app-news-desk__get_bulletin",
-        "app-market-terminal__get_market_brief",
-        "app-weather-desk__get_weather_briefing",
+      "import_news": [
+        "app-news-desk__get_bulletin"
+      ],
+      "import_markets": [
+        "app-market-terminal__get_market_brief"
+      ],
+      "import_weather": [
+        "app-weather-desk__get_weather_briefing"
+      ],
+      "import_wishes": [
         "app-wish-radar__get_broadcast_script"
       ]
     },
@@ -77,13 +83,37 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "expectedRevision": { "type": "integer", "minimum": 1 },
-            "title": { "type": "string", "minLength": 1, "maxLength": 80 },
-            "source": { "type": "string", "maxLength": 120 },
-            "format": { "type": "string", "enum": ["show", "short"] },
-            "programme": { "type": "object" }
+            "expectedRevision": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "source": {
+              "type": "string",
+              "maxLength": 120
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "show",
+                "short"
+              ]
+            },
+            "programme": {
+              "type": "object"
+            }
           },
-          "required": ["expectedRevision", "title", "source", "format", "programme"],
+          "required": [
+            "expectedRevision",
+            "title",
+            "source",
+            "format",
+            "programme"
+          ],
           "additionalProperties": false
         },
         "readOnly": false

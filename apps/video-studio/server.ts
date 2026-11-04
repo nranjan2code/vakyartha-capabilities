@@ -144,7 +144,7 @@ export function views(raw: State): Update[] {
   const studioNodes: Node[] = [];
   addSection(studioNodes, 'creator-intro', 'Creator Studio', 'Create a source-aware production or bring a saved programme into your workspace.', [n('creator-paths', 'grid', { columns: 2, minItemWidth: 'md', gap: 'md' }, ['new-production', 'source-production'])]);
   addSection(studioNodes, 'new-production', 'Create a production', 'Describe the show or short you want to make.', [n('creator-topic', 'input', { label: 'Production brief', bind: '/topic', placeholder: 'What should this be about?' }), n('creator-format', 'select', { label: 'Format', bind: '/format', options: '{/formatOptions}', presentation: 'dropdown' }), btn('assistant-create', 'Create with assistant', 'assistant.compose', { path: 'authorRequest', workflowPath: 'authorWorkflow' }, 'primary')]);
-  addSection(studioNodes, 'source-production', 'Use a saved programme', 'Import the latest programme already saved in a Vakyartha app.', [n('creator-source', 'select', { label: 'Source app', bind: '/source', options: '{/sourceOptions}', presentation: 'dropdown' }), btn('import-source', 'Import programme', 'import_source', {}, 'secondary')]);
+  addSection(studioNodes, 'source-production', 'Use a saved programme', 'Import the latest programme already saved in a Vakyartha app.', [n('creator-source', 'select', { label: 'Source app', bind: '/source', options: '{/sourceOptions}', presentation: 'dropdown' }), btn('import-source', 'Import programme', `import_${s.source}`, {}, 'secondary')]);
   if (d.drafts.length) {
     addSection(studioNodes, 'drafts-list', 'Drafts to review', 'Imported or assistant-created programmes stay drafts until you add them to the library.', [n('draft-items', 'grid', { columns: 2, minItemWidth: 'md', searchable: true, pageSize: 12 }, rows('/drafts', 'draft-row'))]);
     studioNodes.push(n('draft-row', 'card', { title: '{title}', subtitle: '{formatLabel} · {length} · {source} · {statusLabel}', image: '{image}', imageLayout: 'thumbnail', titleLines: 2 }, ['draft-open', 'draft-add']), btn('draft-open', 'Review', 'open_video', { id: '{id}' }), btn('draft-add', 'Add to library', 'add_to_library', { id: '{id}' }, 'primary'));
@@ -226,8 +226,9 @@ export async function handleAction(controlId: string, value: unknown, c: Context
       s.notice = '';
     }
     else throw new Error('Unknown Creator Studio field');
-  } else if (action === 'import_source') {
-    const src = SOURCE.get(String(s.source)); if (!src) throw new Error('Choose a source app first');
+  } else if (action.startsWith('import_') && SOURCE.has(action.slice(7) as never)) {
+    // One action per source, so the host's access check asks only about the app being read.
+    const src = SOURCE.get(action.slice(7) as never)!;
     let result: unknown;
     try { result = await c.callTool(src.tool, { ...src.args }); }
     catch (error) { throw new Error(`${src.name} could not be read. Check that it is installed, turned on and allowed in Access. (${error instanceof Error ? error.message : String(error)})`.slice(0, 300)); }
