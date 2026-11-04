@@ -1925,7 +1925,7 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
         image: sm.wish.image || '',
         checkLabel: sm.wish.url ? 'Check price' : sm.wish.store === 'Amazon.in' ? 'Find online' : 'Check link',
         checkStyle: sm.wish.url ? 'secondary' : 'primary',
-        optionsLabel: `Compare Variants (${options.length})`,
+        optionsLabel: `Compare variants (${options.length})`,
         hasOptions: hasOptions ? 'true' : '',
         optionsCount: String(options.length),
         hasAmazonUrl: sm.wish.url && sm.wish.url.includes('amazon.') ? 'true' : '',
