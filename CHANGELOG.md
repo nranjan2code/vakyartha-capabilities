@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Video Studio: Shorts (a vertical 9:16 feed of library shorts), Playlists, Continue watching and Recently watched; Watch on any card plays from there through the rest, and Creator Studio previews from the selected scene. Needs a Vakyartha host with the `voice.watch` button action.
 - Catalog rule: an app owner whose every declared tool is marked optional in `toolPurposes` is listed as enhancing the app, not required by it. Video Studio now installs on its own; Market Terminal and Weather Desk list their optional sources the same way.
 - Video Studio: a person's narration and titles are never rewritten on reload; edits save as they change, so switching scenes loses nothing; unreadable saved items are kept and reported; shorts keep source timing; Move to drafts; readable dates and estimated spoken length; library cards show a picture and a Watch choice for the header player. A video is always a programme played by Watch; no video file is ever created.
 - Improve Creator Studio with a responsive storyboard and programme inspector, searchable paged collections, compact surface data, and source freshness labels; preserve unsaved scene edits when creating a short and enforce its 120-word limit.

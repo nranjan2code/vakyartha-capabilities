@@ -8,7 +8,12 @@ Choose a source in Creator Studio and select **Import latest programme**. News D
 
 Review a draft before **Add to library**. Creator Studio keeps the storyboard beside the programme inspector on wide windows and stacks them on narrow windows. Search and local paging keep longer scene and draft collections easy to browse. Edit its title, scene heading and narration; changes save as you type, so switching scenes never loses words. Each scene shows its word count and an estimated spoken length (about 150 words a minute; the selected voice sets the real length). Make a Short from one scene; it keeps the show's source timing.
 
-The library shows each item with its first scene picture, length, source and saved time. **Watch** selects an item; then press Watch in the app header. **Edit** opens it in Creator Studio and **Move to drafts** takes it out of the library. A saved item that no longer matches the programme format is kept unchanged, reported in Creator Studio, and removed only after a confirmation. The creator skill can also use the shared assistant pipeline to propose a source-aware show or short; its saved result remains a draft until you accept it into the library. The app's Listen and Watch controls use the same programme and the shared voice settings.
+Four views:
+
+- **Video library.** Each item shows its first scene picture, length, source and saved time. **Watch** plays it and carries on through the rest of the library; swipe, scroll or use the up and down keys to move between videos. **Play all** starts at the top. **Continue watching** resumes where you stopped, **Recently watched** lists the last ten (Clear history removes history and resume points). **Edit** opens an item in Creator Studio; **Add to playlist** adds it to the playlist chosen in Playlists.
+- **Shorts.** The library's shorts as a vertical feed in a tall 9:16 frame, one after another.
+- **Playlists.** Create named playlists (up to 20, 50 videos each), reorder or remove videos, play straight through or from any video. Deleting a playlist asks first and keeps its videos.
+- **Creator Studio.** Import, create and edit. **Watch from this scene** previews the selected scene onward; **Move to drafts** takes an item out of the library. A saved item that no longer matches the programme format is kept unchanged, reported in Creator Studio, and removed only after a confirmation. The creator skill can also use the shared assistant pipeline to propose a source-aware show or short; its saved result remains a draft until you accept it into the library. The app's Listen and Watch controls and every in-page Watch button use the same Watch player and the shared voice settings. Needs a Vakyartha host with the `voice.watch` button action.
 
 ## Data and boundaries
 

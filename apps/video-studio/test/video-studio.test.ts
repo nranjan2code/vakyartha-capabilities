@@ -23,7 +23,7 @@ test('imports one selected source as a local review draft and keeps its freshnes
   assert.equal(c.state.videos?.[0]?.source, 'News Desk');
   assert.equal(c.state.videos?.[0]?.sourceCheckedAt, checkedAt);
   assert.equal(c.state.videos?.[0]?.programme.segments[0]?.source, 'Publisher');
-  assert.equal((await renderApp(c)).updates.length, 2);
+  assert.equal((await renderApp(c)).updates.length, 4);
 });
 
 test('edits a scene, makes a separate short, and adds it only by explicit action', async () => {
@@ -56,13 +56,14 @@ test('removal requires an explicit review step', async () => {
   assert.equal(c.state.videos?.length, 0);
 });
 
-test('initial surface and retained state render both views', () => {
-  assert.equal(views({}).length, 2);
+test('initial surface and retained state render every view', () => {
+  assert.deepEqual(views({}).map(x => x.surface), ['library', 'shorts', 'playlists', 'studio']);
   assert.equal(views({ videos: [] }).flatMap(x => x.nodes).some(x => x.id === 'library-empty'), true);
   const saved = JSON.parse(readFileSync(resolve(import.meta.dirname, '../surface.json'), 'utf8'));
   assert.deepEqual(saved, surfaceFile());
-  const studio = views({ videos: [{ id: 'source-1', title: 'Show', format: 'show', source: 'News Desk', savedAt: '2026-11-04T10:00:00.000Z', status: 'library', programme: sample }] })[1]!;
-  const library = studio.data[0]!.value.library as Record<string, unknown>[];
+  const all = views({ videos: [{ id: 'source-1', title: 'Show', format: 'show', source: 'News Desk', savedAt: '2026-11-04T10:00:00.000Z', status: 'library', programme: sample }] });
+  const studio = all.find(x => x.surface === 'studio')!;
+  const library = all.find(x => x.surface === 'library')!.data[0]!.value.library as Record<string, unknown>[];
   assert.equal('programme' in library[0]!, false);
   assert.equal(studio.nodes.some(x => x.id === 'production-workspace' && x.type === 'split'), true);
   assert.equal(studio.nodes.some(x => x.id === 'scene-items' && x.type === 'grid'), true);
@@ -122,18 +123,69 @@ test('a short keeps the show\'s source timing; library items can move back to dr
   assert.equal(c.state.videos?.find(v => v.id === 'v1')?.status, 'draft');
 });
 
-test('the library shows pictures, readable dates and a Watch choice for the header player', async () => {
+test('the library plays as one queue with pictures and readable dates; each view carries only its own data', async () => {
   const withImage = saved('library'); withImage.programme.segments[1]!.image = 'https://example.com/a.jpg';
-  const c = context({ videos: [withImage] });
-  const update = await handleAction('', { id: 'v1' }, c, 'choose_video');
-  assert.equal(c.state.selected, 'v1');
-  assert.equal(update.focusSurface, undefined);
-  const library = update.updates.find(u => u.surface === 'library')!;
-  const row = (library.data[0]!.value.library as Record<string, string>[])[0]!;
+  const short = { ...saved('library'), id: 's1', title: 'A short', format: 'short' as const };
+  const c = context({ videos: [withImage, short] });
+  const { updates } = await handleAction('', {}, c, 'refresh');
+  const data = (id: string) => updates.find(u => u.surface === id)!.data[0]!.value as Record<string, any>;
+  const row = data('library').library[0];
   assert.equal(row.image, 'https://example.com/a.jpg');
-  assert.match(row.savedLabel!, /4 Nov 2026/);
-  assert.equal(library.nodes.some(x => x.id === 'library-ready'), true);
-  assert.equal((library.data[0]!.value.selected as { programme: { segments: unknown[] } }).programme.segments.length, 2);
+  assert.match(row.savedLabel, /4 Nov 2026/);
+  assert.deepEqual(data('library').libraryQueue.map((x: { id: string }) => x.id), ['v1', 's1']);
+  assert.equal('selected' in data('library'), false);
+  assert.equal('libraryQueue' in data('studio'), false);
+  assert.deepEqual(data('shorts').shortsQueue.map((x: { id: string }) => x.id), ['s1']);
+  const watch = updates.find(u => u.surface === 'library')!.nodes.find(x => x.id === 'library-watch')!;
+  assert.deepEqual(watch.props, { label: 'Watch', action: 'voice.watch', payload: { queue: '{/libraryQueue}', progress: 'watch_progress', index: '{index}' }, style: 'primary' });
+  const feed = updates.find(u => u.surface === 'shorts')!.nodes.find(x => x.id === 'shorts-play')!;
+  assert.equal((feed.props!.payload as { portrait: boolean }).portrait, true);
+});
+
+test('watch progress drives Continue watching and history, and finishing clears the resume point', async () => {
+  const c = context({ videos: [saved('library')] });
+  let { updates } = await handleAction('', { index: 0, id: 'v1', part: 1, done: false }, c, 'watch_progress');
+  const lib = () => updates.find(u => u.surface === 'library')!.data[0]!.value as Record<string, any>;
+  assert.equal(lib().continueRows[0].part, 1);
+  assert.match(lib().continueRows[0].label, /Stopped at scene 2 of 2/);
+  assert.equal(lib().historyRows[0].id, 'v1');
+  ({ updates } = await handleAction('', { index: 0, id: 'v1', part: 1, done: true }, c, 'watch_progress'));
+  assert.equal(lib().continueRows.length, 0);
+  assert.match(lib().historyRows[0].label, /finished/);
+  await handleAction('', { id: 'gone', part: 0, done: true }, c, 'watch_progress');
+  assert.equal(c.state.history?.length, 1);
+  await handleAction('', {}, c, 'clear_history');
+  assert.deepEqual(c.state.history, []);
+});
+
+test('playlists collect library videos, keep their order and are deleted only after review', async () => {
+  const c = context({ videos: [saved('library'), { ...saved('library'), id: 'v2', title: 'Second' }, { ...saved('draft'), id: 'd1' }] });
+  await assert.rejects(handleAction('', { id: 'v1' }, c, 'add_to_playlist'), /Create a playlist/);
+  await handleAction('/playlistName', 'Morning', c);
+  await handleAction('', {}, c, 'create_playlist');
+  await assert.rejects(handleAction('/playlistName', 'morning', c).then(() => handleAction('', {}, c, 'create_playlist')), /already exists/);
+  await handleAction('', { id: 'v1' }, c, 'add_to_playlist');
+  await handleAction('', { id: 'v2' }, c, 'add_to_playlist');
+  await assert.rejects(handleAction('', { id: 'd1' }, c, 'add_to_playlist'), /library first/);
+  let { updates } = await handleAction('', { id: 'v2', by: -1 }, c, 'move_in_playlist');
+  const lists = () => updates.find(u => u.surface === 'playlists')!.data[0]!.value as Record<string, any>;
+  assert.deepEqual(lists().playlistQueue.map((x: { id: string }) => x.id), ['v2', 'v1']);
+  ({ updates } = await handleAction('', { id: 'v2' }, c, 'remove_from_playlist'));
+  assert.deepEqual(lists().listItems.map((x: { id: string }) => x.id), ['v1']);
+  await assert.rejects(handleAction('', {}, c, 'delete_playlist'), /Review the removal/);
+  await handleAction('', {}, c, 'ask_delete_playlist');
+  await handleAction('', {}, c, 'delete_playlist');
+  assert.deepEqual(c.state.playlists, []);
+});
+
+test('removing a video drops it from progress, history and playlists', async () => {
+  const c = context({ videos: [saved('library')], progress: { v1: { part: 1, done: false, at: '2026-11-04T10:00:00.000Z' } }, history: [{ id: 'v1', at: '2026-11-04T10:00:00.000Z' }], playlists: [{ id: 'p', name: 'P', items: ['v1'] }], selected: 'v1' });
+  await handleAction('', {}, c, 'ask_remove');
+  await handleAction('', {}, c, 'remove_video');
+  await handleAction('', {}, c, 'refresh');
+  assert.deepEqual(c.state.progress, {});
+  assert.deepEqual(c.state.history, []);
+  assert.deepEqual(c.state.playlists?.[0]?.items, []);
 });
 
 test('an unavailable source fails with a clear message', async () => {

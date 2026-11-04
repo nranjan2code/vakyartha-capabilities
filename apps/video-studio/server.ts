@@ -4,7 +4,9 @@ export type Format = 'show' | 'short';
 export interface Segment { text: string; delivery: 'opening' | 'headline' | 'story' | 'aside' | 'closing'; cue?: 'intro' | 'sting' | 'outro'; break?: 'short' | 'story' | 'section'; bed?: true; breaking?: true; chart?: Record<string, unknown>; figures?: Record<string, unknown>[]; kicker: string; heading: string; image?: string; source?: string; at?: string; link?: string }
 export interface Programme { title: string; badge?: string; segments: Segment[]; ticker?: { text: string; kicker?: string; link?: string; at?: string; fresh?: true; change?: number }[] }
 export interface Video { id: string; title: string; format: Format; source: string; savedAt: string; sourceCheckedAt?: string; status: 'draft' | 'library'; programme: Programme }
-export interface State { videos?: Video[]; unreadable?: unknown[]; confirmUnreadable?: true; selected?: string; source?: string; format?: Format; edit?: { id: string; title: string; segment: number; heading: string; text: string }; topic?: string; notice?: string; confirmRemove?: string; seq?: number }
+export interface Progress { part: number; done: boolean; at: string }
+export interface Playlist { id: string; name: string; items: string[] }
+export interface State { videos?: Video[]; unreadable?: unknown[]; confirmUnreadable?: true; progress?: Record<string, Progress>; history?: { id: string; at: string }[]; playlists?: Playlist[]; playlist?: string; playlistName?: string; confirmPlaylist?: string; selected?: string; source?: string; format?: Format; edit?: { id: string; title: string; segment: number; heading: string; text: string }; topic?: string; notice?: string; confirmRemove?: string; seq?: number }
 export interface Context { state: State; appRevision?: number; callTool(name: string, args: Record<string, unknown>): Promise<unknown> }
 type Node = { id: string; type: string; props?: Record<string, unknown>; children?: string[] | { each: string; template: string } };
 type Update = { surface: string; nodes: Node[]; data: { op: 'replace'; path: '/'; value: Record<string, unknown> }[] };
@@ -69,7 +71,17 @@ function normalize(raw: State = {}): State {
   const selected = videos.some(x => x.id === raw.selected) ? raw.selected : videos[0]?.id;
   const v = videos.find(x => x.id === selected);
   const edit = raw.edit && v?.id === raw.edit.id ? { id: v.id, title: str(raw.edit.title, 80) || v.title, segment: Math.max(0, Math.min(v.programme.segments.length - 1, Math.floor(Number(raw.edit.segment) || 0))), heading: str(raw.edit.heading, 300), text: str(raw.edit.text, 4000) } : undefined;
-  return { videos, ...(unreadable.length ? { unreadable, ...(raw.confirmUnreadable === true ? { confirmUnreadable: true as const } : {}) } : {}), selected, source: SOURCE.has(String(raw.source)) ? raw.source : 'news', format: kind(raw.format), edit, topic: str(raw.topic, 160), notice: str(raw.notice, 300), confirmRemove: videos.some(v => v.id === raw.confirmRemove) ? raw.confirmRemove : undefined, seq: Number.isSafeInteger(raw.seq) && Number(raw.seq) >= 0 ? Number(raw.seq) : 0 };
+  // Watching records refer to saved items by id; references to removed items fall away.
+  const known = new Set(videos.map(x => x.id));
+  const progress: Record<string, Progress> = {};
+  for (const [id, x] of Object.entries(raw.progress && typeof raw.progress === 'object' ? raw.progress : {})) {
+    const v = videos.find(y => y.id === id); if (!v || !x || typeof x !== 'object') continue;
+    progress[id] = { part: Math.max(0, Math.min(v.programme.segments.length - 1, Math.floor(Number(x.part) || 0))), done: x.done === true, at: date(x.at) ?? new Date(0).toISOString() };
+  }
+  const history = (Array.isArray(raw.history) ? raw.history : []).filter(x => x && known.has(x.id)).slice(0, 50).map(x => ({ id: x.id, at: date(x.at) ?? new Date(0).toISOString() }));
+  const playlists = (Array.isArray(raw.playlists) ? raw.playlists : []).slice(0, 20).flatMap(x => x && typeof x.id === 'string' && str(x.name, 60) ? [{ id: x.id.slice(0, 80), name: str(x.name, 60), items: [...new Set((Array.isArray(x.items) ? x.items : []).filter(i => known.has(i)))].slice(0, 50) }] : []);
+  const playlist = playlists.some(x => x.id === raw.playlist) ? raw.playlist : playlists[0]?.id;
+  return { videos, progress, history, playlists, ...(playlist ? { playlist } : {}), playlistName: str(raw.playlistName, 60), ...(playlists.some(x => x.id === raw.confirmPlaylist) ? { confirmPlaylist: raw.confirmPlaylist } : {}), ...(unreadable.length ? { unreadable, ...(raw.confirmUnreadable === true ? { confirmUnreadable: true as const } : {}) } : {}), selected, source: SOURCE.has(String(raw.source)) ? raw.source : 'news', format: kind(raw.format), edit, topic: str(raw.topic, 160), notice: str(raw.notice, 300), confirmRemove: videos.some(v => v.id === raw.confirmRemove) ? raw.confirmRemove : undefined, seq: Number.isSafeInteger(raw.seq) && Number(raw.seq) >= 0 ? Number(raw.seq) : 0 };
 }
 
 const val = (s: State) => {
@@ -87,14 +99,48 @@ const workflow = { title: 'Video Studio', stages: ['Plan', 'Create', 'Review'], 
 
 export function views(raw: State): Update[] {
   const s = normalize(raw), d = val(s), rows = (each: string, template: string) => ({ each, template });
-  const libraryNodes: Node[] = [];
-  addSection(libraryNodes, 'library-intro', 'Video library', 'Your saved Vakyartha shows and short programmes.', [n('library-count', 'text', { content: `${s.videos!.filter(x => x.status === 'library').length} saved` })]);
+  const libraryNodes: Node[] = [], lib = s.videos!.filter(x => x.status === 'library'), pos = new Map(lib.map((x, i) => [x.id, i]));
+  const at = (id: string) => pos.get(id) ?? -1;
+  // The library plays as one queue: Watch on any card starts there and carries on to the next item.
+  const libraryQueue = lib.map(x => ({ id: x.id, programme: x.programme }));
+  const continueRows = lib.filter(x => s.progress![x.id] && !s.progress![x.id]!.done && s.progress![x.id]!.part > 0).sort((a, b) => s.progress![b.id]!.at.localeCompare(s.progress![a.id]!.at)).slice(0, 6)
+    .map(x => ({ id: x.id, title: x.title, index: at(x.id), part: s.progress![x.id]!.part, image: d.library[at(x.id)]?.image ?? '', label: `Stopped at scene ${s.progress![x.id]!.part + 1} of ${x.programme.segments.length} · ${when(s.progress![x.id]!.at)}` }));
+  const historyRows = s.history!.filter(h => at(h.id) >= 0).slice(0, 10).map(h => { const x = lib[at(h.id)]!; return { id: x.id, title: x.title, index: at(x.id), label: `${x.format === 'short' ? 'Short' : 'Show'} · watched ${when(h.at)}${s.progress![x.id]?.done ? ' · finished' : ''}` }; });
+  const watchAll = { queue: '{/libraryQueue}', progress: 'watch_progress' };
+  addSection(libraryNodes, 'library-intro', 'Video library', 'Your saved Vakyartha shows and shorts. Watch plays from that item and carries on to the next; swipe or use the up and down keys to move between them.', [n('library-count', 'text', { content: `${lib.length} saved` }), ...(lib.length ? [btn('library-play-all', 'Play all', 'voice.watch', { ...watchAll, index: 0 }, 'primary')] : [])]);
+  if (continueRows.length) {
+    addSection(libraryNodes, 'library-continue', 'Continue watching', 'Pick up where you stopped.', [n('continue-items', 'grid', { columns: 3, minItemWidth: 'sm' }, rows('/continueRows', 'continue-row'))]);
+    libraryNodes.push(n('continue-row', 'card', { title: '{title}', subtitle: '{label}', image: '{image}', imageLayout: 'thumbnail', titleLines: 2 }, ['continue-play']), btn('continue-play', 'Resume', 'voice.watch', { ...watchAll, index: '{index}', from: '{part}' }, 'primary'));
+  }
   if (d.library.length) {
-    const ready = d.selected?.status === 'library' ? [n('library-ready', 'text', { content: `Ready to watch: ${d.selected.title}. Press Watch in the header to play it.` })] : [];
-    addSection(libraryNodes, 'library-list', 'Saved videos', 'Choose Watch, then press Watch in the header.', [...ready, n('library-items', 'grid', { columns: 3, minItemWidth: 'sm', searchable: true, pageSize: 12 }, rows('/library', 'library-row'))]);
-    libraryNodes.push(n('library-row', 'card', { title: '{title}', subtitle: '{formatLabel} · {length} · {source} · {savedLabel}', image: '{image}', imageLayout: 'cover', titleLines: 2 }, ['library-watch', 'library-edit', 'library-unlist']), btn('library-watch', 'Watch', 'choose_video', { id: '{id}' }, 'primary'), btn('library-edit', 'Edit', 'open_video', { id: '{id}' }), btn('library-unlist', 'Move to drafts', 'move_to_drafts', { id: '{id}' }));
+    const target = s.playlists!.find(x => x.id === s.playlist);
+    addSection(libraryNodes, 'library-list', 'Saved videos', target ? `Add to playlist adds to ${target.name}; choose another in Playlists.` : 'Create a playlist in Playlists to collect videos.', [n('library-items', 'grid', { columns: 3, minItemWidth: 'sm', searchable: true, pageSize: 12 }, rows('/library', 'library-row'))]);
+    libraryNodes.push(n('library-row', 'card', { title: '{title}', subtitle: '{formatLabel} · {length} · {source} · {savedLabel}', image: '{image}', imageLayout: 'cover', titleLines: 2 }, ['library-watch', 'library-edit', ...(target ? ['library-collect'] : [])]), btn('library-watch', 'Watch', 'voice.watch', { ...watchAll, index: '{index}' }, 'primary'), btn('library-edit', 'Edit', 'open_video', { id: '{id}' }), ...(target ? [btn('library-collect', 'Add to playlist', 'add_to_playlist', { id: '{id}' })] : []));
   }
   else libraryNodes.push(n('library-empty', 'text', { content: 'Your library is empty. Import a programme or create one in Creator Studio.' }));
+  if (historyRows.length) {
+    addSection(libraryNodes, 'library-history', 'Recently watched', 'The last ten videos you watched.', [n('history-items', 'grid', { columns: 1, pageSize: 10 }, rows('/historyRows', 'history-row')), btn('history-clear', 'Clear history', 'clear_history')]);
+    libraryNodes.push(n('history-row', 'card', { title: '{title}', subtitle: '{label}' }, ['history-play']), btn('history-play', 'Watch again', 'voice.watch', { ...watchAll, index: '{index}' }));
+  }
+  if (s.notice) libraryNodes.push(n('library-notice', 'text', { content: s.notice, variant: 'caption' }));
+  // Shorts: the library's shorts as a tall vertical feed.
+  const shorts = lib.filter(x => x.format === 'short'), shortsNodes: Node[] = [];
+  const shortRows = shorts.map((x, i) => ({ id: x.id, index: i, title: x.title, image: d.library[at(x.id)]?.image ?? '', label: `${runtime(x.programme)} · ${x.source}` }));
+  const feed = { queue: '{/shortsQueue}', portrait: true, progress: 'watch_progress' };
+  addSection(shortsNodes, 'shorts-intro', 'Shorts', 'Short programmes in a tall frame, one after another. Swipe, scroll or use the up and down keys for the next one.', shorts.length ? [btn('shorts-play', 'Play shorts', 'voice.watch', { ...feed, index: 0 }, 'primary')] : [n('shorts-empty', 'text', { content: 'No shorts in your library yet. Make a short from any scene in Creator Studio, then add it to your library.' }), btn('shorts-create', 'Open Creator Studio', 'view.open', { surface: 'studio' })]);
+  if (shorts.length) {
+    addSection(shortsNodes, 'shorts-list', 'All shorts', `${shorts.length} ${shorts.length === 1 ? 'short' : 'shorts'}`, [n('shorts-items', 'grid', { columns: 4, minItemWidth: 'sm', searchable: true, pageSize: 16 }, rows('/shortRows', 'short-row'))]);
+    shortsNodes.push(n('short-row', 'card', { title: '{title}', subtitle: '{label}', image: '{image}', imageLayout: 'cover', titleLines: 2 }, ['short-play']), btn('short-play', 'Watch', 'voice.watch', { ...feed, index: '{index}' }, 'primary'));
+  }
+  // Playlists: named running orders over library items.
+  const listNodes: Node[] = [], chosen = s.playlists!.find(x => x.id === s.playlist);
+  const listItems = (chosen?.items ?? []).flatMap((id, i) => { const x = lib[at(id)]; return x ? [{ id, index: i, title: x.title, label: `${x.format === 'short' ? 'Short' : 'Show'} · ${runtime(x.programme)} · ${x.source}` }] : []; });
+  addSection(listNodes, 'playlists-intro', 'Playlists', 'Collect library videos into running orders and play them straight through.', [n('playlist-name', 'input', { label: 'New playlist', bind: '/playlistName', placeholder: 'Name, for example Morning briefing' }), btn('playlist-create', 'Create playlist', 'create_playlist', {}, 'primary'), ...(s.playlists!.length ? [n('playlist-pick', 'select', { label: 'Playlist', bind: '/playlist', options: '{/playlistOptions}', presentation: 'dropdown' })] : [])]);
+  if (chosen) {
+    addSection(listNodes, 'playlist-detail', chosen.name, listItems.length ? `${listItems.length} ${listItems.length === 1 ? 'video' : 'videos'} · add more with Add to playlist in the library` : 'Empty. Use Add to playlist on any video in the library.', [...(listItems.length ? [btn('playlist-play', 'Play playlist', 'voice.watch', { queue: '{/playlistQueue}', index: 0, progress: 'watch_progress' }, 'primary'), n('playlist-items', 'grid', { columns: 1, pageSize: 20 }, rows('/listItems', 'playlist-row'))] : []), btn('playlist-ask-delete', 'Delete playlist', 'ask_delete_playlist', {}, 'danger'), ...(s.confirmPlaylist === chosen.id ? [n('playlist-confirm', 'alert', { title: `Delete ${chosen.name}?`, body: 'The playlist is removed; its videos stay in your library.', tone: 'warning' }), btn('playlist-keep', 'Keep playlist', 'cancel_remove'), btn('playlist-delete', 'Delete playlist', 'delete_playlist', {}, 'danger')] : [])]);
+    listNodes.push(n('playlist-row', 'card', { title: '{title}', subtitle: '{label}' }, ['playlist-row-play', 'playlist-up', 'playlist-down', 'playlist-remove']), btn('playlist-row-play', 'Watch from here', 'voice.watch', { queue: '{/playlistQueue}', index: '{index}', progress: 'watch_progress' }, 'primary'), btn('playlist-up', 'Move up', 'move_in_playlist', { id: '{id}', by: -1 }), btn('playlist-down', 'Move down', 'move_in_playlist', { id: '{id}', by: 1 }), btn('playlist-remove', 'Remove', 'remove_from_playlist', { id: '{id}' }));
+  }
+  if (s.notice) listNodes.push(n('playlists-notice', 'text', { content: s.notice, variant: 'caption' }));
   const studioNodes: Node[] = [];
   addSection(studioNodes, 'creator-intro', 'Creator Studio', 'Create a source-aware production or bring a saved programme into your workspace.', [n('creator-paths', 'grid', { columns: 2, minItemWidth: 'md', gap: 'md' }, ['new-production', 'source-production'])]);
   addSection(studioNodes, 'new-production', 'Create a production', 'Describe the show or short you want to make.', [n('creator-topic', 'input', { label: 'Production brief', bind: '/topic', placeholder: 'What should this be about?' }), n('creator-format', 'select', { label: 'Format', bind: '/format', options: '{/formatOptions}', presentation: 'dropdown' }), btn('assistant-create', 'Create with assistant', 'assistant.compose', { path: 'authorRequest', workflowPath: 'authorWorkflow' }, 'primary')]);
@@ -105,8 +151,8 @@ export function views(raw: State): Update[] {
   }
   if (d.selected && d.edit) {
     const seg = d.selected.programme.segments[d.edit.segment]!;
-    addSection(studioNodes, 'studio-editor', 'Programme details', `${d.selected.format === 'short' ? 'Short' : 'Show'} · ${runtime(d.selected.programme)} · ${d.selected.source} · Saved ${when(d.selected.savedAt)}${d.selected.sourceCheckedAt ? ` · Source checked ${when(d.selected.sourceCheckedAt)}` : ''} · Changes save as you type`, [n('edit-title', 'input', { label: 'Title', bind: '/edit/title' }), n('edit-segment', 'select', { label: 'Selected scene', bind: '/edit/segment', options: '{/segmentOptions}', presentation: 'dropdown' }), n('edit-heading', 'input', { label: 'Scene heading', bind: '/edit/heading' }), n('edit-text', 'textarea', { label: 'Narration', bind: '/edit/text' }), n('scene-preview', 'text', { content: `Scene ${d.edit.segment + 1} of ${d.selected.programme.segments.length}: ${seg.heading || d.selected.title} · ${wordCount(seg.text)} words · ${runtime({ title: '', segments: [seg] })}`, variant: 'caption' }), ...(d.selected.status === 'library' ? [btn('editor-unlist', 'Move to drafts', 'move_to_drafts')] : [btn('editor-add', 'Add to library', 'add_to_library', {}, 'primary')]), btn('ask-remove', 'Remove show', 'ask_remove', {}, 'danger'), ...(s.confirmRemove === d.selected.id ? [n('remove-confirm', 'alert', { title: 'Remove this show?', body: 'This removes the saved programme and its scenes from Video Studio.', tone: 'warning' }), btn('remove-cancel', 'Keep show', 'cancel_remove'), btn('remove-confirmed', 'Remove from Video Studio', 'remove_video', {}, 'danger')] : [])]);
-    addSection(studioNodes, 'studio-scenes', 'Storyboard', 'Select a scene to edit its narration or cut it into a short. Use Watch in the app header to preview the programme.', [n('scene-items', 'grid', { columns: 1, searchable: true, pageSize: 12 }, rows('/selected/programme/segments', 'scene-row'))]);
+    addSection(studioNodes, 'studio-editor', 'Programme details', `${d.selected.format === 'short' ? 'Short' : 'Show'} · ${runtime(d.selected.programme)} · ${d.selected.source} · Saved ${when(d.selected.savedAt)}${d.selected.sourceCheckedAt ? ` · Source checked ${when(d.selected.sourceCheckedAt)}` : ''} · Changes save as you type`, [n('edit-title', 'input', { label: 'Title', bind: '/edit/title' }), n('edit-segment', 'select', { label: 'Selected scene', bind: '/edit/segment', options: '{/segmentOptions}', presentation: 'dropdown' }), n('edit-heading', 'input', { label: 'Scene heading', bind: '/edit/heading' }), n('edit-text', 'textarea', { label: 'Narration', bind: '/edit/text' }), n('scene-preview', 'text', { content: `Scene ${d.edit.segment + 1} of ${d.selected.programme.segments.length}: ${seg.heading || d.selected.title} · ${wordCount(seg.text)} words · ${runtime({ title: '', segments: [seg] })}`, variant: 'caption' }), btn('editor-watch', 'Watch from this scene', 'voice.watch', { queue: '{/selected/programme}', from: '{/edit/segment}' }, 'primary'), ...(d.selected.status === 'library' ? [btn('editor-unlist', 'Move to drafts', 'move_to_drafts')] : [btn('editor-add', 'Add to library', 'add_to_library', {}, 'primary')]), btn('ask-remove', 'Remove show', 'ask_remove', {}, 'danger'), ...(s.confirmRemove === d.selected.id ? [n('remove-confirm', 'alert', { title: 'Remove this show?', body: 'This removes the saved programme and its scenes from Video Studio.', tone: 'warning' }), btn('remove-cancel', 'Keep show', 'cancel_remove'), btn('remove-confirmed', 'Remove from Video Studio', 'remove_video', {}, 'danger')] : [])]);
+    addSection(studioNodes, 'studio-scenes', 'Storyboard', 'Select a scene to edit its narration or cut it into a short. Watch from this scene previews it.', [n('scene-items', 'grid', { columns: 1, searchable: true, pageSize: 12 }, rows('/selected/programme/segments', 'scene-row'))]);
     studioNodes.push(n('scene-row', 'card', { title: '{heading}', subtitle: '{kicker} · {source}' }, ['scene-edit', 'scene-short']), btn('scene-edit', 'Edit scene', 'select_scene', { index: '{index}' }), btn('scene-short', 'Make a short', 'make_short', { index: '{index}' }, 'primary'));
     studioNodes.push(n('production-workspace', 'split', { ratio: '1:2', gap: 'md' }, ['studio-scenes', 'studio-editor']));
   }
@@ -115,11 +161,18 @@ export function views(raw: State): Update[] {
     addSection(studioNodes, 'unreadable', 'Items that could not be read', `${many} no longer match the programme format. They are kept unchanged and are not shown in the library.`, s.confirmUnreadable ? [n('unreadable-confirm', 'alert', { title: `Remove ${many}?`, body: 'This permanently removes them from Video Studio.', tone: 'warning' }), btn('unreadable-keep', 'Keep them', 'cancel_remove'), btn('unreadable-remove', 'Remove from Video Studio', 'remove_unreadable', {}, 'danger')] : [btn('unreadable-ask', 'Remove unreadable items', 'ask_remove_unreadable', {}, 'danger')]);
   }
   if (s.notice) studioNodes.push(n('studio-notice', 'text', { content: s.notice }));
-  libraryNodes.unshift(n('root', 'stack', { direction: 'vertical', gap: 'md' }, libraryNodes.filter(x => ['library-intro', 'library-list', 'library-empty'].includes(x.id)).map(x => x.id)));
+  const root = (list: Node[], ids: string[]) => list.unshift(n('root', 'stack', { direction: 'vertical', gap: 'md' }, list.filter(x => ids.includes(x.id)).map(x => x.id)));
+  root(libraryNodes, ['library-intro', 'library-continue', 'library-list', 'library-empty', 'library-history', 'library-notice']);
+  root(shortsNodes, ['shorts-intro', 'shorts-list']);
+  root(listNodes, ['playlists-intro', 'playlist-detail', 'playlists-notice']);
   studioNodes.unshift(n('root', 'stack', { direction: 'vertical', gap: 'md' }, studioNodes.filter(x => ['creator-intro', 'unreadable', 'drafts-list', 'production-workspace', 'studio-notice'].includes(x.id)).map(x => x.id)));
+  // Each view carries only the data it shows: programmes appear once per view, as the queue it plays.
+  const notice = d.notice, { library: _library, ...studioData } = d;
   return [
-    { surface: 'library', nodes: libraryNodes, data: [{ op: 'replace', path: '/', value: d }] },
-    { surface: 'studio', nodes: studioNodes, data: [{ op: 'replace', path: '/', value: d }] },
+    { surface: 'library', nodes: libraryNodes, data: [{ op: 'replace', path: '/', value: { library: d.library, libraryQueue, continueRows, historyRows, notice } }] },
+    { surface: 'shorts', nodes: shortsNodes, data: [{ op: 'replace', path: '/', value: { shortRows, shortsQueue: shorts.map(x => ({ id: x.id, programme: x.programme })) } }] },
+    { surface: 'playlists', nodes: listNodes, data: [{ op: 'replace', path: '/', value: { playlist: s.playlist ?? '', playlistName: s.playlistName ?? '', playlistOptions: s.playlists!.map(x => ({ label: `${x.name} (${x.items.length})`, value: x.id })), listItems, playlistQueue: listItems.map(x => ({ id: x.id, programme: lib[at(x.id)]!.programme })), notice } }] },
+    { surface: 'studio', nodes: studioNodes, data: [{ op: 'replace', path: '/', value: studioData }] },
   ];
 }
 
@@ -156,6 +209,8 @@ export async function handleAction(controlId: string, value: unknown, c: Context
     if (controlId === '/source') { if (!SOURCE.has(String(value))) throw new Error('Choose an available source app'); s.source = String(value); }
     else if (controlId === '/format') s.format = kind(value);
     else if (controlId === '/topic') s.topic = str(value, 160);
+    else if (controlId === '/playlistName') s.playlistName = str(value, 60);
+    else if (controlId === '/playlist') { if (!s.playlists!.some(x => x.id === value)) throw new Error('Choose a playlist'); s.playlist = String(value); s.confirmPlaylist = undefined; }
     else if (controlId === '/edit/title') {
       const v = selected(s); if (!s.edit || s.edit.id !== v.id) throw new Error('Open a show in Creator Studio first');
       s.edit.title = str(value, 80);
@@ -182,7 +237,6 @@ export async function handleAction(controlId: string, value: unknown, c: Context
     const id = randomUUID(), video: Video = { id, title: prog.title, format: 'show', source: src.name, savedAt: new Date().toISOString(), ...(date(envelope.checkedAt) || date(envelope.retrievedAt) ? { sourceCheckedAt: date(envelope.checkedAt) ?? date(envelope.retrievedAt) } : {}), status: 'draft', programme: prog };
     addVideo(s, video); setEdit(s, video); s.notice = `Imported ${src.name} programme as a draft. Review it before adding it to your library.`;
   } else if (action === 'open_video') { const v = selected(s, p.id); setEdit(s, v); s.notice = ''; }
-  else if (action === 'choose_video') { const v = selected(s, p.id); setEdit(s, v); s.notice = ''; }
   else if (action === 'select_scene') setEdit(s, selected(s), Number(p.index));
   else if (action === 'make_short') {
     const base = selected(s), index = Number(p.index), part = base.programme.segments[index]; if (!part) throw new Error('Choose a scene first');
@@ -203,7 +257,34 @@ export async function handleAction(controlId: string, value: unknown, c: Context
     const video: Video = { id: randomUUID(), title, format, source, savedAt: new Date().toISOString(), status: 'draft', programme: { ...prog, title } };
     addVideo(s, video); setEdit(s, video); s.notice = 'Assistant proposal saved as a draft. Review the words and sources before adding it to your library.';
   } else if (action === 'ask_remove') { const v = selected(s, p.id); s.confirmRemove = v.id; }
-  else if (action === 'cancel_remove') { s.confirmRemove = undefined; s.confirmUnreadable = undefined; }
+  else if (action === 'cancel_remove') { s.confirmRemove = undefined; s.confirmUnreadable = undefined; s.confirmPlaylist = undefined; }
+  else if (action === 'watch_progress') {
+    // Reported by Watch when a video ends, when the viewer moves on, and when Watch closes.
+    const v = s.videos!.find(x => x.id === p.id); if (!v) return { updates: views(s) };
+    const at = new Date().toISOString(), part = Math.max(0, Math.min(v.programme.segments.length - 1, Math.floor(Number(p.part) || 0)));
+    s.progress![v.id] = { part: p.done === true ? 0 : part, done: p.done === true, at };
+    s.history = [{ id: v.id, at }, ...s.history!.filter(x => x.id !== v.id)].slice(0, 50);
+    s.notice = '';
+  } else if (action === 'clear_history') { s.history = []; s.progress = {}; s.notice = 'Watch history cleared.'; }
+  else if (action === 'create_playlist') {
+    const name = str(s.playlistName, 60); if (!name) throw new Error('Name the playlist first');
+    if (s.playlists!.length >= 20) throw new Error('Video Studio holds 20 playlists. Delete one before creating another.');
+    if (s.playlists!.some(x => x.name.toLowerCase() === name.toLowerCase())) throw new Error(`A playlist called ${name} already exists`);
+    const list = { id: randomUUID(), name, items: [] }; s.playlists!.push(list); s.playlist = list.id; s.playlistName = ''; s.notice = `Created ${name}. Add videos from the library.`;
+  } else if (action === 'add_to_playlist') {
+    const v = selected(s, p.id), list = s.playlists!.find(x => x.id === s.playlist); if (!list) throw new Error('Create a playlist in Playlists first');
+    if (v.status !== 'library') throw new Error('Add the video to your library first');
+    if (list.items.includes(v.id)) s.notice = `${v.title} is already in ${list.name}.`;
+    else { if (list.items.length >= 50) throw new Error(`${list.name} holds 50 videos. Remove one first.`); list.items.push(v.id); s.notice = `Added ${v.title} to ${list.name}.`; }
+  } else if (action === 'remove_from_playlist' || action === 'move_in_playlist') {
+    const list = s.playlists!.find(x => x.id === s.playlist), k = list?.items.indexOf(String(p.id)) ?? -1; if (!list || k < 0) throw new Error('Choose a video in this playlist');
+    if (action === 'remove_from_playlist') { list.items.splice(k, 1); s.notice = ''; }
+    else { const j = k + (Number(p.by) < 0 ? -1 : 1); if (j >= 0 && j < list.items.length) [list.items[k], list.items[j]] = [list.items[j]!, list.items[k]!]; }
+  } else if (action === 'ask_delete_playlist') { if (!s.playlist) throw new Error('Choose a playlist'); s.confirmPlaylist = s.playlist; }
+  else if (action === 'delete_playlist') {
+    const list = s.playlists!.find(x => x.id === s.playlist); if (!list || s.confirmPlaylist !== list.id) throw new Error('Review the removal first');
+    s.playlists = s.playlists!.filter(x => x.id !== list.id); s.playlist = s.playlists[0]?.id; s.confirmPlaylist = undefined; s.notice = `Deleted ${list.name}. Its videos stay in your library.`;
+  }
   else if (action === 'ask_remove_unreadable') { if (!s.unreadable?.length) throw new Error('There are no unreadable items'); s.confirmUnreadable = true; }
   else if (action === 'remove_unreadable') {
     if (!s.confirmUnreadable) throw new Error('Review the removal first');
@@ -227,5 +308,6 @@ export async function handleQuery(name: string, _params: unknown, c: Context) {
   return { expectedRevision: c.appRevision ?? null, selectedSource: SOURCE.get(String(s.source))?.name ?? 'News Desk', topic: s.topic ?? '', savedCount: s.videos!.length, recent: s.videos!.slice(0, 20).map(v => ({ title: v.title, format: v.format, source: v.source, status: v.status })), schema: { programme: { title: 'text', segments: [{ text: 'spoken plain text', delivery: 'opening|headline|story|aside|closing', kicker: 'section', heading: 'scene title', source: 'actual contributing app or publication', at: 'source timestamp when available', image: 'optional actual https image' }] }, format: 'show or short; short should have one or two concise scenes' }, limits: '80 scenes per show; shorts have at most two scenes and 120 spoken words; 100 local videos; 8 MB total app content; each spoken scene up to 4000 characters' };
 }
 
-export function surfaceFile() { return views({}).map(u => ({ id: u.surface, title: u.surface === 'studio' ? 'Creator Studio' : 'Video library', nodes: u.nodes, data: u.data[0]!.value })); }
+const TITLES: Record<string, string> = { library: 'Video library', shorts: 'Shorts', playlists: 'Playlists', studio: 'Creator Studio' };
+export function surfaceFile() { return views({}).map(u => ({ id: u.surface, title: TITLES[u.surface]!, nodes: u.nodes, data: u.data[0]!.value })); }
 export async function renderApp(context: Context) { return { updates: views(normalize(context.state)) }; }
