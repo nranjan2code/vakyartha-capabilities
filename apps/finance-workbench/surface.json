@@ -56,10 +56,25 @@
       },
       {
         "id": "ledger-empty",
-        "type": "text",
+        "type": "card",
         "props": {
-          "content": "Imported transactions are listed here exactly as stored.",
-          "variant": "caption"
+          "title": "Your ledger is empty",
+          "body": "Imported transactions are listed here exactly as stored, with search, sorting and paging."
+        },
+        "children": [
+          "ledger-start"
+        ]
+      },
+      {
+        "id": "ledger-start",
+        "type": "button",
+        "props": {
+          "label": "Import transactions",
+          "action": "view.open",
+          "payload": {
+            "surface": "import"
+          },
+          "style": "primary"
         }
       }
     ]

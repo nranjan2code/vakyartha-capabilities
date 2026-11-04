@@ -214,7 +214,10 @@ function ledgerSurface(s: State, l: Ledger): Update {
       has
         ? { id: 'transactions', type: 'table', props: { rows: '{/transactions}', columns: [{ key: 'date', label: 'Date' }, { key: 'description', label: 'Description' }, { key: 'category', label: 'Category' }, { key: 'amount', label: 'Amount', align: 'end' }, { key: 'id', label: 'ID' }], sortable: true, searchable: true, pageSize: 15 } }
         : { id: 'ledger-month-empty', type: 'text', props: { content: 'No transactions in this month.', variant: 'caption' } },
-    ] : [{ id: 'ledger-empty', type: 'text', props: { content: 'Imported transactions are listed here exactly as stored.', variant: 'caption' } }]),
+    ] : [
+      { id: 'ledger-empty', type: 'card', props: { title: 'Your ledger is empty', body: 'Imported transactions are listed here exactly as stored, with search, sorting and paging.' }, children: ['ledger-start'] },
+      { id: 'ledger-start', type: 'button', props: { label: 'Import transactions', action: 'view.open', payload: { surface: 'import' }, style: 'primary' } },
+    ]),
   ];
   const data = l.total ? { month: s.month, monthOptions: monthOptions(s, l), ...(has ? { transactions: l.rows.map((r) => ({ ...r, amount: money(r.paise) })) } : {}) } : {};
   return { surface: 'ledger', nodes, data: replaceAll(data) };
