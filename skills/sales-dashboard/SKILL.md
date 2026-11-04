@@ -5,6 +5,8 @@ description: Create a sales performance or opportunity-pipeline dashboard with s
 compatibility: Works with CRM exports, sales pipeline spreadsheets, and canvas projection.
 metadata:
   requires: "skill:interactive-ui skill:surface-design"
+  loads-with: "interactive-ui"
+  requires-canvas: "true"
   category: reports
   author: Vakyartha
   version: "1.0.0"

@@ -5,6 +5,8 @@ description: Design diagrams of any domain on the canvas: flowcharts, system arc
 compatibility: Projection diagram component; desktop canvas, channels and spoken projection.
 metadata:
   requires: "skill:interactive-ui skill:surface-design"
+  loads-with: "interactive-ui"
+  requires-canvas: "true"
   category: reports
   author: Vakyartha
   version: "1.0.0"
