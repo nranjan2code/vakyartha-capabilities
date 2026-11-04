@@ -16,28 +16,9 @@ allowed-tools: read_skill_file use_skill vak_render vak_update vak_submit
 
 Analytical and operational procedure for querying official National Stock Exchange of India (NSE) market data using vendor Model Context Protocol (MCP) servers and composing verified financial analyses on Vakyartha canvas surfaces.
 
-## Overview & Architecture
+## More detail
 
-The National Stock Exchange of India operates two official hosted MCP endpoints on `mcp.nseindia.in` using Streamable HTTP transport. Neither endpoint requires API keys, credentials, or browser authentication:
-
-1. **`nse` (NSE Bhavcopy — Historical EOD)**:
-   - Hosted endpoint: `https://mcp.nseindia.in/bhavcopy/cm/mcp`
-   - Tool namespace in Vakyartha: `nse__<tool_name>`
-   - Scope: Daily end-of-day equity data covering up to 5 years of trading history, final closing figures, OHLCV records, delivery volumes, 52-week highs/lows, and market breadth (advances/declines).
-2. **`nse-cmmkt` (NSE Market Live — Current Session Snapshots)**:
-   - Hosted endpoint: `https://mcp.nseindia.in/cmmkt/mcp`
-   - Tool namespace in Vakyartha: `nse-cmmkt__<tool_name>`
-   - Scope: Near-real-time intraday snapshots (running on a 1–3 minute exchange delay), live stock quotes, day high/low, top gainers and losers, and index performance.
-
-### Skill Chaining
-- Present market results as an interactive canvas: `interactive-ui` loads with this skill. Show index values and changes in a table or metric strip from the verified records, with a short text summary. Answer in plain text only when the user asks for text or a single quick fact.
-- Load enabled `market-dashboard` for multi-period reviews and comparable returns.
-- The required `surface-design` skill governs layout structure, metric strips, clamped charts, and spoken clarity automatically.
-- Read supporting reference files via `read_skill_file`:
-  - `references/nse-tools-guide.md`: Detailed tool catalog, schemas, arguments, and return types.
-  - `references/nse-query-patterns.md`: Step-by-step query workflows for single equity reviews, market breadth, and index scans.
-
----
+For how the NSE servers fit together and which skills chain with this one, read `references/architecture.md` with read_skill_file.
 
 ## Tool Selection & Dispatch Procedure
 
