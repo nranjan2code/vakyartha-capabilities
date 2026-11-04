@@ -6,7 +6,7 @@ compatibility: Works across text chat, long-form canvas surfaces, media attachme
 metadata:
   category: writing
   author: Vakyartha
-  version: "1.0.0"
+  version: "1.1.0"
 allowed-tools: read_skill_file use_skill vak_render vak_update vak_submit
 ---
 
