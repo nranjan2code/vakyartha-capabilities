@@ -16,7 +16,7 @@ interface Update { surface: string; nodes: Node[]; data: { op: 'replace'; path: 
 
 const LANES = ['Review', 'Next', 'Watch'];
 export const TITLES: Record<string, string> = { triage: 'Triage', activity: 'Activity', sources: 'Sources' };
-const SETUP = 'Use Access in the app header to review this app’s Web pages tools, destinations and background access.';
+const SETUP = 'If a read is blocked, review Access in the app header.';
 
 // --- source parsing ----------------------------------------------------------------
 

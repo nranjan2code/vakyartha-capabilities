@@ -15,7 +15,7 @@
           "value": "foryou"
         }
       ],
-      "emptyHint": "Use Access in the app header to review this app’s Web pages tools, destinations and background access. Then press refresh in the header to read your 14 active feeds."
+      "emptyHint": "Read your 14 active feeds to fill Top stories. If a read is blocked, review Access in the app header."
     },
     "nodes": [
       {
@@ -68,8 +68,30 @@
           "body": "{/emptyHint}"
         },
         "children": [
+          "top-empty-actions"
+        ]
+      },
+      {
+        "id": "top-empty-actions",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm"
+        },
+        "children": [
+          "top-read",
           "top-sources"
         ]
+      },
+      {
+        "id": "top-read",
+        "type": "button",
+        "props": {
+          "label": "Read my feeds",
+          "action": "refresh",
+          "style": "primary"
+        }
       },
       {
         "id": "top-sources",
@@ -140,7 +162,7 @@
           "label": "World · 0"
         }
       ],
-      "none": "Nothing read yet. Use Access in the app header to review this app’s Web pages tools, destinations and background access."
+      "none": "Nothing read yet. If a read is blocked, review Access in the app header."
     },
     "nodes": [
       {
@@ -2348,7 +2370,7 @@
         "id": "no-health",
         "type": "text",
         "props": {
-          "content": "No feed has been read yet. Use Access in the app header to review this app’s Web pages tools, destinations and background access.",
+          "content": "No feed has been read yet. If a read is blocked, review Access in the app header.",
           "variant": "caption"
         }
       },
@@ -2466,7 +2488,7 @@
         "id": "no-receipts",
         "type": "text",
         "props": {
-          "content": "Nothing read yet. Use Access in the app header to review this app’s Web pages tools, destinations and background access.",
+          "content": "Nothing read yet. If a read is blocked, review Access in the app header.",
           "variant": "caption"
         }
       }

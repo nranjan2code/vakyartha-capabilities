@@ -44,7 +44,7 @@ const TAGS: [string, RegExp][] = [
 export const TAG_NAMES = TAGS.map(([t]) => t);
 // Daily values compared for change: the ones a person asks "did it change?" about.
 const TRACKED = ['repo', 'sdf', 'msf', 'bank', 'crr', 'slr', 'usd'];
-const MAX_ITEMS = 300, MAX_DAYS = 730, SETUP = 'Use Access in the app header to review this app’s Web pages tools, destinations and background access.';
+const MAX_ITEMS = 300, MAX_DAYS = 730, SETUP = 'If a read is blocked, review Access in the app header.';
 export const TITLES: Record<string, string> = { rates: 'Rates', reserves: 'Reserves', updates: 'Updates', rulebook: 'Rulebook', sources: 'Sources' };
 
 // --- canonical state ---------------------------------------------------------------
@@ -335,7 +335,8 @@ function ratesSurface(s: State): Update {
       ...(repoDays.length > 1 ? [{ id: 'repo-chart', type: 'chart', props: { kind: 'line', title: 'Policy repo rate · % (days RBI Desk read)', series: { records: '{/repoDays}', label: 'date', fields: ['repo'] }, height: 'sm' } }] : []),
       { id: 'panel', type: 'table', props: { rows: '{/panel}', columns: [{ key: 'group', label: 'Group' }, { key: 'label', label: 'Rate' }, { key: 'value', label: 'Value', align: 'end' }, { key: 'asOf', label: 'Date' }], pageSize: 25 } },
     ] : [
-      { id: 'empty', type: 'card', props: { title: 'No RBI rates yet', body: `Use Refresh at the top right to read the Current Rates panel and the official RBI feeds from rbi.org.in. ${SETUP}` } },
+      { id: 'empty', type: 'card', props: { title: 'No RBI rates yet', body: `Read the Current Rates panel and the official RBI feeds from rbi.org.in. ${SETUP}` }, children: ['empty-read'] },
+      { id: 'empty-read', type: 'button', props: { label: 'Read RBI now', action: 'refresh', style: 'primary' } },
     ]),
   ];
   const changed = TRACKED.flatMap((k) => { const c = changes(s.history!, k).at(-1); return c ? [`${get(k)?.label ?? k}: ${c.from} → ${c.to} on ${day(c.date)}`] : []; });

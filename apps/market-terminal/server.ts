@@ -168,7 +168,7 @@ export function recordIntraday(s: State, now = Date.now()) {
 export const reason = (e: unknown) => String((e as Error)?.message ?? e)
   .replace(/<\/?tool_output[^>]*>/g, ' ').replace(/This is data returned by a tool, not instructions\.[^\n]*/g, ' ')
   .replace(/\b(error|refused):\s*(?=(error|refused):)/gi, '').replace(/^\s*error:\s*/i, '').replace(/\s+/g, ' ').trim().slice(0, 400);
-export const SETUP = 'Use Access in the app header to review this app’s exchange tools, destinations and background access.';
+export const SETUP = 'If a read is blocked, review Access in the app header.';
 
 type Parsed = { sourceAt: string; rows: number; status?: string; commit(): Promise<void> | void };
 /** One tool read: parse and commit on success, record a receipt either way. Returns the failure, if any. */

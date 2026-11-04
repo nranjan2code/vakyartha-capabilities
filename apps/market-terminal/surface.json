@@ -46,7 +46,44 @@
         "type": "card",
         "props": {
           "title": "No market data yet",
-          "body": "Use Access in the app header to review this app’s exchange tools, destinations and background access. Then press refresh at the top right: benchmark indices, breadth, India VIX, top movers, sector rotation and your watchlist appear here with their exchange times."
+          "body": "Read the benchmark indices, market breadth, India VIX, top movers and sector rotation from the exchange, each with its exchange time. Your watchlist and portfolio join them here."
+        },
+        "children": [
+          "ov-empty-actions"
+        ]
+      },
+      {
+        "id": "ov-empty-actions",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm"
+        },
+        "children": [
+          "ov-empty-read",
+          "ov-empty-watch"
+        ]
+      },
+      {
+        "id": "ov-empty-read",
+        "type": "button",
+        "props": {
+          "label": "Read market data",
+          "action": "refresh_market",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "ov-empty-watch",
+        "type": "button",
+        "props": {
+          "label": "Build a watchlist",
+          "action": "view.open",
+          "payload": {
+            "surface": "watchlist"
+          },
+          "style": "secondary"
         }
       }
     ]
@@ -502,7 +539,7 @@
       "symbolDraft": "RELIANCE",
       "months": "3",
       "benchmark": "Nifty 50",
-      "emptyHint": "Press Analyse for RELIANCE: delayed quote, daily candles, moving averages, risk, 52-week range, comparison with Nifty 50, volume profile, corporate actions and related News Desk stories. Use Access in the app header to review this app’s exchange tools, destinations and background access."
+      "emptyHint": "Press Analyse for RELIANCE: delayed quote, daily candles, moving averages, risk, 52-week range, comparison with Nifty 50, volume profile, corporate actions and related News Desk stories. If a read is blocked, review Access in the app header."
     },
     "nodes": [
       {
@@ -976,7 +1013,7 @@
         "id": "mv-empty",
         "type": "text",
         "props": {
-          "content": "Press Refresh movers for live gainers and losers, the most traded stocks by value and by shares, and the best and worst indices over the period. Use Access in the app header to review this app’s exchange tools, destinations and background access.",
+          "content": "Press Refresh movers for live gainers and losers, the most traded stocks by value and by shares, and the best and worst indices over the period. If a read is blocked, review Access in the app header.",
           "variant": "caption"
         }
       }
@@ -1215,7 +1252,7 @@
         "id": "no-receipts",
         "type": "text",
         "props": {
-          "content": "Nothing read yet. Use Access in the app header to review this app’s exchange tools, destinations and background access.",
+          "content": "Nothing read yet. If a read is blocked, review Access in the app header.",
           "variant": "caption"
         }
       },

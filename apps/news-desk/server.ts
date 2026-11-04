@@ -106,7 +106,7 @@ function tuning(raw: Partial<Tuning> | undefined): Tuning {
     learn: t.learn === true, keepDays: KEEP_DAYS.includes(Number(t.keepDays)) ? Number(t.keepDays) : d.keepDays, perFeed: Math.round(num(t.perFeed, 10, 60, d.perFeed)),
   };
 }
-const SETUP = 'Use Access in the app header to review this app’s Web pages tools, destinations and background access.';
+const SETUP = 'If a read is blocked, review Access in the app header.';
 const WINDOWS: Record<string, number> = { '24h': 24, '72h': 72, '7d': 168, all: Infinity };
 const NO_FILTERS: Filters = { category: 'All', window: '72h', source: 'All', sort: 'relevance' };
 const OLD_DEFAULTS = new Set(['world/rss.xml', 'business/rss.xml', 'technology/rss.xml', 'science_and_environment/rss.xml'].map((p) => `https://feeds.bbci.co.uk/news/${p}`));
@@ -531,7 +531,9 @@ function topSurface(c: Ctx): Update {
       { id: 'digest-second', type: 'text', props: { content: '{second}', variant: 'caption', visibleIf: '{second}' } },
       { id: 'digest-open', type: 'button', props: { label: '{openLabel}', action: 'open_section', payload: { category: '{category}' }, style: 'link' } },
     ] : [
-      { id: 'top-empty', type: 'card', props: { title: 'Your news starts here', body: '{/emptyHint}' }, children: ['top-sources'] },
+      { id: 'top-empty', type: 'card', props: { title: 'Your news starts here', body: '{/emptyHint}' }, children: ['top-empty-actions'] },
+      { id: 'top-empty-actions', type: 'stack', props: { direction: 'horizontal', wrap: true, gap: 'sm' }, children: ['top-read', 'top-sources'] },
+      { id: 'top-read', type: 'button', props: { label: 'Read my feeds', action: 'refresh', style: 'primary' } },
       { id: 'top-sources', type: 'button', props: { label: 'Review feeds', action: 'view.open', payload: { surface: 'sources' }, style: 'secondary' } },
     ]),
   ];
@@ -543,7 +545,7 @@ function topSurface(c: Ctx): Update {
       lead: lead.map((st) => storyCard(c, st)), forYou: forYou.map((st) => storyCard(c, st)), more: more.map((st) => storyCard(c, st)), chips: sectionChips(c),
       digest: sections.map((x) => ({ category: x.category, meta: plural(x.stories.length, 'story'), first: headline(x.stories[0]), second: headline(x.stories[1]), openLabel: `All ${x.category} stories →` })),
       spoken: { bulletin: ((ch) => programme(ch.stories, c.stories, s.topics!, { now: c.now }, ch.name, s.images !== false))(channelStories(c, s.channel!)) },
-    } : { emptyHint: `${SETUP} Then press refresh in the header to read your ${plural(active(s).length, 'active feed')}.` }),
+    } : { emptyHint: `Read your ${plural(active(s).length, 'active feed')} to fill Top stories. ${SETUP}` }),
   };
   return { surface: 'top', nodes, data: replaceAll(data) };
 }

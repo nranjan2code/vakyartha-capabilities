@@ -27,7 +27,19 @@
         "type": "card",
         "props": {
           "title": "No RBI rates yet",
-          "body": "Use Refresh at the top right to read the Current Rates panel and the official RBI feeds from rbi.org.in. Use Access in the app header to review this app’s Web pages tools, destinations and background access."
+          "body": "Read the Current Rates panel and the official RBI feeds from rbi.org.in. If a read is blocked, review Access in the app header."
+        },
+        "children": [
+          "empty-read"
+        ]
+      },
+      {
+        "id": "empty-read",
+        "type": "button",
+        "props": {
+          "label": "Read RBI now",
+          "action": "refresh",
+          "style": "primary"
         }
       }
     ]

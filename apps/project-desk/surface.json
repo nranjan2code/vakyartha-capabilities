@@ -4,7 +4,7 @@
     "title": "Triage",
     "data": {
       "repoDraft": "nranjan2code/vakyartha-capabilities",
-      "emptyHint": "Use Access in the app header to review this app’s Web pages tools, destinations and background access. Then type a public owner/repository and press Refresh. Recent issues, pull requests and commits appear here, with lanes for your own triage."
+      "emptyHint": "If a read is blocked, review Access in the app header. Then type a public owner/repository and press Refresh. Recent issues, pull requests and commits appear here, with lanes for your own triage."
     },
     "nodes": [
       {
@@ -115,7 +115,7 @@
         "id": "no-receipts",
         "type": "text",
         "props": {
-          "content": "Nothing read yet. Use Access in the app header to review this app’s Web pages tools, destinations and background access.",
+          "content": "Nothing read yet. If a read is blocked, review Access in the app header.",
           "variant": "caption"
         }
       }

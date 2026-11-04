@@ -225,7 +225,12 @@ function overview(s: State, now: number, analysis: Analysis): Update {
         { id: 'ov-sector-note', type: 'text', props: { content: '{/sectorNote}', variant: 'caption' } },
         { id: 'ov-sector-chart', type: 'chart', props: { kind: 'bar', orientation: 'horizontal', colorBy: 'sign', title: 'Sector indices · session change (%)', series: { records: '{/sectors}', label: 'label', fields: ['changePct'] }, height: 'md' } },
       ] : []),
-    ] : [{ id: 'ov-empty', type: 'card', props: { title: 'No market data yet', body: `${SETUP} Then press refresh at the top right: benchmark indices, breadth, India VIX, top movers, sector rotation and your watchlist appear here with their exchange times.` } }]),
+    ] : [
+      { id: 'ov-empty', type: 'card', props: { title: 'No market data yet', body: 'Read the benchmark indices, market breadth, India VIX, top movers and sector rotation from the exchange, each with its exchange time. Your watchlist and portfolio join them here.' }, children: ['ov-empty-actions'] },
+      { id: 'ov-empty-actions', type: 'stack', props: { direction: 'horizontal', wrap: true, gap: 'sm' }, children: ['ov-empty-read', 'ov-empty-watch'] },
+      { id: 'ov-empty-read', type: 'button', props: { label: 'Read market data', action: 'refresh_market', style: 'primary' } },
+      { id: 'ov-empty-watch', type: 'button', props: { label: 'Build a watchlist', action: 'view.open', payload: { surface: 'watchlist' }, style: 'secondary' } },
+    ]),
   ];
   const ad = m ? m.stocks.up / Math.max(1, m.stocks.down) : 0;
   const data = {
