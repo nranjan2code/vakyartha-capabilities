@@ -6,7 +6,7 @@ Keep one normalized state owner. Derive all five surfaces, quizzes, notes and sp
 
 Course JSON is untrusted. Validate every lesson and answer, bound every field and collection, and accept credential-free HTTPS reference links only. Sources are references, not evidence of successful fetching or validation. Never label an imported or generated draft as reviewed. Correct multiple-choice answers record practice evidence; do not infer mastery or award credentials.
 
-Keep course cards compact, lesson text readable, controls beside their results, selections explicit and whole collections available through local pagination/search. Use public Projection components only. Curate shows one draft and one lesson at a time; do not expand whole course manuscripts in a card grid. No decorative hero, streak penalties or duplicate listening controls.
+Keep course cards compact, lesson text readable, controls beside their results, selections explicit and whole collections available through local pagination/search. Use public Projection components only. Review drafts shows one draft and one lesson at a time; do not expand whole course manuscripts in a card grid. No decorative hero, streak penalties or duplicate listening controls.
 
 Change content.ts, server.ts or views.ts, regenerate surface.json with node scripts/app-surfaces.ts and synchronize all four documents. Verify state transitions and lint, real sandbox execution, stale proposal refusal and integration annotations. Check WebKit at desktop wide/narrow and browser widths. Record failed outcomes honestly in docs/HANDOVER.md; mocked authoring is not a real provider outcome.
 

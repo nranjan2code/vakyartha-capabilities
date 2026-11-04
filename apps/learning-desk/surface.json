@@ -430,7 +430,7 @@
         "id": "empty",
         "type": "text",
         "props": {
-          "content": "Save a course from Discover or add your own in Curate.",
+          "content": "Save a course from Discover or add your own in Review drafts.",
           "variant": "body"
         }
       }
@@ -1093,7 +1093,7 @@
   },
   {
     "id": "create",
-    "title": "Create",
+    "title": "New course",
     "nodes": [
       {
         "id": "root",
@@ -1307,7 +1307,7 @@
   },
   {
     "id": "curate",
-    "title": "Curate",
+    "title": "Review drafts",
     "nodes": [
       {
         "id": "root",
