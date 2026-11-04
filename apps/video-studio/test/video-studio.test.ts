@@ -133,6 +133,8 @@ test('the library plays as one queue with pictures and readable dates; each view
   assert.equal(row.image, 'https://example.com/a.jpg');
   assert.match(row.savedLabel, /4 Nov 2026/);
   assert.deepEqual(data('library').libraryQueue.map((x: { id: string }) => x.id), ['v1', 's1']);
+  // Each card's Watch starts the queue at that card: its row carries its place in the queue.
+  assert.deepEqual(data('library').library.map((x: { id: string; index: number }) => [x.id, x.index]), [['v1', 0], ['s1', 1]]);
   assert.equal('selected' in data('library'), false);
   assert.equal('libraryQueue' in data('studio'), false);
   assert.deepEqual(data('shorts').shortsQueue.map((x: { id: string }) => x.id), ['s1']);
