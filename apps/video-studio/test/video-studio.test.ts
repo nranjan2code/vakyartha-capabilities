@@ -33,8 +33,7 @@ test('edits a scene, makes a separate short, and adds it only by explicit action
   await handleAction('', { index: 0 }, c, 'make_short');
   assert.equal(c.state.videos?.[0]?.format, 'short');
   assert.equal(c.state.videos?.[0]?.programme.segments[0]?.text, 'Reviewed words.');
-  await handleAction('', {}, c, 'save_scene');
-  assert.equal(c.state.videos?.[0]?.programme.segments[0]?.text, 'Reviewed words.');
+  assert.equal(c.state.videos?.[1]?.programme.segments[0]?.text, 'Reviewed words.');
   assert.equal(c.state.videos?.[0]?.programme.segments.length, 1);
   await handleAction('', { id: c.state.videos?.[0]?.id }, c, 'add_to_library');
   assert.equal(c.state.videos?.[0]?.status, 'library');
@@ -67,4 +66,77 @@ test('initial surface and retained state render both views', () => {
   assert.equal('programme' in library[0]!, false);
   assert.equal(studio.nodes.some(x => x.id === 'production-workspace' && x.type === 'split'), true);
   assert.equal(studio.nodes.some(x => x.id === 'scene-items' && x.type === 'grid'), true);
+});
+
+const two = { title: 'Two scenes', segments: [{ ...sample.segments[0], heading: 'First' }, { ...sample.segments[0], heading: 'Second', text: 'Second words.' }] };
+const saved = (status: 'draft' | 'library' = 'draft', extra: Record<string, unknown> = {}) => ({ id: 'v1', title: 'Show', format: 'show' as const, source: 'News Desk', savedAt: '2026-11-04T10:00:00.000Z', status, programme: structuredClone(two), ...extra });
+
+test('a person\'s own words survive reloads, while imported text loses only tags and links', async () => {
+  const c = context({ videos: [saved()], selected: 'v1' });
+  await handleAction('', { id: 'v1' }, c, 'open_video');
+  await handleAction('/edit/text', 'C# tips: #1 pick > the rest, *really*', c);
+  await handleAction('/edit/title', 'Top_5 #picks', c);
+  const again = context(structuredClone(c.state));
+  await renderApp(again); await handleAction('', {}, again, 'refresh');
+  assert.equal(again.state.videos?.[0]?.programme.segments[0]?.text, 'C# tips: #1 pick > the rest, *really*');
+  assert.equal(again.state.videos?.[0]?.title, 'Top_5 #picks');
+  const imported = programme({ title: '<b>C# news</b>', segments: [{ text: 'Read <i>more</i> at https://example.com/x today #1', heading: 'H', delivery: 'story' }] }, 'Fallback');
+  assert.equal(imported.title, 'C# news');
+  assert.equal(imported.segments[0]?.text, 'Read more at today #1');
+});
+
+test('switching scenes never loses narration because edits save as they change', async () => {
+  const c = context({ videos: [saved()], selected: 'v1' });
+  await handleAction('', { id: 'v1' }, c, 'open_video');
+  await handleAction('/edit/text', 'Unsaved before switching.', c);
+  await handleAction('/edit/segment', '1', c);
+  await handleAction('', { index: 0 }, c, 'select_scene');
+  assert.equal(c.state.edit?.text, 'Unsaved before switching.');
+  assert.equal(c.state.videos?.[0]?.programme.segments[0]?.text, 'Unsaved before switching.');
+  await handleAction('/edit/heading', '', c);
+  assert.equal(c.state.videos?.[0]?.programme.segments[0]?.heading, 'Untitled scene');
+  await handleAction('/edit/title', '', c);
+  assert.equal(c.state.videos?.[0]?.title, 'Show');
+});
+
+test('unreadable records are kept and reported, and removed only after confirmation', async () => {
+  const broken = { id: 'bad', title: 'Broken', status: 'library', programme: { segments: [] } };
+  const c = context({ videos: [saved('library'), broken as never], selected: 'v1' });
+  const update = await handleAction('', {}, c, 'refresh');
+  assert.equal(c.state.videos?.length, 1);
+  assert.deepEqual(c.state.unreadable, [broken]);
+  const studio = update.updates.find(u => u.surface === 'studio')!;
+  assert.equal(studio.nodes.some(x => x.id === 'unreadable'), true);
+  await assert.rejects(handleAction('', {}, c, 'remove_unreadable'), /Review the removal/);
+  await handleAction('', {}, c, 'ask_remove_unreadable');
+  await handleAction('', {}, c, 'remove_unreadable');
+  assert.equal(c.state.unreadable, undefined);
+});
+
+test('a short keeps the show\'s source timing; library items can move back to drafts', async () => {
+  const c = context({ videos: [saved('library', { sourceCheckedAt: '2026-11-04T09:30:00.000Z' })], selected: 'v1' });
+  await handleAction('', { index: 1 }, c, 'make_short');
+  assert.equal(c.state.videos?.[0]?.sourceCheckedAt, '2026-11-04T09:30:00.000Z');
+  assert.equal(c.state.videos?.[0]?.programme.segments[0]?.cue, undefined);
+  await handleAction('', { id: 'v1' }, c, 'move_to_drafts');
+  assert.equal(c.state.videos?.find(v => v.id === 'v1')?.status, 'draft');
+});
+
+test('the library shows pictures, readable dates and a Watch choice for the header player', async () => {
+  const withImage = saved('library'); withImage.programme.segments[1]!.image = 'https://example.com/a.jpg';
+  const c = context({ videos: [withImage] });
+  const update = await handleAction('', { id: 'v1' }, c, 'choose_video');
+  assert.equal(c.state.selected, 'v1');
+  assert.equal(update.focusSurface, undefined);
+  const library = update.updates.find(u => u.surface === 'library')!;
+  const row = (library.data[0]!.value.library as Record<string, string>[])[0]!;
+  assert.equal(row.image, 'https://example.com/a.jpg');
+  assert.match(row.savedLabel!, /4 Nov 2026/);
+  assert.equal(library.nodes.some(x => x.id === 'library-ready'), true);
+  assert.equal((library.data[0]!.value.selected as { programme: { segments: unknown[] } }).programme.segments.length, 2);
+});
+
+test('an unavailable source fails with a clear message', async () => {
+  const c: Context = { state: { source: 'markets' }, appRevision: 1, async callTool() { throw new Error('Unknown tool'); } };
+  await assert.rejects(handleAction('', {}, c, 'import_source'), /Market Terminal could not be read.*installed, turned on and allowed in Access/);
 });

@@ -42,6 +42,7 @@
       }
     ],
     "data": {
+      "unreadableCount": 0,
       "library": [],
       "drafts": [],
       "selected": null,
@@ -252,6 +253,7 @@
       }
     ],
     "data": {
+      "unreadableCount": 0,
       "library": [],
       "drafts": [],
       "selected": null,

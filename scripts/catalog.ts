@@ -172,13 +172,15 @@ function app(id: string): Item {
   if (m.entitlements?.network?.allowedDomains?.length) throw new Error(`apps/${id}: direct network grants are not allowed; use governed tools`);
   for (const entry of [m.entrypoints?.backend, m.entrypoints?.surface].filter(Boolean)) if (!files.some(([n]) => n === entry)) throw new Error(`apps/${id}: entrypoint ${entry} is missing`);
   const tools: string[] = [...(m.entitlements?.mcpTools ?? [])].map(String).sort();
-  // An app's requirements are exactly the owners of the tools it declares: <integration>__<tool> or app-<id>__<tool>.
-  const owners = new Map<string, Ref>();
+  // An app's relationships are exactly the owners of the tools it declares: <integration>__<tool> or app-<id>__<tool>.
+  // An owner is required unless every tool the app uses from it is marked optional in toolPurposes; then it enhances.
+  const owners = new Map<string, Ref>(), extras = new Map<string, Ref>();
   for (const tool of tools) {
     const owner = tool.split("__")[0]!;
     const r: Ref = owner.startsWith("app-") ? { kind: "app", id: owner.slice(4) } : { kind: "integration", id: owner };
-    owners.set(refText(r), r);
+    (m.entitlements?.toolPurposes?.[tool]?.optional === true ? extras : owners).set(refText(r), r);
   }
+  for (const key of owners.keys()) extras.delete(key);
   const skills: PartSkill[] = (m.exports?.skills ?? []).map((s: { name: string; description: string; path?: string }) => {
     const where = `apps/${id}/${s.path}`;
     if (s.path !== `skills/${s.name}/SKILL.md`) throw new Error(`apps/${id}: skill ${s.name} must be at skills/${s.name}/SKILL.md`);
@@ -198,7 +200,7 @@ function app(id: string): Item {
   return {
     kind: "app", id, version: m.version, name: m.name, description: m.description, category: group("app", id, m.category ?? ""), author: "Vakyartha",
     access: { network: m.entitlements?.network?.mode === "brokered" ? "governed tools" : "none", tools, hosts: [], database: !!m.entitlements?.storage?.duckdb, schedule: (m.triggers ?? []).some((t: { kind: string }) => t.kind === "cron"), files: files.length, credentials: [] },
-    requires: [...owners.values()].map(r => [r]), enhances: [], skills, files,
+    requires: [...owners.values()].map(r => [r]), enhances: [...extras.values()], skills, files,
   };
 }
 

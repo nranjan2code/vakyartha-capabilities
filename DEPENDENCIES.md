@@ -24,8 +24,10 @@ from its `entitlements.mcpTools`, `<integration>__<tool>`) or another app's feed
 `"skill:interactive-ui integration:weather"`. A target is an item in this catalog
 or a built-in that Vakyartha declares.
 
-**Enhances** (optional). Used when present; never blocks anything. Declared in
-`metadata.enhances`.
+**Enhances** (optional). Used when present; never blocks anything. Skills declare
+it in `metadata.enhances`. For an app it is derived: an owner whose every declared
+tool is marked `"optional": true` in `entitlements.toolPurposes` enhances the app
+instead of being required by it.
 
 ## What Vakyartha does
 
