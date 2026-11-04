@@ -187,8 +187,8 @@ interface Update {
 
 export const TITLES: Record<string, string> = {
   overview: 'Overview',
-  history: 'Price History',
-  import: 'Import & Settings',
+  history: 'Price history',
+  import: 'Import and settings',
 };
 
 export const CATEGORIES = [
@@ -211,7 +211,7 @@ export const STORES = [
   'Other Store',
 ];
 
-export const SETUP = 'Use Access in the app header to review this app’s Web pages tools, destinations and background access.';
+export const SETUP = 'If a read is blocked, review Access in the app header.';
 
 /** A tool failure as one readable sentence: the host's untrusted-output envelope and labels removed. */
 export const reason = (e: unknown) => String((e as Error)?.message ?? e)
@@ -1379,18 +1379,18 @@ export async function handleQuery(toolName: string, params: Record<string, unkno
 const replaceAll = (value: Record<string, unknown>) => [{ op: 'replace' as const, path: '/' as const, value }];
 
 export const wishWorkflow = {
-  title: 'Deal Advisor Studio',
+  title: 'Deal advisor',
   stages: ['Analyze', 'Review'],
   brief: 'Your wishlist analysis brief',
   boundary: 'Your records and wishes stay on this computer. Price analysis is private and requires no subscriptions.',
   saved: 'Deal analysis complete.',
   guide: {
     start: {
-      heading: 'Analyze Wishlist & Trends',
+      heading: 'Analyse wishlist and trends',
       hint: 'Ask the assistant to evaluate your recorded price points, compare deals across stores, or review pasted offer text.',
     },
     responded: {
-      heading: 'Review Recommendations',
+      heading: 'Review recommendations',
       hint: 'Inspect suggested timing, delivery speeds, and discounts before logging new observations or making a purchase.',
     },
     saved: {
@@ -1401,21 +1401,21 @@ export const wishWorkflow = {
   steps: [
     {
       id: 'evaluate-trends',
-      label: 'Evaluate Price Trends',
+      label: 'Evaluate price trends',
       mode: 'send' as const,
       stage: 0,
       message: 'Analyze my active Wish Radar items, ratings and their price histories. Which items have dropped closest to their target price in INR? Highlight any current deals or price rises.',
     },
     {
       id: 'parse-offer',
-      label: 'Parse Copied Deal / SMS',
+      label: 'Read a copied deal or SMS',
       mode: 'edit' as const,
       stage: 0,
       message: 'Paste promotional email, SMS or deal text here (e.g. Nykaa Pink Friday sale or Amazon Great Indian Festival offer): ',
     },
     {
       id: 'timing-advice',
-      label: 'Buy or Wait Advice',
+      label: 'Buy or wait advice',
       mode: 'send' as const,
       stage: 1,
       message: 'Based on the all-time low, current ratings and latest prices recorded in Wish Radar, is it a good time to buy now, or should I wait for upcoming festival sales in India?',
@@ -1494,7 +1494,7 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
           {
             id: 'problem-alert',
             type: 'alert',
-            props: { title: 'Check Notice', body: '{/problemText}', tone: 'warning' },
+            props: { title: 'Check notice', body: '{/problemText}', tone: 'warning' },
           },
           {
             id: 'dismiss-problem-btn',
@@ -1536,7 +1536,7 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
             props: { direction: 'horizontal', gap: 'sm' },
             children: ['add-save-btn', 'add-cancel-btn'],
           },
-          { id: 'add-save-btn', type: 'button', props: { label: s.editingWishId ? 'Update Wish' : 'Save Wish', action: 'add_wish', style: 'primary' } },
+          { id: 'add-save-btn', type: 'button', props: { label: s.editingWishId ? 'Update wish' : 'Save wish', action: 'add_wish', style: 'primary' } },
           { id: 'add-cancel-btn', type: 'button', props: { label: 'Cancel', action: 'cancel_mode', style: 'secondary' } },
         ]
       : []),
@@ -1557,7 +1557,7 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
           { id: 'record-item-select', type: 'select', props: { label: 'Tracked item', bind: '/newRecord/wishId', options: '{/wishOptions}' } },
           { id: 'record-price', type: 'input', props: { label: 'Observed price · INR', bind: '/newRecord/price', placeholder: '1299' } },
           { id: 'record-store', type: 'select', props: { label: 'Observed at merchant', bind: '/newRecord/store', options: '{/storeOptions}' } },
-          { id: 'record-rating', type: 'input', props: { label: 'Store Rating (e.g. 4.4)', bind: '/newRecord/rating', placeholder: '4.4' } },
+          { id: 'record-rating', type: 'input', props: { label: 'Store rating (e.g. 4.4)', bind: '/newRecord/rating', placeholder: '4.4' } },
           { id: 'record-delivery', type: 'input', props: { label: 'Delivery speed or date', bind: '/newRecord/deliveryInfo', placeholder: 'e.g. FREE delivery by Friday' } },
           { id: 'record-notes', type: 'input', props: { label: 'Current offer or coupon note', bind: '/newRecord/offerNotes', placeholder: 'e.g. Extra 10% instant discount on ICICI cards' } },
           {
@@ -1566,7 +1566,7 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
             props: { direction: 'horizontal', gap: 'sm' },
             children: ['record-save-btn', 'record-cancel-btn'],
           },
-          { id: 'record-save-btn', type: 'button', props: { label: 'Save Observation', action: 'add_record', style: 'primary' } },
+          { id: 'record-save-btn', type: 'button', props: { label: 'Save observation', action: 'add_record', style: 'primary' } },
           { id: 'record-cancel-btn', type: 'button', props: { label: 'Cancel', action: 'cancel_mode', style: 'secondary' } },
         ]
       : []),
@@ -1578,9 +1578,9 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
             props: { direction: 'horizontal', wrap: true, gap: 'sm', align: 'center' },
             children: ['btn-add-wish', 'btn-log-price', 'btn-advisor', 'btn-toggle-view'],
           },
-          { id: 'btn-add-wish', type: 'button', props: { label: 'Add a Wish', action: 'show_add', style: 'primary' } },
-          { id: 'btn-log-price', type: 'button', props: { label: 'Log Price Check', action: 'show_record', style: 'secondary' } },
-          { id: 'btn-advisor', type: 'button', props: { label: 'Deal Advisor Studio', action: 'assistant.compose', payload: { path: 'advisorRequest', workflowPath: 'wishWorkflow' }, style: 'secondary' } },
+          { id: 'btn-add-wish', type: 'button', props: { label: 'Add a wish', action: 'show_add', style: 'primary' } },
+          { id: 'btn-log-price', type: 'button', props: { label: 'Log a price check', action: 'show_record', style: 'secondary' } },
+          { id: 'btn-advisor', type: 'button', props: { label: 'Deal advisor', action: 'assistant.compose', payload: { path: 'advisorRequest', workflowPath: 'wishWorkflow' }, style: 'secondary' } },
           { id: 'btn-toggle-view', type: 'button', props: { label: '{/toggleViewLabel}', action: 'toggle_view_mode', style: 'secondary' } },
           {
             id: 'stats-grid',
@@ -1588,10 +1588,10 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
             props: { columns: 4, minItemWidth: 'sm', gap: 'sm' },
             children: ['stat-total', 'stat-deals', 'stat-savings', 'stat-observations'],
           },
-          { id: 'stat-total', type: 'stat', props: { label: 'Tracked Items', value: '{/statTotal}' } },
-          { id: 'stat-deals', type: 'stat', props: { label: 'Target Met Deals', value: '{/statDeals}', tone: '{/statDealsTone}' } },
-          { id: 'stat-savings', type: 'stat', props: { label: 'Potential Savings', value: '{/statSavings}', tone: '{/statSavingsTone}' } },
-          { id: 'stat-observations', type: 'stat', props: { label: 'Price Checks Logged', value: '{/statChecks}' } },
+          { id: 'stat-total', type: 'stat', props: { label: 'Tracked items', value: '{/statTotal}' } },
+          { id: 'stat-deals', type: 'stat', props: { label: 'At or below target', value: '{/statDeals}', tone: '{/statDealsTone}' } },
+          { id: 'stat-savings', type: 'stat', props: { label: 'Potential savings', value: '{/statSavings}', tone: '{/statSavingsTone}' } },
+          { id: 'stat-observations', type: 'stat', props: { label: 'Price checks logged', value: '{/statChecks}' } },
           ...(topDeal
             ? [
                 {
@@ -1602,7 +1602,7 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
                     subtitle: '{/dealSpotlightSubtitle}',
                     body: '{/dealSpotlightBody}',
                     tone: 'success',
-                    badge: 'Deal Alert',
+                    badge: 'Deal alert',
                   },
                   children: ['deal-spotlight-bar'],
                 },
@@ -1612,8 +1612,8 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
                   props: { direction: 'horizontal', gap: 'sm', wrap: true },
                   children: ['btn-spotlight-advisor', 'btn-spotlight-history'],
                 },
-                { id: 'btn-spotlight-advisor', type: 'button', props: { label: 'Analyze with Deal Advisor', action: 'assistant.compose', payload: { path: 'advisorRequest', workflowPath: 'wishWorkflow' }, style: 'primary' } },
-                { id: 'btn-spotlight-history', type: 'button', props: { label: 'View Price History', action: 'view.open', payload: { surface: 'history' }, style: 'secondary' } },
+                { id: 'btn-spotlight-advisor', type: 'button', props: { label: 'Ask the deal advisor', action: 'assistant.compose', payload: { path: 'advisorRequest', workflowPath: 'wishWorkflow' }, style: 'primary' } },
+                { id: 'btn-spotlight-history', type: 'button', props: { label: 'View price history', action: 'view.open', payload: { surface: 'history' }, style: 'secondary' } },
               ]
             : []),
           ...(viewingWish && currentOptions.length > 0
@@ -1651,7 +1651,7 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
                   id: 'opt-select-btn',
                   type: 'button',
                   props: {
-                    label: 'Track This Model',
+                    label: 'Track this model',
                     action: 'select_option',
                     payload: {
                       wishId: '{wishId}',
@@ -1667,7 +1667,7 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
                 {
                   id: 'options-close-btn',
                   type: 'button',
-                  props: { label: 'Close Options', action: 'close_options', style: 'secondary' },
+                  props: { label: 'Close options', action: 'close_options', style: 'secondary' },
                 },
               ]
             : []),
@@ -1678,7 +1678,7 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
                       {
                         id: 'wishes-table-section',
                         type: 'section',
-                        props: { title: 'Price Comparison Table', description: 'Real observations and store comparisons recorded in local DuckDB.' },
+                        props: { title: 'Price comparison', description: 'Real observations and store comparisons recorded in local DuckDB.' },
                         children: ['wishes-table'],
                       },
                       {
@@ -1690,11 +1690,11 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
                             { key: 'category', label: 'Category' },
                             { key: 'store', label: 'Store' },
                             { key: 'target', label: 'Target', align: 'end' },
-                            { key: 'latest', label: 'Latest Price', align: 'end' },
+                            { key: 'latest', label: 'Latest price', align: 'end' },
                             { key: 'rating', label: 'Rating' },
                             { key: 'delivery', label: 'Delivery' },
                             { key: 'status', label: 'Status' },
-                            { key: 'date', label: 'Last Checked' },
+                            { key: 'date', label: 'Last checked' },
                           ],
                           rows: '{/wishesTable}',
                           sortable: true,
@@ -1707,7 +1707,7 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
                       {
                         id: 'wishes-cards-section',
                         type: 'section',
-                        props: { title: 'Wishlist & Price Radar', description: 'Tracked items with target thresholds, verified merchant observations and delivery details.' },
+                        props: { title: 'Wishlist', description: 'Tracked items with target thresholds, verified merchant observations and delivery details.' },
                         children: ['wishes-grid'],
                       },
                       {
@@ -1739,8 +1739,8 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
                       },
                       { id: 'wc-check', type: 'button', props: { label: '{checkLabel}', action: 'check_amazon', payload: { id: '{id}' }, style: '{checkStyle}' } },
                       { id: 'wc-options', type: 'button', props: { label: '{optionsLabel}', action: 'show_options', payload: { id: '{id}' }, style: 'secondary', visibleIf: '{hasOptions}' } },
-                      { id: 'wc-record', type: 'button', props: { label: 'Record Price', action: 'show_record', payload: { id: '{id}' }, style: 'secondary' } },
-                      { id: 'wc-trend', type: 'button', props: { label: 'View History', action: 'select_wish', payload: { id: '{id}' }, style: 'secondary' } },
+                      { id: 'wc-record', type: 'button', props: { label: 'Record price', action: 'show_record', payload: { id: '{id}' }, style: 'secondary' } },
+                      { id: 'wc-trend', type: 'button', props: { label: 'View history', action: 'select_wish', payload: { id: '{id}' }, style: 'secondary' } },
                       { id: 'wc-edit', type: 'button', props: { label: 'Edit', action: 'show_edit', payload: { id: '{id}' }, style: 'secondary' } },
                       { id: 'wc-delete', type: 'button', props: { label: 'Remove', action: 'ask_delete', payload: { id: '{id}' }, style: 'link' } },
                     ]),
@@ -1771,10 +1771,10 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
                   props: { columns: 4, minItemWidth: 'sm', gap: 'sm' },
                   children: ['ts-latest', 'ts-target', 'ts-low', 'ts-diff'],
                 },
-                { id: 'ts-latest', type: 'stat', props: { label: 'Latest Observed Price', value: '{/selectedLatest}' } },
-                { id: 'ts-target', type: 'stat', props: { label: 'Your Target Price', value: '{/selectedTarget}' } },
-                { id: 'ts-low', type: 'stat', props: { label: 'All-Time Low', value: '{/selectedLow}' } },
-                { id: 'ts-diff', type: 'stat', props: { label: 'Difference from Target', value: '{/selectedDiff}', tone: '{/selectedDiffTone}' } },
+                { id: 'ts-latest', type: 'stat', props: { label: 'Latest observed price', value: '{/selectedLatest}' } },
+                { id: 'ts-target', type: 'stat', props: { label: 'Your target price', value: '{/selectedTarget}' } },
+                { id: 'ts-low', type: 'stat', props: { label: 'All-time low', value: '{/selectedLow}' } },
+                { id: 'ts-diff', type: 'stat', props: { label: 'Difference from target', value: '{/selectedDiff}', tone: '{/selectedDiffTone}' } },
                 ...(l.selectedWishSummary && l.selectedWishSummary.storeComparisons.length > 1
                   ? [
                       {
@@ -1782,12 +1782,12 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
                         type: 'table',
                         props: {
                           columns: [
-                            { key: 'store', label: 'Store / Seller' },
-                            { key: 'price', label: 'Latest Price', align: 'end' },
-                            { key: 'spread', label: 'Difference from Lowest', align: 'end' },
+                            { key: 'store', label: 'Store or seller' },
+                            { key: 'price', label: 'Latest price', align: 'end' },
+                            { key: 'spread', label: 'Difference from lowest', align: 'end' },
                             { key: 'delivery', label: 'Delivery' },
                             { key: 'stock', label: 'Stock' },
-                            { key: 'date', label: 'Checked Date' },
+                            { key: 'date', label: 'Checked' },
                           ],
                           rows: '{/selectedCompareRows}',
                         },
@@ -1799,7 +1799,7 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
                   type: 'chart',
                   props: {
                     kind: 'line',
-                    title: l.selectedWishSummary?.wish.targetPaise != null ? 'Price vs Target Threshold over Time · INR' : 'Historical Price Movement over Time · INR',
+                    title: l.selectedWishSummary?.wish.targetPaise != null ? 'Price against target over time · INR' : 'Price over time · INR',
                     series: {
                       records: '{/trendRecords}',
                       label: 'date',
@@ -1824,8 +1824,8 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
                   props: { direction: 'horizontal', gap: 'sm' },
                   children: ['btn-delete-confirm', 'btn-delete-cancel'],
                 },
-                { id: 'btn-delete-confirm', type: 'button', props: { label: 'Delete Wish', action: 'confirm_delete', style: 'danger' } },
-                { id: 'btn-delete-cancel', type: 'button', props: { label: 'Keep Wish', action: 'cancel_delete', style: 'secondary' } },
+                { id: 'btn-delete-confirm', type: 'button', props: { label: 'Delete wish', action: 'confirm_delete', style: 'danger' } },
+                { id: 'btn-delete-cancel', type: 'button', props: { label: 'Keep wish', action: 'cancel_delete', style: 'secondary' } },
               ]
             : []),
         ]
@@ -1854,7 +1854,7 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
     statSavings: formatInr(l.totalSavingsPaise),
     statSavingsTone: l.totalSavingsPaise > 0 ? 'success' : 'neutral',
     statChecks: String(l.totalObservations),
-    toggleViewLabel: isTableView ? 'Switch to Visual Cards' : 'Switch to Table View',
+    toggleViewLabel: isTableView ? 'Show as cards' : 'Show as table',
     problemText: s.problem ?? '',
     spoken: {
       programme: prog,
@@ -1923,7 +1923,7 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
         badge: sm.statusLabel,
         tone: sm.statusTone,
         image: sm.wish.image || '',
-        checkLabel: sm.wish.url ? 'Check Price' : sm.wish.store === 'Amazon.in' ? 'Find Online' : 'Check Link',
+        checkLabel: sm.wish.url ? 'Check price' : sm.wish.store === 'Amazon.in' ? 'Find online' : 'Check link',
         checkStyle: sm.wish.url ? 'secondary' : 'primary',
         optionsLabel: `Compare Variants (${options.length})`,
         hasOptions: hasOptions ? 'true' : '',
@@ -1939,7 +1939,7 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
       priceFormatted: opt.priceFormatted,
       pricePaise: opt.pricePaise,
       image: opt.image || '',
-      badge: opt.rating ? `⭐ ${opt.rating} / 5` : 'Discovered Model',
+      badge: opt.rating ? `⭐ ${opt.rating} / 5` : 'Discovered model',
       body: `Search listing: ${opt.priceFormatted}\nDirect Amazon.in link\nSelect this product, then check its current price. Stock and delivery are not verified.`,
     })),
     wishesTable: l.summaries.map((sm) => ({
@@ -1955,7 +1955,7 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
       date: sm.latestDate ? sm.latestDate.slice(0, 10) : 'None',
     })),
     // Trend Deep Dive Section
-    selectedTrendTitle: sel ? `Price Trend & Store Comparison: ${sel.wish.title}` : 'Price Trend',
+    selectedTrendTitle: sel ? `Price Trend & Store Comparison: ${sel.wish.title}` : 'Price trend',
     selectedTrendDesc: sel ? (sel.wish.targetPaise != null ? `Historical price observations against your ${formatInr(sel.wish.targetPaise)} target threshold.` : 'Historical price observations and retailer comparisons.') : '',
     selectedLatest: selLatest != null ? formatInr(selLatest) : '—',
     selectedTarget: sel?.wish.targetPaise != null ? formatInr(sel.wish.targetPaise) : '—',
@@ -1968,7 +1968,7 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
       price: formatInr(sc.pricePaise),
       spread: sc.diffPaise === 0 ? 'Lowest Price' : `+${formatInr(sc.diffPaise)}`,
       delivery: sc.deliveryInfo || 'Not checked',
-      stock: sc.inStock == null ? 'Not checked' : sc.inStock ? 'In Stock' : 'Out of Stock',
+      stock: sc.inStock == null ? 'Not checked' : sc.inStock ? 'In stock' : 'Out of stock',
       date: sc.recordedAt.slice(0, 10),
     })),
   };
@@ -1992,8 +1992,8 @@ function historySurface(_s: State, l: LedgerData): Update {
       props: { direction: 'horizontal', wrap: true, gap: 'sm', align: 'center' },
       children: ['btn-back-overview', 'btn-export-csv'],
     },
-    { id: 'btn-back-overview', type: 'button', props: { label: 'Back to Overview', action: 'view.open', payload: { surface: 'overview' }, style: 'secondary' } },
-    { id: 'btn-export-csv', type: 'button', props: { label: 'Export History (CSV)', action: 'file.save', payload: { name: 'wish-radar-prices', text: '/exportCsv' }, style: 'secondary' } },
+    { id: 'btn-back-overview', type: 'button', props: { label: 'Back to overview', action: 'view.open', payload: { surface: 'overview' }, style: 'secondary' } },
+    { id: 'btn-export-csv', type: 'button', props: { label: 'Export history (CSV)', action: 'file.save', payload: { name: 'wish-radar-prices', text: '/exportCsv' }, style: 'secondary' } },
     ...(hasHistory
       ? [
           {
@@ -2006,10 +2006,10 @@ function historySurface(_s: State, l: LedgerData): Update {
                 { key: 'store', label: 'Store' },
                 { key: 'price', label: 'Price', align: 'end' },
                 { key: 'rating', label: 'Rating' },
-                { key: 'delivery', label: 'Delivery Speed' },
+                { key: 'delivery', label: 'Delivery speed' },
                 { key: 'pincode', label: 'PIN' },
-                { key: 'stock', label: 'In Stock' },
-                { key: 'notes', label: 'Offers / Notes' },
+                { key: 'stock', label: 'In stock' },
+                { key: 'notes', label: 'Offers and notes' },
               ],
               rows: '{/historyRows}',
               sortable: true,
@@ -2078,12 +2078,12 @@ function importSurface(s: State, l: LedgerData): Update {
       props: { direction: 'horizontal', gap: 'sm' },
       children: ['btn-import-back'],
     },
-    { id: 'btn-import-back', type: 'button', props: { label: 'Back to Overview', action: 'view.open', payload: { surface: 'overview' }, style: 'secondary' } },
+    { id: 'btn-import-back', type: 'button', props: { label: 'Back to overview', action: 'view.open', payload: { surface: 'overview' }, style: 'secondary' } },
     {
       id: 'retailers-section',
       type: 'section',
       props: {
-        title: 'Merchant Preferences',
+        title: 'Merchant preferences',
         description: '{/sandboxSummary}',
       },
       children: ['stores-grid', 'add-store-card'],
@@ -2113,14 +2113,14 @@ function importSurface(s: State, l: LedgerData): Update {
       children: ['store-toggle-btn', 'store-test-btn', 'store-remove-btn'],
     },
     { id: 'store-toggle-btn', type: 'button', props: { label: '{toggleLabel}', action: 'toggle_store', payload: { id: '{id}' }, style: '{toggleStyle}' } },
-    { id: 'store-test-btn', type: 'button', props: { label: 'Test Connection', action: 'test_store', payload: { id: '{id}' }, style: 'secondary' } },
+    { id: 'store-test-btn', type: 'button', props: { label: 'Test connection', action: 'test_store', payload: { id: '{id}' }, style: 'secondary' } },
     { id: 'store-remove-btn', type: 'button', props: { label: 'Remove', action: 'remove_store', payload: { id: '{id}' }, style: 'link', visibleIf: '{isCustom}' } },
 
     {
       id: 'add-store-card',
       type: 'card',
       props: {
-        title: 'Allow Merchant or Domain in Sandbox',
+        title: 'Allow a merchant or domain',
         subtitle: 'Add an Indian shopping destination or direct store domain for live price checks.',
       },
       children: ['add-store-stack'],
@@ -2131,8 +2131,8 @@ function importSurface(s: State, l: LedgerData): Update {
       props: { gap: 'sm' },
       children: ['add-store-name', 'add-store-domain', 'add-store-cat', 'add-store-btn-bar'],
     },
-    { id: 'add-store-name', type: 'input', props: { label: 'Store Name', bind: '/newStore/name', placeholder: 'e.g. boAt Lifestyle or Myntra' } },
-    { id: 'add-store-domain', type: 'input', props: { label: 'Store Domain / URL', bind: '/newStore/domain', placeholder: 'e.g. boat-lifestyle.com' } },
+    { id: 'add-store-name', type: 'input', props: { label: 'Store name', bind: '/newStore/name', placeholder: 'e.g. boAt Lifestyle or Myntra' } },
+    { id: 'add-store-domain', type: 'input', props: { label: 'Store domain or URL', bind: '/newStore/domain', placeholder: 'e.g. boat-lifestyle.com' } },
     { id: 'add-store-cat', type: 'select', props: { label: 'Category', bind: '/newStore/category', options: '{/storeCatOptions}' } },
     {
       id: 'add-store-btn-bar',
@@ -2140,8 +2140,8 @@ function importSurface(s: State, l: LedgerData): Update {
       props: { direction: 'horizontal', gap: 'sm', align: 'center' },
       children: ['btn-add-store', 'btn-restore-stores'],
     },
-    { id: 'btn-add-store', type: 'button', props: { label: 'Add Merchant', action: 'add_store', style: 'primary' } },
-    { id: 'btn-restore-stores', type: 'button', props: { label: 'Restore Default Retailers', action: 'restore_stores', style: 'link' } },
+    { id: 'btn-add-store', type: 'button', props: { label: 'Add merchant', action: 'add_store', style: 'primary' } },
+    { id: 'btn-restore-stores', type: 'button', props: { label: 'Restore default stores', action: 'restore_stores', style: 'link' } },
 
     {
       id: 'import-section',
@@ -2156,11 +2156,11 @@ function importSurface(s: State, l: LedgerData): Update {
       props: { direction: 'horizontal', gap: 'sm' },
       children: ['btn-run-import'],
     },
-    { id: 'btn-run-import', type: 'button', props: { label: 'Import Items', action: 'import_records', style: 'primary' } },
+    { id: 'btn-run-import', type: 'button', props: { label: 'Import items', action: 'import_records', style: 'primary' } },
     {
       id: 'format-section',
       type: 'section',
-      props: { title: 'Format & Privacy' },
+      props: { title: 'Format and privacy' },
       children: ['format-description', 'format-example', 'privacy-note'],
     },
     { id: 'format-description', type: 'text', props: { content: 'Import a CSV with **title, targetPrice, category, store, url, image** or a JSON array of wishes. Prices are in Indian Rupees.' } },
@@ -2169,7 +2169,7 @@ function importSurface(s: State, l: LedgerData): Update {
     {
       id: 'network-section',
       type: 'section',
-      props: { title: 'Network Sandbox Status', description: 'Public web price checks use the governed Web pages integration without third-party subscriptions.' },
+      props: { title: 'Network access', description: 'Public web price checks use the governed Web pages integration without third-party subscriptions.' },
       children: ['network-info'],
     },
     {
@@ -2202,8 +2202,8 @@ function importSurface(s: State, l: LedgerData): Update {
                   props: { direction: 'horizontal', gap: 'sm' },
                   children: ['btn-confirm-clear', 'btn-cancel-clear'],
                 },
-                { id: 'btn-confirm-clear', type: 'button', props: { label: 'Delete All Observations', action: 'clear_all', style: 'danger' } },
-                { id: 'btn-cancel-clear', type: 'button', props: { label: 'Keep Observations', action: 'cancel_clear', style: 'secondary' } },
+                { id: 'btn-confirm-clear', type: 'button', props: { label: 'Delete all observations', action: 'clear_all', style: 'danger' } },
+                { id: 'btn-cancel-clear', type: 'button', props: { label: 'Keep observations', action: 'cancel_clear', style: 'secondary' } },
               ]
             : [
                 { id: 'btn-ask-clear', type: 'button', props: { label: 'Delete all logged observations', action: 'ask_clear', style: 'link' } },

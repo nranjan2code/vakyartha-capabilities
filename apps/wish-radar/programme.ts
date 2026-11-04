@@ -274,7 +274,7 @@ export function generateProgramme(s: State, l: LedgerData, now = new Date()): Pr
       delivery: 'story',
       break: 'section',
       cue: isFirstStory ? 'sting' : undefined,
-      kicker: 'Price History',
+      kicker: 'Price history',
       heading: `${sel.wish.title} trend`,
       source: sel.latestStore,
       image: sel.wish.image,

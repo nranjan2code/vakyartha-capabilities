@@ -90,7 +90,7 @@
       "statSavings": "₹0",
       "statSavingsTone": "neutral",
       "statChecks": "0",
-      "toggleViewLabel": "Switch to Table View",
+      "toggleViewLabel": "Show as table",
       "problemText": "",
       "spoken": {
         "programme": {
@@ -125,7 +125,7 @@
       "dealSpotlightBody": "",
       "advisorRequest": "Here is my current Wish Radar status:\nLocation PIN: 560001\nTotal wishes tracked: 0\nDeals meeting target: 0\nPotential savings: ₹0\nItems:\nNo items tracked yet.\n\nPlease review these items, compare their recorded prices, delivery speeds, ratings and target prices in Indian Rupees, and advise on which items are ready to buy vs hold off on.",
       "wishWorkflow": {
-        "title": "Deal Advisor Studio",
+        "title": "Deal advisor",
         "stages": [
           "Analyze",
           "Review"
@@ -135,11 +135,11 @@
         "saved": "Deal analysis complete.",
         "guide": {
           "start": {
-            "heading": "Analyze Wishlist & Trends",
+            "heading": "Analyse wishlist and trends",
             "hint": "Ask the assistant to evaluate your recorded price points, compare deals across stores, or review pasted offer text."
           },
           "responded": {
-            "heading": "Review Recommendations",
+            "heading": "Review recommendations",
             "hint": "Inspect suggested timing, delivery speeds, and discounts before logging new observations or making a purchase."
           },
           "saved": {
@@ -150,21 +150,21 @@
         "steps": [
           {
             "id": "evaluate-trends",
-            "label": "Evaluate Price Trends",
+            "label": "Evaluate price trends",
             "mode": "send",
             "stage": 0,
             "message": "Analyze my active Wish Radar items, ratings and their price histories. Which items have dropped closest to their target price in INR? Highlight any current deals or price rises."
           },
           {
             "id": "parse-offer",
-            "label": "Parse Copied Deal / SMS",
+            "label": "Read a copied deal or SMS",
             "mode": "edit",
             "stage": 0,
             "message": "Paste promotional email, SMS or deal text here (e.g. Nykaa Pink Friday sale or Amazon Great Indian Festival offer): "
           },
           {
             "id": "timing-advice",
-            "label": "Buy or Wait Advice",
+            "label": "Buy or wait advice",
             "mode": "send",
             "stage": 1,
             "message": "Based on the all-time low, current ratings and latest prices recorded in Wish Radar, is it a good time to buy now, or should I wait for upcoming festival sales in India?"
@@ -180,7 +180,7 @@
       "cards": [],
       "productOptionsList": [],
       "wishesTable": [],
-      "selectedTrendTitle": "Price Trend",
+      "selectedTrendTitle": "Price trend",
       "selectedTrendDesc": "",
       "selectedLatest": "—",
       "selectedTarget": "—",
@@ -223,7 +223,7 @@
         "id": "btn-add-wish",
         "type": "button",
         "props": {
-          "label": "Add a Wish",
+          "label": "Add a wish",
           "action": "show_add",
           "style": "primary"
         }
@@ -232,7 +232,7 @@
         "id": "btn-log-price",
         "type": "button",
         "props": {
-          "label": "Log Price Check",
+          "label": "Log a price check",
           "action": "show_record",
           "style": "secondary"
         }
@@ -241,7 +241,7 @@
         "id": "btn-advisor",
         "type": "button",
         "props": {
-          "label": "Deal Advisor Studio",
+          "label": "Deal advisor",
           "action": "assistant.compose",
           "payload": {
             "path": "advisorRequest",
@@ -278,7 +278,7 @@
         "id": "stat-total",
         "type": "stat",
         "props": {
-          "label": "Tracked Items",
+          "label": "Tracked items",
           "value": "{/statTotal}"
         }
       },
@@ -286,7 +286,7 @@
         "id": "stat-deals",
         "type": "stat",
         "props": {
-          "label": "Target Met Deals",
+          "label": "At or below target",
           "value": "{/statDeals}",
           "tone": "{/statDealsTone}"
         }
@@ -295,7 +295,7 @@
         "id": "stat-savings",
         "type": "stat",
         "props": {
-          "label": "Potential Savings",
+          "label": "Potential savings",
           "value": "{/statSavings}",
           "tone": "{/statSavingsTone}"
         }
@@ -304,7 +304,7 @@
         "id": "stat-observations",
         "type": "stat",
         "props": {
-          "label": "Price Checks Logged",
+          "label": "Price checks logged",
           "value": "{/statChecks}"
         }
       },
@@ -332,7 +332,7 @@
   },
   {
     "id": "history",
-    "title": "Price History",
+    "title": "Price history",
     "data": {
       "exportCsv": "date,item,store,price_inr,rating,delivery,pincode,in_stock,notes\n",
       "historyRows": []
@@ -367,7 +367,7 @@
         "id": "btn-back-overview",
         "type": "button",
         "props": {
-          "label": "Back to Overview",
+          "label": "Back to overview",
           "action": "view.open",
           "payload": {
             "surface": "overview"
@@ -379,7 +379,7 @@
         "id": "btn-export-csv",
         "type": "button",
         "props": {
-          "label": "Export History (CSV)",
+          "label": "Export history (CSV)",
           "action": "file.save",
           "payload": {
             "name": "wish-radar-prices",
@@ -400,7 +400,7 @@
   },
   {
     "id": "import",
-    "title": "Import & Settings",
+    "title": "Import and settings",
     "data": {
       "importText": "",
       "receipt": "No external imports yet. Use your own CSV/JSON records.",
@@ -531,7 +531,7 @@
         "id": "btn-import-back",
         "type": "button",
         "props": {
-          "label": "Back to Overview",
+          "label": "Back to overview",
           "action": "view.open",
           "payload": {
             "surface": "overview"
@@ -543,7 +543,7 @@
         "id": "retailers-section",
         "type": "section",
         "props": {
-          "title": "Merchant Preferences",
+          "title": "Merchant preferences",
           "description": "{/sandboxSummary}"
         },
         "children": [
@@ -608,7 +608,7 @@
         "id": "store-test-btn",
         "type": "button",
         "props": {
-          "label": "Test Connection",
+          "label": "Test connection",
           "action": "test_store",
           "payload": {
             "id": "{id}"
@@ -633,7 +633,7 @@
         "id": "add-store-card",
         "type": "card",
         "props": {
-          "title": "Allow Merchant or Domain in Sandbox",
+          "title": "Allow a merchant or domain",
           "subtitle": "Add an Indian shopping destination or direct store domain for live price checks."
         },
         "children": [
@@ -657,7 +657,7 @@
         "id": "add-store-name",
         "type": "input",
         "props": {
-          "label": "Store Name",
+          "label": "Store name",
           "bind": "/newStore/name",
           "placeholder": "e.g. boAt Lifestyle or Myntra"
         }
@@ -666,7 +666,7 @@
         "id": "add-store-domain",
         "type": "input",
         "props": {
-          "label": "Store Domain / URL",
+          "label": "Store domain or URL",
           "bind": "/newStore/domain",
           "placeholder": "e.g. boat-lifestyle.com"
         }
@@ -697,7 +697,7 @@
         "id": "btn-add-store",
         "type": "button",
         "props": {
-          "label": "Add Merchant",
+          "label": "Add merchant",
           "action": "add_store",
           "style": "primary"
         }
@@ -706,7 +706,7 @@
         "id": "btn-restore-stores",
         "type": "button",
         "props": {
-          "label": "Restore Default Retailers",
+          "label": "Restore default stores",
           "action": "restore_stores",
           "style": "link"
         }
@@ -748,7 +748,7 @@
         "id": "btn-run-import",
         "type": "button",
         "props": {
-          "label": "Import Items",
+          "label": "Import items",
           "action": "import_records",
           "style": "primary"
         }
@@ -757,7 +757,7 @@
         "id": "format-section",
         "type": "section",
         "props": {
-          "title": "Format & Privacy"
+          "title": "Format and privacy"
         },
         "children": [
           "format-description",
@@ -792,7 +792,7 @@
         "id": "network-section",
         "type": "section",
         "props": {
-          "title": "Network Sandbox Status",
+          "title": "Network access",
           "description": "Public web price checks use the governed Web pages integration without third-party subscriptions."
         },
         "children": [

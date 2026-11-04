@@ -8,7 +8,7 @@ All public reads use the existing governed `web__fetch_page` tool. Use the heade
 
 - **Amazon.in:** Without a product link, Find Online reads search listings as text and links. Matching candidates must contain the requested terms; accessories are excluded from device searches. Compare variants and select the exact product. Searching or selecting never inserts a price observation. Then Check Price reads the linked product. Its repeated product heading scopes the price so navigation and protection-plan prices cannot supply it.
 - **Flipkart, Nykaa, Croma, Tata CLiQ, Reliance Digital:** Direct product links are required. They never fall back to Amazon searches. The current text reader requires an exact repeated page/product heading and one explicit labelled INR price near it. Pages which omit those fields, require JavaScript, or present ambiguous prices fail visibly rather than producing an observation.
-- **Brand and other stores:** Add their exact domain under Import & Settings and provide a direct product link. They use the same conservative text contract; adding a store does not establish parser compatibility.
+- **Brand and other stores:** Add their exact domain under Import and settings and provide a direct product link. They use the same conservative text contract; adding a store does not establish parser compatibility.
 
 Merchant toggles are app preferences checked before initial reads, including connectivity tests. They narrow host access and grant no network permission. A homepage test reports only whether that page was readable; it never verifies product checks. Unchecked merchants start as Configured. HTTP 503 alone does not prove a temporary rate limit. Empty, challenged and failed pages remain explicit failures, with the previous ledger preserved. Adding a wish preserves it even when discovery fails and shows the failure.
 
@@ -17,9 +17,9 @@ Merchant toggles are app preferences checked before initial reads, including con
 1. Add a wish with its merchant, optional INR target and optional direct product link. Edit existing wishes from their card.
 2. Use Amazon Find Online to discover candidates; Compare Variants → Track This Model selects a link without recording a price. Check Price reads that linked product separately.
 3. For other merchants, paste a direct product link. If the page cannot be read reliably, Record Price logs your own observation explicitly.
-4. View chronological records and merchant comparisons in Price History; export through the host's Downloads control.
+4. View chronological records and merchant comparisons in Price history; export through the host's Downloads control.
 5. Listen and Watch derive from the same recorded observations. Availability is unknown unless the source states stock status. A saved destination PIN is a preference, not proof of destination-specific pricing or delivery.
-6. Import CSV/JSON under Import & Settings. The assistant can read wishes/history and propose revision-checked app mutations through the existing approval pipeline.
+6. Import CSV/JSON under Import and settings. The assistant can read wishes/history and propose revision-checked app mutations through the existing approval pipeline.
 
 ## Background operation and limits
 
