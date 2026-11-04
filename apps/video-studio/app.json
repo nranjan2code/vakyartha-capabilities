@@ -1,0 +1,107 @@
+{
+  "id": "video-studio",
+  "version": "1.0.0",
+  "name": "Video Studio",
+  "description": "Create a personal library of watchable shows and short cuts from programmes shared by your Vakyartha apps.",
+  "author": "Vakyartha",
+  "icon": "video",
+  "brand": "#6d28d9",
+  "category": "productivity",
+  "entrypoints": {
+    "backend": "server.ts",
+    "surface": "surface.json",
+    "render": "renderApp"
+  },
+  "runtime": {
+    "engine": "node26",
+    "memoryLimitMb": 256,
+    "cpuTimeLimitSec": 30,
+    "maxStorageMb": 16
+  },
+  "entitlements": {
+    "network": {
+      "mode": "brokered",
+      "allowedDomains": []
+    },
+    "mcpTools": [
+      "app-news-desk__get_bulletin",
+      "app-market-terminal__get_market_brief",
+      "app-weather-desk__get_weather_briefing",
+      "app-wish-radar__get_broadcast_script"
+    ],
+    "storage": {
+      "duckdb": false
+    },
+    "toolActions": {
+      "import_source": [
+        "app-news-desk__get_bulletin",
+        "app-market-terminal__get_market_brief",
+        "app-weather-desk__get_weather_briefing",
+        "app-wish-radar__get_broadcast_script"
+      ]
+    },
+    "toolPurposes": {
+      "app-news-desk__get_bulletin": {
+        "reason": "Import a saved news bulletin as a watchable show.",
+        "optional": true
+      },
+      "app-market-terminal__get_market_brief": {
+        "reason": "Import the saved market programme as a watchable show.",
+        "optional": true
+      },
+      "app-weather-desk__get_weather_briefing": {
+        "reason": "Import the saved weather programme for a place you select in Weather Desk.",
+        "optional": true
+      },
+      "app-wish-radar__get_broadcast_script": {
+        "reason": "Import your saved wishlist broadcast as a watchable show.",
+        "optional": true
+      }
+    }
+  },
+  "exports": {
+    "tools": [
+      {
+        "name": "get_creator_context",
+        "description": "Read Video Studio's current source choices, saved shows, programme schema, and expected revision before proposing a show.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "readOnly": true
+      },
+      {
+        "name": "propose_video",
+        "description": "Save a proposed watchable show as an unreviewed Video Studio draft. Requires the current expectedRevision from get_creator_context.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "expectedRevision": { "type": "integer", "minimum": 1 },
+            "title": { "type": "string", "minLength": 1, "maxLength": 80 },
+            "source": { "type": "string", "maxLength": 120 },
+            "format": { "type": "string", "enum": ["show", "short"] },
+            "programme": { "type": "object" }
+          },
+          "required": ["expectedRevision", "title", "source", "format", "programme"],
+          "additionalProperties": false
+        },
+        "readOnly": false
+      }
+    ],
+    "skills": [
+      {
+        "name": "video-creator",
+        "description": "Create a source-aware watchable show or short in Video Studio from data and programmes shared by the user's Vakyartha apps.",
+        "path": "skills/video-creator/SKILL.md"
+      }
+    ]
+  },
+  "voice": {
+    "listen": {
+      "surface": "studio",
+      "path": "/selected/programme",
+      "label": "Listen to this show"
+    }
+  }
+}

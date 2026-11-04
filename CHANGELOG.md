@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Improve Creator Studio with a responsive storyboard and programme inspector, searchable paged collections, compact surface data, and source freshness labels; preserve unsaved scene edits when creating a short and enforce its 120-word limit.
+- Add Video Studio 1.0.0: import watchable programmes from News Desk, Market Terminal, Weather Desk and Wish Radar; edit and review local show drafts, create one-scene shorts, and play through the shared Listen and Watch voice path.
+
 ## 1.1.0 (2026-11-04)
 
 - Release tests verify that noninteractive commands leave the current manifest, item versions and signatures unchanged at any catalog version.

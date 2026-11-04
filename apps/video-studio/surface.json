@@ -1,0 +1,347 @@
+[
+  {
+    "id": "library",
+    "title": "Video library",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "direction": "vertical",
+          "gap": "md"
+        },
+        "children": [
+          "library-intro",
+          "library-empty"
+        ]
+      },
+      {
+        "id": "library-intro",
+        "type": "section",
+        "props": {
+          "title": "Video library",
+          "description": "Your saved Vakyartha shows and short programmes."
+        },
+        "children": [
+          "library-count"
+        ]
+      },
+      {
+        "id": "library-count",
+        "type": "text",
+        "props": {
+          "content": "0 saved"
+        }
+      },
+      {
+        "id": "library-empty",
+        "type": "text",
+        "props": {
+          "content": "Your library is empty. Import a programme or create one in Creator Studio."
+        }
+      }
+    ],
+    "data": {
+      "library": [],
+      "drafts": [],
+      "selected": null,
+      "edit": {
+        "id": "",
+        "title": "",
+        "segment": 0,
+        "heading": "",
+        "text": ""
+      },
+      "source": "news",
+      "sourceOptions": [
+        {
+          "label": "News Desk",
+          "value": "news"
+        },
+        {
+          "label": "Market Terminal",
+          "value": "markets"
+        },
+        {
+          "label": "Weather Desk",
+          "value": "weather"
+        },
+        {
+          "label": "Wish Radar",
+          "value": "wishes"
+        }
+      ],
+      "format": "show",
+      "formatOptions": [
+        {
+          "label": "Show",
+          "value": "show"
+        },
+        {
+          "label": "Short",
+          "value": "short"
+        }
+      ],
+      "segmentOptions": [],
+      "notice": "",
+      "topic": "",
+      "authorRequest": "Help me create a watchable show. Read Video Studio's creator context, use only source apps and information I choose or that match the topic, and save a complete programme as an unreviewed draft for me to edit and review. Preserve source names and dates. Do not publish it or claim a video file was rendered.",
+      "authorWorkflow": {
+        "title": "Video Studio",
+        "stages": [
+          "Plan",
+          "Create",
+          "Review"
+        ],
+        "brief": "Your show or short brief",
+        "boundary": "This saves a watchable programme in your local library. Listen and Watch use the shared Vakyartha voice. No video file is rendered and nothing is posted outside Vakyartha.",
+        "saved": "Draft saved. Review the source, narration and scenes in Video Studio before adding it to your library.",
+        "guide": {
+          "start": {
+            "heading": "Choose a subject and source",
+            "hint": "Agree the topic, style and source apps before writing the show."
+          },
+          "responded": {
+            "heading": "Shape the programme",
+            "hint": "Build scenes from the selected app data and preserve the original source and dates."
+          },
+          "saved": {
+            "heading": "Review your draft",
+            "hint": "Check every scene and attribution, then add the show to your local library."
+          }
+        },
+        "steps": [
+          {
+            "id": "create",
+            "label": "Create show draft",
+            "mode": "send",
+            "stage": 1,
+            "message": "Read get_creator_context for the current schema and expectedRevision. Use the source tools that the person selected or that match their topic. Set source to the declared source app name; use segment source for actual publishers. Create a complete, source-aware programme with a title, ordered segments, plain spoken text, headings, attribution and dates. For a short, use one or two scenes and at most 120 spoken words total. Preserve uncertainty and do not invent facts, images, links or sources. Call propose_video to save it as an unreviewed draft. Do not add it to the library."
+          },
+          {
+            "id": "revise",
+            "label": "Revise the plan",
+            "mode": "edit",
+            "message": "Revise the show plan with these changes: "
+          }
+        ],
+        "review": {
+          "label": "Review drafts",
+          "surface": "studio",
+          "tool": "propose_video",
+          "stage": 2
+        }
+      }
+    }
+  },
+  {
+    "id": "studio",
+    "title": "Creator Studio",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "direction": "vertical",
+          "gap": "md"
+        },
+        "children": [
+          "creator-intro"
+        ]
+      },
+      {
+        "id": "creator-intro",
+        "type": "section",
+        "props": {
+          "title": "Creator Studio",
+          "description": "Create a source-aware production or bring a saved programme into your workspace."
+        },
+        "children": [
+          "creator-paths"
+        ]
+      },
+      {
+        "id": "creator-paths",
+        "type": "grid",
+        "props": {
+          "columns": 2,
+          "minItemWidth": "md",
+          "gap": "md"
+        },
+        "children": [
+          "new-production",
+          "source-production"
+        ]
+      },
+      {
+        "id": "new-production",
+        "type": "section",
+        "props": {
+          "title": "Create a production",
+          "description": "Describe the show or short you want to make."
+        },
+        "children": [
+          "creator-topic",
+          "creator-format",
+          "assistant-create"
+        ]
+      },
+      {
+        "id": "creator-topic",
+        "type": "input",
+        "props": {
+          "label": "Production brief",
+          "bind": "/topic",
+          "placeholder": "What should this be about?"
+        }
+      },
+      {
+        "id": "creator-format",
+        "type": "select",
+        "props": {
+          "label": "Format",
+          "bind": "/format",
+          "options": "{/formatOptions}",
+          "presentation": "dropdown"
+        }
+      },
+      {
+        "id": "assistant-create",
+        "type": "button",
+        "props": {
+          "label": "Create with assistant",
+          "action": "assistant.compose",
+          "payload": {
+            "path": "authorRequest",
+            "workflowPath": "authorWorkflow"
+          },
+          "style": "primary"
+        }
+      },
+      {
+        "id": "source-production",
+        "type": "section",
+        "props": {
+          "title": "Use a saved programme",
+          "description": "Import the latest programme already saved in a Vakyartha app."
+        },
+        "children": [
+          "creator-source",
+          "import-source"
+        ]
+      },
+      {
+        "id": "creator-source",
+        "type": "select",
+        "props": {
+          "label": "Source app",
+          "bind": "/source",
+          "options": "{/sourceOptions}",
+          "presentation": "dropdown"
+        }
+      },
+      {
+        "id": "import-source",
+        "type": "button",
+        "props": {
+          "label": "Import programme",
+          "action": "import_source",
+          "payload": {},
+          "style": "secondary"
+        }
+      }
+    ],
+    "data": {
+      "library": [],
+      "drafts": [],
+      "selected": null,
+      "edit": {
+        "id": "",
+        "title": "",
+        "segment": 0,
+        "heading": "",
+        "text": ""
+      },
+      "source": "news",
+      "sourceOptions": [
+        {
+          "label": "News Desk",
+          "value": "news"
+        },
+        {
+          "label": "Market Terminal",
+          "value": "markets"
+        },
+        {
+          "label": "Weather Desk",
+          "value": "weather"
+        },
+        {
+          "label": "Wish Radar",
+          "value": "wishes"
+        }
+      ],
+      "format": "show",
+      "formatOptions": [
+        {
+          "label": "Show",
+          "value": "show"
+        },
+        {
+          "label": "Short",
+          "value": "short"
+        }
+      ],
+      "segmentOptions": [],
+      "notice": "",
+      "topic": "",
+      "authorRequest": "Help me create a watchable show. Read Video Studio's creator context, use only source apps and information I choose or that match the topic, and save a complete programme as an unreviewed draft for me to edit and review. Preserve source names and dates. Do not publish it or claim a video file was rendered.",
+      "authorWorkflow": {
+        "title": "Video Studio",
+        "stages": [
+          "Plan",
+          "Create",
+          "Review"
+        ],
+        "brief": "Your show or short brief",
+        "boundary": "This saves a watchable programme in your local library. Listen and Watch use the shared Vakyartha voice. No video file is rendered and nothing is posted outside Vakyartha.",
+        "saved": "Draft saved. Review the source, narration and scenes in Video Studio before adding it to your library.",
+        "guide": {
+          "start": {
+            "heading": "Choose a subject and source",
+            "hint": "Agree the topic, style and source apps before writing the show."
+          },
+          "responded": {
+            "heading": "Shape the programme",
+            "hint": "Build scenes from the selected app data and preserve the original source and dates."
+          },
+          "saved": {
+            "heading": "Review your draft",
+            "hint": "Check every scene and attribution, then add the show to your local library."
+          }
+        },
+        "steps": [
+          {
+            "id": "create",
+            "label": "Create show draft",
+            "mode": "send",
+            "stage": 1,
+            "message": "Read get_creator_context for the current schema and expectedRevision. Use the source tools that the person selected or that match their topic. Set source to the declared source app name; use segment source for actual publishers. Create a complete, source-aware programme with a title, ordered segments, plain spoken text, headings, attribution and dates. For a short, use one or two scenes and at most 120 spoken words total. Preserve uncertainty and do not invent facts, images, links or sources. Call propose_video to save it as an unreviewed draft. Do not add it to the library."
+          },
+          {
+            "id": "revise",
+            "label": "Revise the plan",
+            "mode": "edit",
+            "message": "Revise the show plan with these changes: "
+          }
+        ],
+        "review": {
+          "label": "Review drafts",
+          "surface": "studio",
+          "tool": "propose_video",
+          "stage": 2
+        }
+      }
+    }
+  }
+]
