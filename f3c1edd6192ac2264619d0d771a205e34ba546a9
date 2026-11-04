@@ -1,3 +1,3 @@
 {
- "quick": {"result":"fail","at":"2026-11-04T04:41:06.910Z","platform":"darwin-arm64","node":"v26.13.0","seconds":1,"skipped":[],"failed":["check"]}
+ "quick": {"result":"fail","at":"2026-11-04T04:41:12.705Z","platform":"darwin-arm64","node":"v26.13.0","seconds":0,"skipped":[],"failed":["check"]}
 }
