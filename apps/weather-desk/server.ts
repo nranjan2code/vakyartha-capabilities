@@ -104,7 +104,6 @@ export async function handleAction(controlId: string, value: unknown, c: Context
   } else if (action === 'read_archive' || action === 'read_marine' || action === 'read_river') {
     const p = selected(s); if (!p) throw Error('Save a place first.'); await read(c, s, p, action.slice(5) as Kind);
   } else if (action === 'refresh') return refresh(c);
-  else if (action === 'open_places') focusSurface = 'places';
   else if (action !== 'apply') throw Error(`Unknown Weather Desk action: ${action}`);
   return { updates: view(s, clock(c)), ...(focusSurface ? { focusSurface } : {}) };
 }

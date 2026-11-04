@@ -76,7 +76,10 @@
         "type": "button",
         "props": {
           "label": "Review feeds",
-          "action": "show_sources",
+          "action": "view.open",
+          "payload": {
+            "surface": "sources"
+          },
           "style": "secondary"
         }
       }
@@ -296,7 +299,10 @@
         "type": "button",
         "props": {
           "label": "Browse top stories",
-          "action": "show_top",
+          "action": "view.open",
+          "payload": {
+            "surface": "top"
+          },
           "style": "secondary"
         }
       }
@@ -414,7 +420,10 @@
         "type": "button",
         "props": {
           "label": "Find a story to save",
-          "action": "show_top",
+          "action": "view.open",
+          "payload": {
+            "surface": "top"
+          },
           "style": "secondary"
         }
       }

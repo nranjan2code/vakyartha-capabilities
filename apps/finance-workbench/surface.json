@@ -30,7 +30,10 @@
         "type": "button",
         "props": {
           "label": "Import transactions",
-          "action": "show_import",
+          "action": "view.open",
+          "payload": {
+            "surface": "import"
+          },
           "style": "primary"
         }
       }

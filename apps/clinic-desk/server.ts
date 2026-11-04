@@ -299,8 +299,7 @@ export async function handleAction(controlId: string, value: unknown, context: C
   } else if (action === "prev_day" || action === "next_day" || action === "go_today") {
     ui.date = action === "go_today" ? "" : addDays(effective(ui.date, s, nowDate), action === "next_day" ? 1 : -1);
     touched = ["today"];
-  } else if (action === "go_setup") { focusSurface = "setup"; touched = []; }
-  else if (action === "save_clinic") touched = ["setup"];
+  } else if (action === "save_clinic") touched = ["setup"];
   else if (action === "pick_slot") {
     const doctor = bookingDoctor();
     if (!doctor || !isTime(payload.time) || !freeSlots(s, doctor, bookDay(s, nowDate), nowDate, draft.rescheduleId).includes(payload.time)) throw new Error("That time is no longer free. Pick another slot.");
@@ -441,8 +440,7 @@ export async function handleAction(controlId: string, value: unknown, context: C
   } else if (action === "open_day") {
     if (!isDate((value as { date?: unknown })?.date)) throw new Error("Pick a valid date");
     ui.date = (value as { date: string }).date; ui.view = "list"; focusSurface = "today"; touched = ["today"];
-  } else if (action === "go_book") { focusSurface = "book"; touched = []; }
-  else if (action === "pick_day") {
+  } else if (action === "pick_day") {
     if (!isDate((value as { date?: unknown })?.date)) throw new Error("Pick a valid date");
     draft.date = (value as { date: string }).date; draft.time = ""; touched = ["book"];
   } else if (action === "quick_book") {
@@ -631,7 +629,7 @@ function todaySurface(s: State, nowDate: Date): Update {
   const root = nodes[0]!;
   if (!doctors.length) {
     root.children = ["setup-alert"];
-    nodes.push({ id: "setup-alert", type: "card", props: { title: "Welcome to Clinic Desk", body: "Add your first doctor and their weekly hours. Bookings, the day's schedule and the waiting list appear as soon as one is set up.", tone: "info" }, children: ["setup-go"] }, btn("setup-go", "Set up doctors", "go_setup", "primary"));
+    nodes.push({ id: "setup-alert", type: "card", props: { title: "Welcome to Clinic Desk", body: "Add your first doctor and their weekly hours. Bookings, the day's schedule and the waiting list appear as soon as one is set up.", tone: "info" }, children: ["setup-go"] }, btn("setup-go", "Set up doctors", "view.open", "primary", { surface: "setup" }));
   } else {
     root.children = ["head", "bar", "bar2", "stats", "load", ...(alerts.length ? ["attn"] : []), ...(ui.view === "month" ? ["month-bar"] : []), ui.view !== "list" ? "cal" : shown.length ? "list" : "empty",
       ...(isFuture && quick.length ? ["quick"] : []), ...(waiting.length ? ["wait"] : []), ...(remind.length ? ["remind"] : []), "week-head", "week-chart", "week"];
@@ -643,7 +641,7 @@ function todaySurface(s: State, nowDate: Date): Update {
       btn("prev", "Previous day", "prev_day"), { id: "date", type: "date", props: { label: "Day", bind: "/date" } }, btn("next", "Next day", "next_day"),
       btn("now", "Today", "go_today", "link", undefined, { visibleIf: "{/notToday}" }),
       btn("walkin", "Walk-in", "walk_in", "primary", undefined, { visibleIf: "{/isToday}" }),
-      btn("book", "New booking", "go_book", ui.filter || isToday ? "secondary" : "primary"),
+      btn("book", "New booking", "view.open", ui.filter || isToday ? "secondary" : "primary", { surface: "book" }),
       btn("export", "Export CSV", "file.save", "secondary", { name: "/export/name", text: "/export/csv" }, { visibleIf: "{/hasAppts}" }),
       btn("ask", "Ask assistant", "assistant.compose", "secondary", { path: "assistantRequest", workflowPath: "assistantWorkflow" }),
       row("bar2", ["filter", "v-list", "v-week", "v-month"]),
@@ -682,7 +680,7 @@ function todaySurface(s: State, nowDate: Date): Update {
       btn("a-patient", "Patient", "open_patient", "link", { id: "{patientId}" }),
       { id: "empty", type: "card", props: { title: `Nothing booked ${when.toLowerCase()}`, body: "{/emptyText}", tone: "neutral" }, children: ["empty-bar"] },
       row("empty-bar", ["empty-book", "empty-walk"]),
-      btn("empty-book", "Book an appointment", "go_book", "primary", undefined, { visibleIf: "{/canBook}" }),
+      btn("empty-book", "Book an appointment", "view.open", "primary", { surface: "book" }, { visibleIf: "{/canBook}" }),
       btn("empty-walk", "Walk-in", "walk_in", "secondary", undefined, { visibleIf: "{/isToday}" }),
       { id: "quick", type: "section", props: { title: "Next open slots", description: "Tap a time to start a booking." }, children: ["quick-grid"] },
       { id: "quick-grid", type: "grid", props: { columns: 4, gap: "sm", searchable: false }, children: { each: "/quick", template: "q-slot" } },
@@ -777,7 +775,7 @@ function bookSurface(s: State, nowDate: Date): Update {
     return { date: d, label: `${dayTag(d)} · ${n ? `${n} free` : "none"}`, style: d === date ? "primary" : "secondary" };
   });
   const nodes: Node[] = [{ id: "root", type: "stack", props: { gap: "lg" }, children: active.length ? [...(moving ? ["moving"] : []), "cols"] : ["none"] }];
-  if (!active.length) nodes.push({ id: "none", type: "card", props: { title: "No doctor to book", body: "Add or restore a doctor in Setup, then come back to book.", tone: "warning" }, children: ["none-go"] }, btn("none-go", "Open Setup", "go_setup", "primary"));
+  if (!active.length) nodes.push({ id: "none", type: "card", props: { title: "No doctor to book", body: "Add or restore a doctor in Setup, then come back to book.", tone: "warning" }, children: ["none-go"] }, btn("none-go", "Open Setup", "view.open", "primary", { surface: "setup" }));
   else nodes.push(
     ...(moving ? [
       { id: "moving", type: "card", props: { title: "Rescheduling", body: "{/movingText}", tone: "warning" }, children: ["moving-cancel"] },
@@ -848,7 +846,7 @@ function patientsSurface(s: State, nowDate: Date): Update {
     { id: "np-dob", type: "date", props: { label: "Date of birth", bind: "/newPatient/dob" } },
     btn("np-add", "Add patient", "add_patient", "primary"),
     { id: "empty", type: "card", props: { title: "No patients yet", body: "Add the first patient above, or book an appointment and the record is created for you.", tone: "neutral" }, children: ["empty-book"] },
-    btn("empty-book", "Book an appointment", "go_book", "primary"),
+    btn("empty-book", "Book an appointment", "view.open", "primary", { surface: "book" }),
     { id: "list", type: "grid", props: { columns: "auto", minItemWidth: "md", gap: "sm", searchable: true, pageSize: 8 }, children: { each: "/patients", template: "p-card" } },
     { id: "p-card", type: "card", props: { title: "{name}", subtitle: "{phone}", body: "{summary}", badge: "{badge}", tone: "{tone}" }, children: ["p-open"] },
     btn("p-open", "Open record", "open_patient", "secondary", { id: "{id}" }),
@@ -988,7 +986,7 @@ function doctorsSurface(s: State, nowDate: Date): Update {
     { id: "title", type: "text", props: { content: "Doctors", variant: "heading" } },
     { id: "subtitle", type: "text", props: { content: "{/subtitle}", variant: "caption" } },
     { id: "empty", type: "card", props: { title: "No doctors yet", body: "Add a doctor and their weekly hours in Setup. Their profile, week calendar and results appear here.", tone: "info" }, children: ["empty-go"] },
-    btn("empty-go", "Set up doctors", "go_setup", "primary"),
+    btn("empty-go", "Set up doctors", "view.open", "primary", { surface: "setup" }),
     { id: "cards", type: "grid", props: { columns: "auto", minItemWidth: "md", gap: "sm", pageSize: 6 }, children: { each: "/doctors", template: "d-card" } },
     { id: "d-card", type: "card", props: { title: "{name}", subtitle: "{subtitle}", body: "{body}", badge: "{badge}", tone: "{tone}" }, children: ["d-open"] },
     btn("d-open", "{openLabel}", "open_doctor", "{style}", { id: "{id}", to: "doctors" }),
@@ -1005,7 +1003,7 @@ function doctorsSurface(s: State, nowDate: Date): Update {
     { id: "p-label", type: "text", props: { content: "{/profile/weekLabel}", variant: "subheading" } },
     btn("p-nextw", "Next week", "doc_week_next"),
     btn("p-book", "Book with this doctor", "book_with_doctor", "primary"),
-    btn("p-edit", "Edit hours and leave", "go_setup", "secondary"),
+    btn("p-edit", "Edit hours and leave", "view.open", "secondary", { surface: "setup" }),
     { id: "p-cal", type: "calendar", props: { events: "{/profile/events}", view: "week", date: "{/profile/week}" } },
     { id: "p-chart-title", type: "text", props: { content: "Visits by weekday (30 days)", variant: "subheading" } },
     { id: "p-chart", type: "chart", props: { kind: "bar", labels: "{/profile/chart/labels}", series: "{/profile/chart/series}", height: "sm" } },

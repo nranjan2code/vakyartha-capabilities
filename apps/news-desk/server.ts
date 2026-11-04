@@ -375,9 +375,6 @@ export async function handleAction(controlId: string, value: unknown, c: Context
     }
     case 'reset_tuning': s.tuning = { ...DEFAULT_TUNING, weights: { ...DEFAULT_WEIGHTS }, sections: {}, mutes: [] }; break;
     case 'clear_articles': s.articles = s.articles!.filter((a) => s.saved!.includes(a.id)); s.reads = []; s.story = undefined; break;
-    case 'show_preferences': focusSurface = 'preferences'; break;
-    case 'show_sources': focusSurface = 'sources'; break;
-    case 'show_top': focusSurface = 'top'; break;
     case 'clear_filters': s.filters = { ...NO_FILTERS }; break;
     case 'open_section': s.filters = { ...NO_FILTERS, category: payloadText(value, 'category') || 'All' }; focusSurface = 'sections'; break;
     case 'apply': prune(s, Date.now()); break;
@@ -512,7 +509,7 @@ function topSurface(c: Ctx): Update {
     { id: 'top-status', type: 'stack', props: { direction: 'horizontal', gap: 'sm', wrap: true, align: 'center' }, children: ['top-line', ...(has && failing ? ['top-attention'] : []), ...(has ? ['top-seen'] : [])] },
     { id: 'top-line', type: 'text', props: { content: '{/line}', variant: 'caption' } },
     ...(s.problem && !has ? [problemNode('top-problem')] : []),
-    ...(has && failing ? [{ id: 'top-attention', type: 'button', props: { label: failing === 1 ? '1 feed needs attention' : `${failing} feeds need attention`, action: 'show_sources', style: 'link' } } as Node] : []),
+    ...(has && failing ? [{ id: 'top-attention', type: 'button', props: { label: failing === 1 ? '1 feed needs attention' : `${failing} feeds need attention`, action: 'view.open', payload: { surface: 'sources' }, style: 'link' } } as Node] : []),
     ...(has ? [
       { id: 'top-seen', type: 'button', props: { label: 'Mark all seen', action: 'mark_seen', style: 'link' } },
       ...sectionLinks('top-sections'),
@@ -535,7 +532,7 @@ function topSurface(c: Ctx): Update {
       { id: 'digest-open', type: 'button', props: { label: '{openLabel}', action: 'open_section', payload: { category: '{category}' }, style: 'link' } },
     ] : [
       { id: 'top-empty', type: 'card', props: { title: 'Your news starts here', body: '{/emptyHint}' }, children: ['top-sources'] },
-      { id: 'top-sources', type: 'button', props: { label: 'Review feeds', action: 'show_sources', style: 'secondary' } },
+      { id: 'top-sources', type: 'button', props: { label: 'Review feeds', action: 'view.open', payload: { surface: 'sources' }, style: 'secondary' } },
     ]),
   ];
   const headline = (st: Story | undefined) => st ? `[${escape(st.lead.title)}](${st.lead.url}) — ${escape(st.lead.source)}` : '';
@@ -598,7 +595,7 @@ function storySurface(c: Ctx): Update {
   const selected = s.articles!.find((a) => a.id === s.story);
   const st = selected ? c.stories.find((x) => x.articles.some((a) => a.id === selected.id)) ?? rank([selected], { topics: s.topics!, prefer: [], less: [], hidden: [], seen: new Set() }, c.now)[0] : undefined;
   if (!st) {
-    const nodes: Node[] = [{ id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: ['story-empty'] }, { id: 'story-empty', type: 'card', props: { title: 'Explore a story', body: 'Open Details or Full coverage on a headline to compare publisher reports, publication times and related stories.' }, children: ['story-browse'] }, { id: 'story-browse', type: 'button', props: { label: 'Browse top stories', action: 'show_top', style: 'secondary' } }];
+    const nodes: Node[] = [{ id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: ['story-empty'] }, { id: 'story-empty', type: 'card', props: { title: 'Explore a story', body: 'Open Details or Full coverage on a headline to compare publisher reports, publication times and related stories.' }, children: ['story-browse'] }, { id: 'story-browse', type: 'button', props: { label: 'Browse top stories', action: 'view.open', payload: { surface: 'top' }, style: 'secondary' } }];
     return { surface: 'story', nodes, data: replaceAll({}) };
   }
   const related = c.stories.filter((x) => x !== st && (x.topics.some((t) => st.topics.includes(t)) || x.category === st.category)).slice(0, 6);
@@ -607,7 +604,7 @@ function storySurface(c: Ctx): Update {
     { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: ['story-nav', 'story-heading', 'story-split', 'story-tabs'] },
     ...tabbed('story-tabs', [['Every report', ['story-articles-section']], ['Timeline', ['story-timeline']], ['Related', related.length ? ['related-section'] : []]]),
     { id: 'story-nav', type: 'stack', props: { direction: 'horizontal', gap: 'sm', wrap: true }, children: ['story-back', 'story-section'] },
-    { id: 'story-back', type: 'button', props: { label: '← Top stories', action: 'show_top', style: 'link' } },
+    { id: 'story-back', type: 'button', props: { label: '← Top stories', action: 'view.open', payload: { surface: 'top' }, style: 'link' } },
     { id: 'story-section', type: 'button', props: { label: `More in ${st.category} →`, action: 'open_section', payload: { category: st.category }, style: 'link' } },
     { id: 'story-heading', type: 'text', props: { content: '{/heading}', variant: 'heading' } },
     { id: 'story-split', type: 'split', props: { ratio: '1:2', gap: 'md' }, children: ['story-lead', 'story-facts'] },
@@ -704,7 +701,7 @@ function savedSurface(c: Ctx): Update {
       { id: 'saved-actions', type: 'stack', props: { direction: 'horizontal', gap: 'sm' }, children: ['saved-open', 'saved-remove'] },
       { id: 'saved-open', type: 'button', props: { label: 'Full coverage', action: 'open_story', payload: { id: '{id}' }, style: 'secondary' } },
       { id: 'saved-remove', type: 'button', props: { label: 'Remove', action: 'save_article', payload: { id: '{id}' }, style: 'link' } },
-    ] : [{ id: 'saved-empty', type: 'card', props: { title: 'A reading list worth keeping', body: 'Save a story to find it here, even after it leaves the feeds.' }, children: ['saved-browse'] }, { id: 'saved-browse', type: 'button', props: { label: 'Find a story to save', action: 'show_top', style: 'secondary' } }]),
+    ] : [{ id: 'saved-empty', type: 'card', props: { title: 'A reading list worth keeping', body: 'Save a story to find it here, even after it leaves the feeds.' }, children: ['saved-browse'] }, { id: 'saved-browse', type: 'button', props: { label: 'Find a story to save', action: 'view.open', payload: { surface: 'top' }, style: 'secondary' } }]),
   ];
   const data = saved.length ? {
     line: `${plural(saved.length, 'saved article')}. Your reading list, kept on this device. Open a publisher link for the full report.`,

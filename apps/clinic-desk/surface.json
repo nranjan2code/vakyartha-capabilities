@@ -239,8 +239,11 @@
         "type": "button",
         "props": {
           "label": "Set up doctors",
-          "action": "go_setup",
-          "style": "primary"
+          "action": "view.open",
+          "style": "primary",
+          "payload": {
+            "surface": "setup"
+          }
         }
       }
     ]
@@ -338,8 +341,11 @@
         "type": "button",
         "props": {
           "label": "Open Setup",
-          "action": "go_setup",
-          "style": "primary"
+          "action": "view.open",
+          "style": "primary",
+          "payload": {
+            "surface": "setup"
+          }
         }
       }
     ]
@@ -542,8 +548,11 @@
         "type": "button",
         "props": {
           "label": "Book an appointment",
-          "action": "go_book",
-          "style": "primary"
+          "action": "view.open",
+          "style": "primary",
+          "payload": {
+            "surface": "book"
+          }
         }
       }
     ]
@@ -628,8 +637,11 @@
         "type": "button",
         "props": {
           "label": "Set up doctors",
-          "action": "go_setup",
-          "style": "primary"
+          "action": "view.open",
+          "style": "primary",
+          "payload": {
+            "surface": "setup"
+          }
         }
       }
     ]

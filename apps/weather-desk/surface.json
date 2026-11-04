@@ -29,8 +29,10 @@
         "type": "button",
         "props": {
           "label": "Choose a place",
-          "action": "open_places",
-          "payload": {},
+          "action": "view.open",
+          "payload": {
+            "surface": "places"
+          },
           "style": "secondary"
         }
       },
@@ -126,8 +128,10 @@
         "type": "button",
         "props": {
           "label": "Choose a place",
-          "action": "open_places",
-          "payload": {},
+          "action": "view.open",
+          "payload": {
+            "surface": "places"
+          },
           "style": "secondary"
         }
       },
@@ -210,8 +214,10 @@
         "type": "button",
         "props": {
           "label": "Choose a place",
-          "action": "open_places",
-          "payload": {},
+          "action": "view.open",
+          "payload": {
+            "surface": "places"
+          },
           "style": "secondary"
         }
       },
@@ -423,8 +429,10 @@
         "type": "button",
         "props": {
           "label": "Choose a place",
-          "action": "open_places",
-          "payload": {},
+          "action": "view.open",
+          "payload": {
+            "surface": "places"
+          },
           "style": "secondary"
         }
       },

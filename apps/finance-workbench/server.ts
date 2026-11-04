@@ -130,8 +130,6 @@ export async function handleAction(controlId: string, value: unknown, c: Context
     // Show the month the import ends in, which is usually the one being reviewed.
     s.month = rows.map((r) => r.date.slice(0, 7)).sort().at(-1)!;
     focusSurface = 'overview';
-  } else if (action === 'show_import') {
-    focusSurface = 'import';
   } else if (action === 'ask_clear') {
     s.confirmClear = true;
   } else if (action === 'cancel_clear') {
@@ -172,7 +170,7 @@ function overviewSurface(s: State, l: Ledger): Update {
       { id: 'fin-bar', type: 'stack', props: { direction: 'horizontal', wrap: true, gap: 'sm', align: 'end' }, children: ['month', 'budget', 'add-more'] },
       { id: 'month', type: 'select', props: { label: 'Month', bind: '/month', options: '{/monthOptions}' } },
       { id: 'budget', type: 'input', props: { label: 'Monthly spending budget · INR', bind: '/budget', placeholder: '40000' } },
-      { id: 'add-more', type: 'button', props: { label: 'Import more', action: 'show_import', style: 'secondary' } },
+      { id: 'add-more', type: 'button', props: { label: 'Import more', action: 'view.open', payload: { surface: 'import' }, style: 'secondary' } },
       ...(badBudget ? [{ id: 'budget-hint', type: 'text', props: { content: 'The budget must be a number like 40000 or 40000.50.', variant: 'caption' } }] : []),
       ...(has ? [
         { id: 'totals', type: 'grid', props: { columns: 4, minItemWidth: 'sm', gap: 'sm' }, children: { each: '/totals', template: 'total' } },
@@ -189,7 +187,7 @@ function overviewSurface(s: State, l: Ledger): Update {
       ] : [{ id: 'month-empty', type: 'text', props: { content: '{/monthEmpty}', variant: 'caption' } }]),
     ] : [
       { id: 'fin-empty', type: 'card', props: { title: 'No transactions yet', body: 'Import your own records as CSV or JSON: positive amounts are money in, negative amounts are money out. Totals, a budget and charts appear here. Nothing leaves this computer.' }, children: ['start-import'] },
-      { id: 'start-import', type: 'button', props: { label: 'Import transactions', action: 'show_import', style: 'primary' } },
+      { id: 'start-import', type: 'button', props: { label: 'Import transactions', action: 'view.open', payload: { surface: 'import' }, style: 'primary' } },
     ]),
   ];
   const data = l.total ? {
@@ -212,7 +210,7 @@ function ledgerSurface(s: State, l: Ledger): Update {
     ...(l.total ? [
       { id: 'ledger-bar', type: 'stack', props: { direction: 'horizontal', wrap: true, gap: 'sm', align: 'end' }, children: ['ledger-month', 'ledger-add'] },
       { id: 'ledger-month', type: 'select', props: { label: 'Month', bind: '/month', options: '{/monthOptions}' } },
-      { id: 'ledger-add', type: 'button', props: { label: 'Import more', action: 'show_import', style: 'secondary' } },
+      { id: 'ledger-add', type: 'button', props: { label: 'Import more', action: 'view.open', payload: { surface: 'import' }, style: 'secondary' } },
       has
         ? { id: 'transactions', type: 'table', props: { rows: '{/transactions}', columns: [{ key: 'date', label: 'Date' }, { key: 'description', label: 'Description' }, { key: 'category', label: 'Category' }, { key: 'amount', label: 'Amount', align: 'end' }, { key: 'id', label: 'ID' }], sortable: true, searchable: true, pageSize: 15 } }
         : { id: 'ledger-month-empty', type: 'text', props: { content: 'No transactions in this month.', variant: 'caption' } },

@@ -166,7 +166,6 @@ export async function handleAction(controlId: string, value: unknown, c: Context
   if (action === 'refresh') return refresh(c);
   if (action === 'clear_filters') s.filters = { feed: 'All', tag: 'All', query: '' };
   else if (action === 'search_directions') { /* The bound query already saved; this button applies the view. */ }
-  else if (action === 'show_sources') return { updates: view(s), focusSurface: 'sources' };
   else throw new Error(`Unknown RBI Desk action: ${action}`);
   return { updates: view(s) };
 }

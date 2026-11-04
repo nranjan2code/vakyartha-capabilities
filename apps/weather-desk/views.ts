@@ -77,7 +77,7 @@ interface Builder {
   button(id: string, label: string, action: string, payload?: Record<string, unknown>, style?: string): string;
   table(id: string, title: string, path: string, fields: string[], columns: string[]): string;
 }
-const empty = (b: Builder, message: string) => [b.text('empty', message), b.button('choose-place', 'Choose a place', 'open_places')];
+const empty = (b: Builder, message: string) => [b.text('empty', message), b.button('choose-place', 'Choose a place', 'view.open', { surface: 'places' })];
 function chart(b: Builder, id: string, title: string, path: string, fields: string[], _names: string[], kind = 'line') {
   return b.node(id, 'chart', { kind, title, series: { records: `{/${path}}`, label: 'label', fields }, height: 'md', yScale: 'zero' });
 }
@@ -102,7 +102,7 @@ export function view(input: unknown, now = new Date().toISOString()): Update[] {
     if (currentDay) children.push(b.node('today-details', 'section', { title: `Local day · ${humanDate(currentDay.date)}`, description: `${when(f)}${stale(f, now) || p.errors.forecast ? ' · Needs refresh' : ''}` }, [b.node('day-figures', 'grid', { columns: 'auto', gap: 'sm' }, { each: '/details', template: b.node('day-figure', 'stat', { label: '{label}', value: '{value}' }) })]));
     if (hours.length && hours.slice(0, 24).every(h => h.temperature !== null && h.feels !== null)) children.push(chart(b, 'next-hours', `Next ${Math.min(24, hours.length)} available hours · ${tempUnit} · ${d.timezone}`, 'hours', ['temperature', 'feels'], ['Temperature', 'Feels like']));
     else children.push(b.text('chart-missing', 'Hourly temperature chart unavailable: some readings are missing. Exact values remain in Forecast & planning.'));
-    children.push(b.node('today-actions', 'stack', { direction: 'horizontal', wrap: true, gap: 'sm' }, [b.button('ask-weather', 'Ask about this forecast', 'assistant.compose', { path: 'authorRequest' }), b.button('manage-places', 'Manage places', 'open_places')]));
+    children.push(b.node('today-actions', 'stack', { direction: 'horizontal', wrap: true, gap: 'sm' }, [b.button('ask-weather', 'Ask about this forecast', 'assistant.compose', { path: 'authorRequest' }), b.button('manage-places', 'Manage places', 'view.open', { surface: 'places' })]));
     return children;
   }, warning(['conditions', 'forecast']));
   const forecast = build('forecast', { ...common, hours, days, maxRain: s.maxRain, maxWind: s.maxWind, matches: matches.map(w => ({ ...w, start: w.start.replace('T', ' '), end: `through ${w.end.slice(11)} (hour start)`, wind: measure(w.wind, 'wind', s.units) })), export: { csv: forecastCSV } }, b => {

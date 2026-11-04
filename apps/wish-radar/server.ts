@@ -1142,12 +1142,6 @@ export async function handleAction(controlId: string, value: unknown, c: Context
     s.activeWishId = wid === s.activeWishId ? undefined : wid;
   } else if (action === 'dismiss_problem') {
     s.problem = undefined;
-  } else if (action === 'show_overview') {
-    focusSurface = 'overview';
-  } else if (action === 'show_history') {
-    focusSurface = 'history';
-  } else if (action === 'show_import') {
-    focusSurface = 'import';
   } else if (action === 'ask_clear') {
     s.confirmClear = true;
   } else if (action === 'cancel_clear') {
@@ -1619,7 +1613,7 @@ function overviewSurface(s: State, l: LedgerData, now = new Date(Date.now())): U
                   children: ['btn-spotlight-advisor', 'btn-spotlight-history'],
                 },
                 { id: 'btn-spotlight-advisor', type: 'button', props: { label: 'Analyze with Deal Advisor', action: 'assistant.compose', payload: { path: 'advisorRequest', workflowPath: 'wishWorkflow' }, style: 'primary' } },
-                { id: 'btn-spotlight-history', type: 'button', props: { label: 'View Price History', action: 'show_history', style: 'secondary' } },
+                { id: 'btn-spotlight-history', type: 'button', props: { label: 'View Price History', action: 'view.open', payload: { surface: 'history' }, style: 'secondary' } },
               ]
             : []),
           ...(viewingWish && currentOptions.length > 0
@@ -1998,7 +1992,7 @@ function historySurface(_s: State, l: LedgerData): Update {
       props: { direction: 'horizontal', wrap: true, gap: 'sm', align: 'center' },
       children: ['btn-back-overview', 'btn-export-csv'],
     },
-    { id: 'btn-back-overview', type: 'button', props: { label: 'Back to Overview', action: 'show_overview', style: 'secondary' } },
+    { id: 'btn-back-overview', type: 'button', props: { label: 'Back to Overview', action: 'view.open', payload: { surface: 'overview' }, style: 'secondary' } },
     { id: 'btn-export-csv', type: 'button', props: { label: 'Export History (CSV)', action: 'file.save', payload: { name: 'wish-radar-prices', text: '/exportCsv' }, style: 'secondary' } },
     ...(hasHistory
       ? [
@@ -2084,7 +2078,7 @@ function importSurface(s: State, l: LedgerData): Update {
       props: { direction: 'horizontal', gap: 'sm' },
       children: ['btn-import-back'],
     },
-    { id: 'btn-import-back', type: 'button', props: { label: 'Back to Overview', action: 'show_overview', style: 'secondary' } },
+    { id: 'btn-import-back', type: 'button', props: { label: 'Back to Overview', action: 'view.open', payload: { surface: 'overview' }, style: 'secondary' } },
     {
       id: 'retailers-section',
       type: 'section',
