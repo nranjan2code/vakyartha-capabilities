@@ -14,11 +14,11 @@ App state owns wish definitions, merchant preferences, candidates, drafts, notic
 
 ## Reads and commits
 
-An action checks its initial URL against enabled merchant preferences, then calls `web__fetch_page` through the existing host integration/approval path. App preferences grant no network authority and do not replace redirect/egress controls. The shared adapter in `sidecar/integrations.ts` supplies browser-style headers and synchronously reserves spaced per-host request starts, including concurrent app/chat reads. No cookie jar, browser execution, credentials, proxy or alternate fetch tool.
+An action checks its initial URL against enabled merchant preferences, then calls `web__fetch_page` through the existing host integration/approval path. App preferences grant no network authority and do not replace redirect/egress controls. The framework's Web pages tool sends an honest request (a Vakyartha product token, standard Accept, Accept-Language and compression it decodes) and reads one page per host at a time, spaced, across app and chat reads. No browser identity, cookie jar, browser execution, credentials, proxy, CAPTCHA handling or alternate fetch tool. Links are stored canonical (`canonicalProductUrl`).
 
 The tool returns text and retained links, not HTML, images or JSON-LD. Amazon search parsing binds each explicit listing price to that product's direct link, requires query terms and filters accessories. Search and variant selection never mutate the ledger; selection uses retained candidates rather than caller-supplied prices/URLs. A separate product check scopes extraction below its repeated product title. Other merchants require a direct product link, exact repeated title and unique labelled INR price; unreadable/ambiguous pages fail closed. No cross-merchant search substitution.
 
-Successful product checks insert an observation then derive all surfaces and programmes from state plus the ledger. Failed/empty/challenged reads preserve old records and show a notice. A homepage test establishes only homepage readability, never offer coverage. HTTP errors do not establish their cause.
+Successful product checks insert an observation then derive all surfaces and programmes from state plus the ledger. Failed/empty/challenged reads preserve old records and show a notice. A homepage test establishes only homepage readability, never offer coverage. A 403, 429, 503 or CAPTCHA page is reported as the store declining the automated read, with next steps, and a refresh asks that merchant no more until the next one. Instalment, offer and list-price amounts never become the price; a cart-only price fails visibly.
 
 ## Lifecycle and bounds
 

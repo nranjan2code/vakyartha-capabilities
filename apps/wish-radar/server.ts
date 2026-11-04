@@ -245,11 +245,29 @@ function pageText(result: unknown): string {
   const item = result && typeof result === 'object' ? result as Record<string, unknown> : undefined;
   const text = typeof result === 'string' ? result : typeof item?.text === 'string' ? item.text : '';
   if (item?.isError === true || /^\s*(?:error: )?HTTP \d{3} from /i.test(text)) throw new Error(reason(text));
-  if (/robot check|captcha|verify (?:that )?you are human|automated access|enable javascript to run this app/i.test(text)) {
+  // The last phrase is Amazon's interstitial, served with HTTP 200 in place of the page.
+  if (/robot check|captcha|verify (?:that )?you are human|automated access|enable javascript to run this app|click the button below to continue shopping/i.test(text)) {
     throw new Error('The store returned an access challenge or JavaScript-only page; no product price was read');
   }
   if (text.replace(/^(?:URL|Title):[^\n]*$/gm, '').trim().length === 0) throw new Error('The store returned an empty page; no product price was read');
   return text;
+}
+
+/**
+ * One product, one address: an Amazon link copied from a browser, a share
+ * sheet or the mobile site (tracking path, ref= and query, amazon.in without
+ * www) becomes https://www.amazon.in/dp/ASIN, the page the merchant itself
+ * names canonical. Other links keep their path and query, losing only the fragment.
+ */
+export function canonicalProductUrl(raw: string): string {
+  const url = new URL(raw.trim());
+  url.hash = '';
+  const host = url.hostname.toLowerCase();
+  if (host === 'amazon.in' || host === 'www.amazon.in' || host === 'm.amazon.in') {
+    const asin = url.pathname.match(/\/(?:dp|gp\/product|gp\/aw\/d|exec\/obidos\/asin|o\/asin)\/([A-Z0-9]{10})(?:[/?]|$)/i)?.[1];
+    if (asin) return `https://www.amazon.in/dp/${asin.toUpperCase()}`;
+  }
+  return url.href;
 }
 
 async function fetchMerchant(c: Context, s: State, url: string): Promise<string> {
@@ -258,11 +276,18 @@ async function fetchMerchant(c: Context, s: State, url: string): Promise<string>
   return pageText(await c.callTool('web__fetch_page', { url }));
 }
 
-function checkFailure(title: string, err: unknown): string {
+/**
+ * Say what happened and what still works. A refusal (403, 429, 503 or an
+ * interstitial) is the store declining an automated read: it is reported as
+ * that, never retried, and never stands in for a price.
+ */
+function checkFailure(title: string, err: unknown, kind: 'page' | 'search' = 'page'): string {
   const msg = reason(err);
-  const hint = /HTTP (?:403|429|503)\b/.test(msg)
-    ? ' The store refused this request or is unavailable; this status alone does not establish a rate limit. No new price was saved.' : '';
-  return `Price check failed for "${title}": ${msg}${hint}`;
+  const refused = /HTTP (?:403|429|503)\b/.test(msg) || /access challenge/.test(msg);
+  const next = kind === 'search'
+    ? ' The store declined this automated search; no price was saved. Use Search on Amazon to find it in your browser, then Edit this wish and paste the product link; product pages are read separately. Or Record price by hand, or paste a copied deal into the deal advisor.'
+    : ' The store declined this automated read; no price was saved. Record price by hand, paste a copied deal into the deal advisor, or track this wish at another merchant.';
+  return `${kind === 'search' ? 'Search' : 'Price check'} failed for "${title}": ${msg}${refused ? next : ''}`;
 }
 
 // --- exact paise arithmetic --------------------------------------------------------
@@ -645,7 +670,18 @@ export function parseAmazonPageText(text: string): {
     if (heading < 0) throw new Error('No clear INR price bound to the product heading was detected on the Amazon page');
     text = lines.slice(heading, heading + 80).join('\n');
   }
-  const match = text.match(/₹\s*([0-9]+(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?)(?![0-9.])/);
+  // The selling price is the first amount on a line of its own kind: instalments,
+  // offers, cashback, savings and the list price sit beside it and are not it.
+  const notPrice = /\bEMI\b|per month|\/month|cashback|discount|savings on|\boffer|\bupto\b|\bup to\b|M\.R\.P|list price|was:|coupon/i;
+  let match: RegExpMatchArray | null = null;
+  for (const line of text.split('\n')) {
+    if (/add this item to your cart|see price in cart|price in cart/i.test(line)) {
+      throw new Error('Amazon shows this price only in the cart; no price was read. Record price by hand from your browser.');
+    }
+    if (notPrice.test(line)) continue;
+    match = line.match(/₹\s*([0-9]+(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?)(?![0-9.])/);
+    if (match) break;
+  }
   if (!match) throw new Error('No clear INR price was detected on the Amazon page');
   const rawNum = match[1]!.replace(/,/g, '');
   const [whole, dec = ''] = rawNum.split('.');
@@ -836,7 +872,10 @@ export async function handleAction(controlId: string, value: unknown, c: Context
     const store = rawStore && STORES.includes(rawStore) ? rawStore : 'Amazon.in';
 
     const rawUrl = valObj && 'url' in valObj ? String(valObj.url).trim() : s.newWish?.url?.trim();
-    const url = rawUrl && rawUrl.startsWith('https://') ? rawUrl.slice(0, 500) : undefined;
+    let url: string | undefined;
+    if (rawUrl && rawUrl.startsWith('https://')) {
+      try { url = canonicalProductUrl(rawUrl).slice(0, 500); } catch { throw new Error('Enter a valid https product link'); }
+    }
 
     const rawImage = valObj && 'image' in valObj ? String(valObj.image).trim() : s.newWish?.image?.trim();
     const image = rawImage && rawImage.startsWith('https://') ? rawImage.slice(0, 500) : undefined;
@@ -886,7 +925,7 @@ export async function handleAction(controlId: string, value: unknown, c: Context
             s.problem = 'Matching candidates found. Compare variants and select the exact product before checking its price.';
           }
         } catch (err) {
-          s.problem = `Wish saved. ${checkFailure(title, err)}`;
+          s.problem = `Wish saved. ${checkFailure(title, err, 'search')}`;
         }
       }
 
@@ -961,7 +1000,9 @@ export async function handleAction(controlId: string, value: unknown, c: Context
       return { updates: view(s, ledgerData, now) };
     }
 
+    let kind: 'page' | 'search' = 'page';
     try {
+      if (wish.url) wish.url = canonicalProductUrl(wish.url);
       if (wish.url && merchantFor(s, wish.url).id === 'amazon') {
         const rawText = await fetchMerchant(c, s, wish.url);
         const parsed = parseAmazonPageText(rawText);
@@ -1021,6 +1062,7 @@ export async function handleAction(controlId: string, value: unknown, c: Context
         s.problem = undefined;
       } else {
         if (wish.store !== 'Amazon.in') throw new Error(`Search discovery is not available for ${wish.store}. Edit this wish to add its direct product link.`);
+        kind = 'search';
         const searchUrl = `https://www.amazon.in/s?k=${encodeURIComponent(wish.title)}`;
         const rawText = await fetchMerchant(c, s, searchUrl);
         const options = parseAmazonSearchResults(rawText, wish.title);
@@ -1035,7 +1077,7 @@ export async function handleAction(controlId: string, value: unknown, c: Context
         s.problem = 'Matching candidates found. Compare variants and select the exact product before checking its price.';
       }
     } catch (err) {
-      s.problem = checkFailure(wish.title, err);
+      s.problem = checkFailure(wish.title, err, kind);
       if (action === 'check_amazon_price') throw new Error(s.problem);
     }
   } else if (action === 'show_options') {
@@ -1226,20 +1268,31 @@ export async function refresh(c: Context) {
   const s = (c.state = normalize(c.state, now));
   const eligible = s.wishes!.filter((wish) => wish.url);
   const failures: string[] = [];
+  const advice = new Set<string>();
+  // A merchant that declined one automated read is not asked again in this refresh.
+  const declined = new Set<string>();
   const start = Date.now();
   const count = Math.min(eligible.length, 4);
   let attempted = 0;
   for (let offset = 0; offset < count && Date.now() - start < 12_000; offset++) {
     const index = ((s.refreshCursor ?? 0) + offset) % eligible.length;
     const wish = eligible[index]!;
+    let merchant = '';
+    try { merchant = merchantFor(c.state, wish.url!).id; } catch { /* the check reports it */ }
+    if (merchant && declined.has(merchant)) break;
     await handleAction('check_live_price', { id: wish.id }, c, 'check_live_price');
     // handleAction normalizes state, so always read the current owner.
-    if (c.state.problem) failures.push(c.state.problem);
+    const problem = c.state.problem;
+    if (problem) {
+      const cut = problem.indexOf(' The store declined this automated');
+      failures.push(cut < 0 ? problem : problem.slice(0, cut));
+      if (cut >= 0) { advice.add(problem.slice(cut + 1)); if (merchant) declined.add(merchant); }
+    }
     attempted++;
   }
   const current = c.state;
   current.refreshCursor = eligible.length ? ((s.refreshCursor ?? 0) + attempted) % eligible.length : 0;
-  current.problem = [failures.join(' '), eligible.length > attempted ? `${eligible.length - attempted} linked wishes deferred to the next refresh.` : ''].filter(Boolean).join(' ') || undefined;
+  current.problem = [...failures, ...advice, eligible.length > attempted ? `${eligible.length - attempted} linked wishes deferred to the next refresh.` : ''].filter(Boolean).join(' ') || undefined;
   const ledgerData = await load(c.database, current.wishes!, current.activeWishId);
   return { updates: view(current, ledgerData, now) };
 }
