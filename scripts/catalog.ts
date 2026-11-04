@@ -61,6 +61,19 @@ function walk(dir: string, prefix = ""): [string, Buffer][] {
 }
 
 /** The small YAML subset skill frontmatter uses: scalars, folded blocks and one nested map. */
+// The primary model is a 4B local model: a skill body is a procedure it can follow, and
+// reference detail lives in references/ files that the body names and the model reads on demand.
+export const MAX_SKILL_BODY = 6000;
+function procedure(text: string, where: string, present: (path: string) => boolean): void {
+  const body = text.replace(/^---\n[\s\S]*?\n---\n/, "");
+  if (body.length > MAX_SKILL_BODY) throw new Error(`${where}: body is ${body.length} characters; keep it to ${MAX_SKILL_BODY} and move reference detail to references/`);
+  for (const [, file] of body.matchAll(/`(references\/[\w.-]+)`/g)) if (!present(file!)) throw new Error(`${where}: names ${file}, which is missing`);
+  // A procedure that always draws loads the canvas grammar in the same step, so a small
+  // model never spends a second round (or draws without it) to fetch interactive-ui.
+  const fm = frontmatter(text);
+  if (fm["metadata.requires-canvas"] === "true" && !(fm["metadata.loads-with"] ?? "").split(/[\s,]+/).includes("interactive-ui")) throw new Error(`${where}: requires-canvas needs loads-with "interactive-ui"`);
+}
+
 export function frontmatter(text: string): Record<string, string> {
   const m = /^---\n([\s\S]*?)\n---\n/.exec(text);
   if (!m) throw new Error("SKILL.md has no frontmatter");
@@ -128,6 +141,7 @@ function skill(id: string): Item {
   checkFiles(`skills/${id}`, files);
   const text = files.find(([n]) => n === "SKILL.md")?.[1].toString("utf8");
   if (!text) throw new Error(`skills/${id}: missing SKILL.md`);
+  procedure(text, `skills/${id}`, (f) => files.some(([n]) => n === f));
   const fm = frontmatter(text);
   if (fm.name !== id) throw new Error(`skills/${id}: frontmatter name must be ${id}`);
   if (!fm.description || fm.description.length > 1024) throw new Error(`skills/${id}: needs a description up to 1024 characters`);
@@ -170,6 +184,8 @@ function app(id: string): Item {
     if (s.path !== `skills/${s.name}/SKILL.md`) throw new Error(`apps/${id}: skill ${s.name} must be at skills/${s.name}/SKILL.md`);
     const text = files.find(([n]) => n === s.path)?.[1].toString("utf8");
     if (!text) throw new Error(`${where}: missing`);
+    const dir = s.path.slice(0, -"SKILL.md".length);
+    procedure(text, where, (f) => files.some(([n]) => n === dir + f));
     const fm = frontmatter(text);
     if (fm.name !== s.name) throw new Error(`${where}: frontmatter name must be ${s.name}`);
     if (fm["metadata.part-of"] !== `app:${id}`) throw new Error(`${where}: metadata.part-of must be app:${id}`);
