@@ -44,4 +44,4 @@ Structured methodology for converting task backlogs, deadlines and daily goals i
 ## Calendar System Boundaries
 
 - **Plan vs Write**: An agenda generated in Vakyartha is a proposed plan, not a calendar booking or calendar modification.
-- **Calendar sync**: Adding, editing or deleting events in external calendars (Google Calendar, Apple Calendar, Outlook) requires authorized calendar integration tools and verified execution receipts.
+- **Calendar sync**: Adding, editing or deleting events in an external calendar requires an authorized calendar integration tool and a verified execution receipt.

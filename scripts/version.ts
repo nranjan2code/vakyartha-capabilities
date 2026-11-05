@@ -11,18 +11,26 @@ import { confirmVersion, typeItemVersion } from "./human.ts";
 
 // Every item whose files changed since the last signed release needs its own new
 // version, typed by the person: a signed release never changes.
-const git = (...args: string[]) => execFileSync("git", args, { cwd: ROOT, encoding: "utf8" }).trim();
+const git = (...args: string[]) => execFileSync("git", args, { cwd: ROOT, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 function changedItems() {
   const last = git("tag", "--list", "capabilities-v*", "--sort=-v:refname").split("\n")[0];
   if (!last) return [];
   return readItems().flatMap((item) => {
     if (item.kind === "integration") return [];
     const dir = item.kind === "app" ? `apps/${item.id}` : `skills/${item.id}`;
-    if (!git("diff", "--name-only", last, "--", dir)) return [];
     const file = item.kind === "app" ? `${dir}/app.json` : `${dir}/SKILL.md`;
+    // A first release has no old path in the signed tag, and a just-created item
+    // may still be untracked while the owner is reviewing it.
+    if (!git("diff", "--name-only", last, "--", dir) && !git("status", "--porcelain", "--", dir)) return [];
+    let previous: string;
+    try {
+      previous = git("show", `${last}:${file}`);
+    } catch {
+      return [{ item, file, last }];
+    }
     const released = item.kind === "app"
-      ? (JSON.parse(git("show", `${last}:${file}`)) as { version: string }).version
-      : (/\n\s*version:\s*"?([\d.]+)"?/.exec(git("show", `${last}:${file}`)) ?? [])[1];
+      ? (JSON.parse(previous) as { version: string }).version
+      : (/\n\s*version:\s*"?([\d.]+)"?/.exec(previous) ?? [])[1];
     return item.version === released ? [{ item, file, last }] : [];
   });
 }

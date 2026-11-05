@@ -51,4 +51,4 @@ Structure meeting outcomes into four distinct categories:
 ## External Tool Boundaries
 
 - **Draft status**: Generating minutes and action items produces local review text.
-- **External dispatch**: Creating tickets in Jira, sending Slack/Telegram messages, or updating Google Calendar requires matching integration tools and user approvals.
+- **External dispatch**: Creating records in an external issue tracker, sending messages, or updating an external calendar requires matching integration tools and user approval.

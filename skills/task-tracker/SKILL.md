@@ -40,5 +40,5 @@ Methodology for creating, structuring and managing personal or collaborative wor
 
 - **Checkbox semantics**: Toggling a task checkbox marks the task status in the interface; it does not perform the underlying physical or computational work.
 - **Coherent updates**: Submitting a status change or adding a task must update summary metrics, the task list, and the natural-language summary together.
-- **External sync boundaries**: Generating or editing a task tracker in Vakyartha does not sync with external task managers (Asana, Trello, Jira, Todoist, Apple Reminders) unless an authorized integration tool confirms a verified receipt.
+- **External sync boundaries**: Generating or editing a local task tracker does not sync with another task system unless an authorized integration tool confirms a verified receipt.
 - **Notification limits**: Do not promise automated background reminders or push notifications unless a supported scheduling tool is configured.

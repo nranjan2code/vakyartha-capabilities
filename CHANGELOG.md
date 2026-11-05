@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add Task Planner, a local personal task app with quick capture, due-date calendar views, explicit repeat-after-completion, charts, and an optional task-planning skill. No model calls or external services are required.
+- Describe task tracking, day planning and meeting-action integrations generically, without naming external services.
+
 ## 1.1.0 (2026-11-04)
 
 - Release tests verify that noninteractive commands leave the current manifest, item versions and signatures unchanged at any catalog version.
