@@ -1,4 +1,4 @@
-import { condition, convert, fmt, label, localNow, measure, number, stale, unit, type Dataset, type Kind, type Units } from './data.ts';
+import { compass, condition, convert, fmt, glyph, label, localNow, measure, number, phase, sky, stale, unit, type Dataset, type Kind, type Units } from './data.ts';
 import { normalize, selected, type Location, type State } from './server.ts';
 
 interface Node { id: string; type: string; props?: Record<string, unknown>; children?: string[] | { each: string; template: string } }
@@ -13,11 +13,11 @@ const timeLabel = (t: string) => `${t.slice(5, 10)} ${t.slice(11, 16)}`;
 const csvCell = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 export function dailyRows(p: Location | undefined, units: Units) {
   const d = p?.readings.forecast;
-  return (d?.daily.time ?? []).map((t, i) => ({ date: String(t), day: humanDate(String(t)), condition: condition(v(d, 'weather_code', i, true)), low: convert(v(d, 'temperature_2m_min', i, true), 'temperature', units), high: convert(v(d, 'temperature_2m_max', i, true), 'temperature', units), rain: convert(v(d, 'precipitation_sum', i, true), 'rain', units), chance: number(v(d, 'precipitation_probability_max', i, true)), wind: convert(v(d, 'wind_speed_10m_max', i, true), 'wind', units), uv: number(v(d, 'uv_index_max', i, true)), sunrise: v(d, 'sunrise', i, true) ?? 'Unavailable', sunset: v(d, 'sunset', i, true) ?? 'Unavailable' }));
+  return (d?.daily.time ?? []).map((t, i) => ({ date: String(t), day: humanDate(String(t)), condition: condition(v(d, 'weather_code', i, true)), low: convert(v(d, 'temperature_2m_min', i, true), 'temperature', units), high: convert(v(d, 'temperature_2m_max', i, true), 'temperature', units), rain: convert(v(d, 'precipitation_sum', i, true), 'rain', units), chance: number(v(d, 'precipitation_probability_max', i, true)), wind: convert(v(d, 'wind_speed_10m_max', i, true), 'wind', units), uv: number(v(d, 'uv_index_max', i, true)), glyph: glyph(v(d, 'weather_code', i, true)), sunrise: v(d, 'sunrise', i, true) ?? 'Unavailable', sunset: v(d, 'sunset', i, true) ?? 'Unavailable' }));
 }
 export function hourlyRows(p: Location | undefined, s: State, now: string) {
   const d = p?.readings.conditions, cutoff = p ? localNow(d?.timezone ?? p.timezone, now).slice(0, 13) + ':00' : '';
-  return (d?.hourly.time ?? []).flatMap((t, i) => typeof t !== 'string' || t < cutoff ? [] : [{ time: t, label: timeLabel(t), temperature: convert(v(d, 'temperature_2m', i), 'temperature', s.units), feels: convert(v(d, 'apparent_temperature', i), 'temperature', s.units), chance: number(v(d, 'precipitation_probability', i)), rain: convert(v(d, 'precipitation', i), 'rain', s.units), wind: convert(v(d, 'wind_speed_10m', i), 'wind', s.units), windMetric: number(v(d, 'wind_speed_10m', i)), daylight: v(d, 'is_day', i) === 1, condition: condition(v(d, 'weather_code', i)) }]);
+  return (d?.hourly.time ?? []).flatMap((t, i) => typeof t !== 'string' || t < cutoff ? [] : [{ time: t, label: timeLabel(t), temperature: convert(v(d, 'temperature_2m', i), 'temperature', s.units), feels: convert(v(d, 'apparent_temperature', i), 'temperature', s.units), chance: number(v(d, 'precipitation_probability', i)), rain: convert(v(d, 'precipitation', i), 'rain', s.units), wind: convert(v(d, 'wind_speed_10m', i), 'wind', s.units), windMetric: number(v(d, 'wind_speed_10m', i)), daylight: v(d, 'is_day', i) === 1, condition: condition(v(d, 'weather_code', i)), glyph: glyph(v(d, 'weather_code', i), v(d, 'is_day', i) !== 0) }]);
 }
 export function windows(p: Location | undefined, s: State, now: string) {
   if (!p || stale(p.readings.conditions, now) || p.errors.conditions) return [];
@@ -58,6 +58,7 @@ export function programme(p: Location | undefined, s: State, now: string) {
   return { title: 'Weather Desk', badge: stale(d, now) ? 'Saved / needs refresh' : 'Modelled forecast', segments: parts };
 }
 function build(surface: string, data: Record<string, unknown>, content: (b: Builder) => string[], warning: string, source = SOURCE): Update {
+  // Every view sits on the selected place's sky; facts stay in the content.
   const nodes: Node[] = [];
   const b: Builder = {
     node(id, type, props = {}, children) { nodes.push({ id, type, props, ...(children ? { children } : {}) }); return id; },
@@ -68,7 +69,7 @@ function build(surface: string, data: Record<string, unknown>, content: (b: Buil
   const children = content(b);
   if (warning) children.unshift(b.node('read-warning', 'alert', { title: 'Latest read needs attention', body: warning, tone: 'warning' }));
   children.push(b.text('source-caption', source, 'caption'));
-  nodes.unshift({ id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children });
+  nodes.unshift({ id: 'root', type: 'scene', props: { sky: '{/scene/sky}', phase: '{/scene/phase}', label: '{/scene/label}', gap: 'md', density: 'compact' }, children });
   return { surface, nodes, data: [{ op: 'replace', path: '/', value: data }] };
 }
 interface Builder {
@@ -78,42 +79,80 @@ interface Builder {
   table(id: string, title: string, path: string, fields: string[], columns: string[]): string;
 }
 const empty = (b: Builder, message: string) => [b.text('empty', message), b.button('choose-place', 'Choose a place', 'view.open', { surface: 'places' })];
-function chart(b: Builder, id: string, title: string, path: string, fields: string[], _names: string[], kind = 'line') {
-  return b.node(id, 'chart', { kind, title, series: { records: `{/${path}}`, label: 'label', fields }, height: 'md', yScale: 'zero' });
+function chart(b: Builder, id: string, title: string, path: string, fields: string[], names: string[], kind = 'line') {
+  // Temperatures and indexes read best fitted to their range; bars keep zero.
+  return b.node(id, 'chart', { kind, title, series: { records: `{/${path}}`, label: 'label', fields, names }, height: 'md', yScale: kind === 'line' ? 'auto' : 'zero' });
 }
+// A scrolling row of hours: time, symbol, temperature, rain chance.
+const hourStrip = (b: Builder, id: string, path: string) => b.node(id, 'stack', { direction: 'horizontal', scroll: true, gap: 'sm' }, { each: path, template: b.node(`${id}-hour`, 'stack', { gap: 'sm', align: 'center' }, [b.text(`${id}-time`, '{hour}', 'caption'), b.node(`${id}-icon`, 'icon', { name: '{glyph}', size: 'lg', label: '{condition}' }), b.text(`${id}-temp`, '{tempText}'), b.text(`${id}-rain`, '{chanceText}', 'caption')]) });
+// Aligned day rows on one shared temperature scale.
+const dayList = (b: Builder, id: string, path: string) => b.node(id, 'stack', { gap: 'sm' }, { each: path, template: b.node(`${id}-day`, 'rangebar', { label: '{label}', icon: '{glyph}', note: '{chanceText}', low: '{low}', high: '{high}', min: '{min}', max: '{max}', marker: '{marker}', lowLabel: '{lowText}', highLabel: '{highText}', palette: 'temperature' }) });
 export function view(input: unknown, now = new Date().toISOString()): Update[] {
   const s = normalize(input), p = selected(s), d = p?.readings.conditions, f = p?.readings.forecast, a = p?.readings.air;
   const warning = (kinds: Kind[]) => p ? kinds.flatMap(k => p.errors[k] ? [`${k}: ${p.errors[k]}`] : []).join(' ') : '';
   const hours = hourlyRows(p, s, now), days = dailyRows(p, s.units), matches = windows(p, s, now);
   const currentDay = days.find(day => day.date === localNow(p?.timezone ?? 'UTC', now).slice(0, 10));
   const tempUnit = unit('temperature', s.units), windUnit = unit('wind', s.units), rainUnit = unit('rain', s.units);
-  const common = { place: p ? label(p) : 'No place selected', summary: summary(p, s, now), freshness: freshness(p, now), selected: s.selected, placeOptions: s.locations.map(p => ({ value: p.id, label: p.name })), spoken: { programme: programme(p, s, now) } };
+  const localTime = localNow(d?.timezone ?? p?.timezone ?? 'UTC', now);
+  const scene = { sky: sky(v(d, 'weather_code')), phase: phase(localTime, v(f, 'sunrise', f?.daily.time?.indexOf(localTime.slice(0, 10)), true), v(f, 'sunset', f?.daily.time?.indexOf(localTime.slice(0, 10)), true), v(d, 'is_day')), label: '' };
+  scene.label = p && d ? `${condition(v(d, 'weather_code'))}, ${scene.phase} in ${p.name}` : 'Weather Desk';
+  const common = { place: p ? label(p) : 'No place selected', summary: summary(p, s, now), freshness: freshness(p, now), selected: s.selected, placeOptions: s.locations.map(p => ({ value: p.id, label: p.name })), spoken: { programme: programme(p, s, now) }, scene };
+  const deg = (n: number | null) => n === null ? '–' : `${Math.round(n)}°`;
+  // One shared scale for every range row, so a warm day reads warmer than a cool one.
+  const ranged = (rows: typeof days, marker: number | null) => {
+    const lows = rows.flatMap(r => r.low ?? []), highs = rows.flatMap(r => r.high ?? []);
+    const lo = Math.min(...lows, ...(marker === null ? [] : [marker])), hi = Math.max(...highs, ...(marker === null ? [] : [marker]));
+    const min = Number.isFinite(lo) ? Math.floor(lo) : 0, max = Number.isFinite(hi) ? Math.ceil(hi) : 1;
+    return rows.map(r => ({ ...r, min, max, marker: r === currentDay ? marker : null, label: r === currentDay ? 'Today' : r.day.slice(0, 3), lowText: deg(r.low), highText: deg(r.high), chanceText: r.chance === null || r.chance < 10 ? '' : `${Math.round(r.chance)}%` }));
+  };
+  const nowTemp = convert(v(d, 'temperature_2m'), 'temperature', s.units);
+  const strip = (rows: typeof hours) => rows.map((h, i) => ({ ...h, hour: i === 0 ? 'Now' : h.time.slice(11, 16), tempText: deg(h.temperature), chanceText: h.chance === null || h.chance < 10 ? '' : `${Math.round(h.chance)}%` }));
+  const windDir = compass(v(d, 'wind_direction_10m'));
   const stats = [
-    { label: 'Temperature', value: measure(v(d, 'temperature_2m'), 'temperature', s.units) }, { label: 'Feels like', value: measure(v(d, 'apparent_temperature'), 'temperature', s.units) },
-    { label: 'Humidity', value: fmt(v(d, 'relative_humidity_2m'), '%') }, { label: 'Wind', value: measure(v(d, 'wind_speed_10m'), 'wind', s.units) },
+    { label: 'Feels like', icon: 'thermometer', value: measure(v(d, 'apparent_temperature'), 'temperature', s.units) },
+    { label: 'Humidity', icon: 'droplet', value: fmt(v(d, 'relative_humidity_2m'), '%') },
+    { label: 'Wind', icon: 'wind', value: `${measure(v(d, 'wind_speed_10m'), 'wind', s.units)}${windDir && number(v(d, 'wind_speed_10m')) !== null ? ` ${windDir}` : ''}` },
+    { label: 'Gusts', icon: 'wind', value: measure(v(d, 'wind_gusts_10m'), 'wind', s.units) },
+    ...(currentDay ? [
+      { label: 'Rain chance', icon: 'umbrella', value: fmt(currentDay.chance, '%') },
+      { label: 'Precipitation today', icon: 'droplet', value: fmt(currentDay.rain, rainUnit, s.units === 'metric' ? 1 : 2) },
+      { label: 'UV maximum', icon: 'uv', value: fmt(currentDay.uv, '', 1) },
+      { label: 'Sunrise', icon: 'sunrise', value: String(currentDay.sunrise).slice(11, 16) || 'Unavailable' },
+      { label: 'Sunset', icon: 'sunset', value: String(currentDay.sunset).slice(11, 16) || 'Unavailable' },
+    ] : []),
+    ...(a ? [{ label: 'US AQI', icon: 'leaf', value: fmt(v(a, 'us_aqi')) }] : []),
   ];
+  const hero = { glyph: glyph(v(d, 'weather_code'), v(d, 'is_day') !== 0) || 'thermometer', condition: condition(v(d, 'weather_code')), temp: measure(v(d, 'temperature_2m'), 'temperature', s.units), line: [`Feels like ${measure(v(d, 'apparent_temperature'), 'temperature', s.units)}`, ...(currentDay ? [`High ${fmt(currentDay.high, tempUnit)}`, `Low ${fmt(currentDay.low, tempUnit)}`] : [])].join(' · '), region: p ? [p.admin1, p.country].filter(Boolean).join(', ') : '' };
+  const upcoming = days.filter(r => r.date >= localTime.slice(0, 10));
   const forecastCSV = [['place', 'timezone', 'date', `low_${tempUnit}`, `high_${tempUnit}`, `precipitation_${rainUnit}`, 'precipitation_probability_percent', `wind_max_${windUnit}`, 'uv_index_max', 'condition', 'retrieved_at_utc', 'source'], ...days.map(r => [p ? label(p) : '', f?.timezone, r.date, r.low, r.high, r.rain, r.chance, r.wind, r.uv, r.condition, f?.at, 'https://open-meteo.com/'])].map(row => row.map(csvCell).join(',')).join('\r\n');
-  const today = build('today', { ...common, stats, hours: hours.slice(0, 24), details: currentDay ? [{ label: 'Low / high', value: `${fmt(currentDay.low, tempUnit)} / ${fmt(currentDay.high, tempUnit)}` }, { label: 'Rain chance', value: fmt(currentDay.chance, '%') }, { label: 'Daily precipitation', value: fmt(currentDay.rain, rainUnit, 2) }, { label: 'UV maximum', value: fmt(currentDay.uv, '', 1) }, { label: 'Sunrise', value: String(currentDay.sunrise).replace('T', ' ') }, { label: 'Sunset', value: String(currentDay.sunset).replace('T', ' ') }] : [],
+  const today = build('today', { ...common, hero, stats, hours: hours.slice(0, 24), strip: strip(hours.slice(0, 24)), dayRanges: ranged(upcoming.slice(0, 10), nowTemp), dayTitle: `${Math.min(10, upcoming.length)}-day forecast`,
     authorRequest: `Use Weather Desk's read-only get_weather tool for placeId ${p?.id ?? '(choose a place first)'}. Explain the saved forecast, its source times, missing values and practical weather considerations. Follow the weather skill. Do not invent warnings, current readings or air quality scales. Any fresh external read uses the normal integration permissions.` }, b => {
     if (!p) return empty(b, common.summary);
-    const children = [b.node('place-heading', 'section', { title: common.place, description: common.freshness }, [b.text('summary', '{/summary}')])];
-    if (!d) { children.push(b.text('await-refresh', 'This place is saved. Use Refresh in the header to read current conditions, its daily forecast and optional air quality.')); return children; }
-    children.push(b.node('metrics', 'grid', { columns: 'auto', gap: 'sm' }, { each: '/stats', template: b.node('metric', 'stat', { label: '{label}', value: '{value}' }) }));
-    if (currentDay) children.push(b.node('today-details', 'section', { title: `Local day · ${humanDate(currentDay.date)}`, description: `${when(f)}${stale(f, now) || p.errors.forecast ? ' · Needs refresh' : ''}` }, [b.node('day-figures', 'grid', { columns: 'auto', gap: 'sm' }, { each: '/details', template: b.node('day-figure', 'stat', { label: '{label}', value: '{value}' }) })]));
-    if (hours.length && hours.slice(0, 24).every(h => h.temperature !== null && h.feels !== null)) children.push(chart(b, 'next-hours', `Next ${Math.min(24, hours.length)} available hours · ${tempUnit} · ${d.timezone}`, 'hours', ['temperature', 'feels'], ['Temperature', 'Feels like']));
+    if (!d) return [b.text('hero-place', p.name, 'heading'), b.text('await-refresh', 'This place is saved. Use Refresh in the header to read current conditions, its daily forecast and optional air quality.')];
+    const children = [b.node('hero', 'stack', { gap: 'sm' }, [
+      b.text('hero-place', p.name, 'heading'), ...(hero.region ? [b.text('hero-region', '{/hero/region}', 'caption')] : []),
+      b.node('hero-now', 'stack', { direction: 'horizontal', wrap: true, align: 'center', gap: 'lg' }, [b.node('hero-icon', 'icon', { name: '{/hero/glyph}', size: 'xl', motion: true, label: '{/hero/condition}' }), b.node('hero-temp', 'stat', { label: '{/hero/condition}', value: '{/hero/temp}', size: 'hero' })]),
+      b.text('hero-line', '{/hero/line}'), b.text('freshness', '{/freshness}', 'caption'),
+    ])];
+    if (hours.length) children.push(b.node('hours-section', 'section', { title: `Next ${Math.min(24, hours.length)} hours`, description: `Local time · ${d.timezone}` }, [hourStrip(b, 'today-strip', '/strip')]));
+    if (upcoming.length) children.push(b.node('days-section', 'section', { title: '{/dayTitle}', description: `${when(f)}${stale(f, now) || p.errors.forecast ? ' · Needs refresh' : ''}` }, [dayList(b, 'today-days', '/dayRanges'), b.button('all-days', 'All days and planning', 'view.open', { surface: 'forecast' }, 'link')]));
+    children.push(b.node('metrics', 'grid', { columns: 'auto', minItemWidth: 'sm', gap: 'sm', searchable: false }, { each: '/stats', template: b.node('metric', 'stat', { label: '{label}', value: '{value}', icon: '{icon}' }) }));
+    if (hours.length && hours.slice(0, 24).every(h => h.temperature !== null && h.feels !== null)) children.push(chart(b, 'next-hours', `Temperature and feels like · next ${Math.min(24, hours.length)} hours · ${tempUnit}`, 'hours', ['temperature', 'feels'], ['Temperature', 'Feels like']));
     else children.push(b.text('chart-missing', 'Hourly temperature chart unavailable: some readings are missing. Exact values remain in Forecast & planning.'));
     children.push(b.node('today-actions', 'stack', { direction: 'horizontal', wrap: true, gap: 'sm' }, [b.button('ask-weather', 'Ask about this forecast', 'assistant.compose', { path: 'authorRequest' }), b.button('manage-places', 'Manage places', 'view.open', { surface: 'places' })]));
     return children;
   }, warning(['conditions', 'forecast']));
-  const forecast = build('forecast', { ...common, hours, days, maxRain: s.maxRain, maxWind: s.maxWind, matches: matches.map(w => ({ ...w, start: w.start.replace('T', ' '), end: `through ${w.end.slice(11)} (hour start)`, wind: measure(w.wind, 'wind', s.units) })), export: { csv: forecastCSV } }, b => {
+  const forecast = build('forecast', { ...common, hours, days, strip: strip(hours), dayRanges: ranged(upcoming, nowTemp), maxRain: s.maxRain, maxWind: s.maxWind, matches: matches.map(w => ({ ...w, start: w.start.replace('T', ' '), end: `through ${w.end.slice(11)} (hour start)`, wind: measure(w.wind, 'wind', s.units) })), export: { csv: forecastCSV } }, b => {
     if (!p) return empty(b, 'Choose a saved place to plan around its forecast.');
     const tabs: string[] = [];
-    const dayPanel = [b.text('forecast-meta', `${p.name} · ${f?.timezone ?? p.timezone}. ${when(f)}. ${stale(f, now) || p.errors.forecast ? 'Daily forecast needs refresh.' : ''} Each row is a local calendar day; later days are less certain.`)];
+    const dayPanel = [b.text('forecast-meta', `${p.name} · ${f?.timezone ?? p.timezone}. ${when(f)}. ${stale(f, now) || p.errors.forecast ? 'Daily forecast needs refresh.' : ''} Each row is a local calendar day on one shared temperature scale; later days are less certain.`)];
+    if (upcoming.length) dayPanel.push(dayList(b, 'forecast-days', '/dayRanges'));
     if (days.length) { dayPanel.push(b.table('daily', 'Daily forecast · up to 16 days', 'days', ['day', 'condition', 'low', 'high', 'chance', 'rain', 'wind', 'uv'], ['Day', 'Conditions', `Low ${tempUnit}`, `High ${tempUnit}`, 'Rain %', `Precip. ${rainUnit}`, `Wind max ${windUnit}`, 'UV max']), b.button('export-forecast', 'Export daily forecast CSV', 'file.save', { name: 'weather-forecast', text: '/export/csv' })); }
     else dayPanel.push(b.text('daily-empty', 'No daily forecast yet. Use the header Refresh.'));
     tabs.push(b.node('daily-panel', 'section', { title: 'Daily' }, dayPanel));
     const hourPanel = [b.text('hourly-meta', `${when(d)}. ${stale(d, now) || p.errors.conditions ? 'Hourly forecast needs refresh. ' : ''}Up to 48 hours from the source read. Labels use ${d?.timezone ?? p.timezone}; gaps stay missing, and hours are not a continuous UTC axis.`)];
     if (hours.length) {
+      hourPanel.push(hourStrip(b, 'forecast-strip', '/strip'));
       if (hours.every(h => h.temperature !== null && h.feels !== null)) hourPanel.push(chart(b, 'hourly-temp', `Hourly temperature · ${tempUnit}`, 'hours', ['temperature', 'feels'], ['Temperature', 'Feels like']));
       else hourPanel.push(b.text('temp-chart-missing', 'Temperature chart unavailable because readings are missing; inspect the exact values below.'));
       if (hours.every(h => h.chance !== null)) hourPanel.push(chart(b, 'hourly-rain', 'Hourly precipitation probability · %', 'hours', ['chance'], ['Precipitation probability'], 'bar'));
@@ -129,21 +168,30 @@ export function view(input: unknown, now = new Date().toISOString()): Update[] {
   }, warning(['conditions', 'forecast']));
   const airRows = (a?.hourly.time ?? []).map((t, i) => ({ time: t, label: timeLabel(String(t)), us: number(v(a, 'us_aqi', i)), eu: number(v(a, 'european_aqi', i)), pm25: number(v(a, 'pm2_5', i)), pm10: number(v(a, 'pm10', i)), no2: number(v(a, 'nitrogen_dioxide', i)), ozone: number(v(a, 'ozone', i)) }));
   const airStats = AIR_STATS.map(([name, field]) => ({ label: name, value: fmt(v(a, field), a?.currentUnits[field] === 'USAQI' || a?.currentUnits[field] === 'EAQI' ? '' : a?.currentUnits[field] ?? '') }));
-  const air = build('air', { ...common, airStats, airRows }, b => {
+  const us = number(v(a, 'us_aqi'));
+  // The US EPA category bands for the AQI value the source returned.
+  const band = us === null ? undefined : ([[50, 'Good', 'success'], [100, 'Moderate', 'warning'], [150, 'Unhealthy for sensitive groups', 'warning'], [200, 'Unhealthy', 'danger'], [300, 'Very unhealthy', 'danger'], [Infinity, 'Hazardous', 'danger']] as const).find(([top]) => us <= top);
+  const airHero = { value: fmt(us), category: band ? `${band[1]} · US EPA category` : 'Category unavailable', tone: band?.[2] ?? 'neutral', gauge: us ?? 0 };
+  const air = build('air', { ...common, airStats, airRows, airHero }, b => {
     if (!p) return empty(b, 'Choose a place to inspect modelled air quality.');
     const children = [b.text('air-context', `${label(p)}. ${sourceTime(a)}. ${when(a)}. ${stale(a, now) || p.errors.air ? 'Air quality needs a refresh. ' : ''}US AQI and European AQI are different scales; neither is a local national AQI. These are model estimates, not readings from a nearby sensor.`)];
     if (!a) return [...children, b.text('air-empty', 'No air quality saved. Enable air-quality refresh in Sources & preferences, then use Refresh.')];
-    children.push(b.node('air-stats', 'grid', { columns: 'auto', gap: 'sm' }, { each: '/airStats', template: b.node('air-stat', 'stat', { label: '{label}', value: '{value}' }) }));
+    children.unshift(b.node('air-hero', 'stack', { direction: 'horizontal', wrap: true, align: 'center', gap: 'lg' }, [b.node('air-now', 'stat', { label: 'US AQI', value: '{/airHero/value}', size: 'hero', icon: 'leaf' }), ...(us === null ? [] : [b.node('air-gauge', 'progress', { kind: 'gauge', value: '{/airHero/gauge}', max: 300, label: '{/airHero/category}', tone: '{/airHero/tone}', show: 'value' })])]));
+    children.push(b.node('air-stats', 'grid', { columns: 'auto', minItemWidth: 'sm', gap: 'sm', searchable: false }, { each: '/airStats', template: b.node('air-stat', 'stat', { label: '{label}', value: '{value}', icon: 'leaf' }) }));
     if (airRows.length && airRows.every(h => h.us !== null)) children.push(chart(b, 'air-chart', `US AQI · ${a.timezone} · available hourly estimates`, 'airRows', ['us'], ['US AQI']));
     else children.push(b.text('air-chart-missing', 'Air quality chart unavailable because readings are missing; inspect the exact values below.'));
     children.push(b.table('air-values', 'Hourly air quality · source units', 'airRows', ['time', 'us', 'eu', 'pm25', 'pm10', 'no2', 'ozone'], ['Local time', 'US AQI', 'European AQI', `PM2.5 ${a.hourlyUnits.pm2_5 ?? ''}`, `PM10 ${a.hourlyUnits.pm10 ?? ''}`, `NO₂ ${a.hourlyUnits.nitrogen_dioxide ?? ''}`, `Ozone ${a.hourlyUnits.ozone ?? ''}`]));
     return children;
   }, warning(['air']));
-  const placesView = build('places', { ...common, search: s.search, candidates: s.candidates.map(p => ({ ...p, title: label(p), meta: `${p.latitude}, ${p.longitude} · ${p.timezone}` })), saved: s.locations.map(p => ({ id: p.id, title: label(p), meta: `${p.id === s.selected ? 'Selected · ' : ''}${sourceTime(p.readings.conditions)} · ${stale(p.readings.conditions, now) || p.errors.conditions ? 'Needs refresh' : 'Recent read'}`, value: measure(v(p.readings.conditions, 'temperature_2m'), 'temperature', s.units), body: condition(v(p.readings.conditions, 'weather_code')) })), removeId: s.removeId }, b => {
+  const placesView = build('places', { ...common, search: s.search, candidates: s.candidates.map(p => ({ ...p, title: label(p), meta: `${p.latitude}, ${p.longitude} · ${p.timezone}` })), saved: s.locations.map(p => ({ id: p.id, name: p.name, glyph: glyph(v(p.readings.conditions, 'weather_code'), v(p.readings.conditions, 'is_day') !== 0) || 'pin', sky: sky(v(p.readings.conditions, 'weather_code')), phase: phase(localNow(p.readings.conditions?.timezone ?? p.timezone, now), null, null, v(p.readings.conditions, 'is_day')), title: label(p), meta: `${p.id === s.selected ? 'Selected · ' : ''}${sourceTime(p.readings.conditions)} · ${stale(p.readings.conditions, now) || p.errors.conditions ? 'Needs refresh' : 'Recent read'}`, value: measure(v(p.readings.conditions, 'temperature_2m'), 'temperature', s.units), body: condition(v(p.readings.conditions, 'weather_code')) })), removeId: s.removeId }, b => {
     const children = [b.node('search-place', 'section', { title: 'Your places', description: 'Keep up to five places. Search results are never selected automatically. Saving a place is local; Refresh reads all saved places (up to 15 governed calls).' }, [b.node('search-bar', 'stack', { direction: 'horizontal', wrap: true, gap: 'sm', align: 'end' }, [b.node('place-search', 'input', { label: 'City or postal code', bind: '/search', placeholder: 'Search for a place' }), b.button('search-button', 'Search places', 'search_places'), b.button('dictate-place', 'Dictate place', 'voice.dictate', { into: 'place-search' })])])];
     if (s.candidates.length) children.push(b.node('candidate-grid', 'grid', { columns: 'auto', pageSize: 4, searchable: true }, { each: '/candidates', template: b.node('candidate', 'card', { title: '{title}', subtitle: '{meta}' }, [b.button('save-place', 'Save this place', 'save_place', { id: '{id}' }, 'primary')]) }));
     else if (s.searched) children.push(b.text('search-empty', 'No matching places. Try the city name or a nearby city.'));
-    if (s.locations.length) children.push(b.node('saved-grid', 'grid', { columns: 'auto', pageSize: 5 }, { each: '/saved', template: b.node('saved-place', 'card', { title: '{title}', subtitle: '{meta}', body: '{body}', badge: '{value}' }, [b.node('saved-actions', 'stack', { direction: 'horizontal', wrap: true, gap: 'sm' }, [b.button('open-place', 'Open weather', 'open_place', { id: '{id}' }), b.button('remove-request', 'Remove', 'ask_remove', { id: '{id}' }, 'link')])]) }));
+    // Each saved place sits on its own sky, so the list reads at a glance.
+    if (s.locations.length) children.push(b.node('saved-grid', 'grid', { columns: 'auto', minItemWidth: 'md', pageSize: 5 }, { each: '/saved', template: b.node('saved-place', 'scene', { size: 'tile', sky: '{sky}', phase: '{phase}', label: '{title}', gap: 'sm' }, [
+      b.node('saved-head', 'stack', { direction: 'horizontal', wrap: true, align: 'center', gap: 'md' }, [b.node('saved-icon', 'icon', { name: '{glyph}', size: 'lg', label: '{body}' }), b.node('saved-now', 'stat', { label: '{name}', value: '{value}' })]),
+      b.text('saved-body', '{body}'), b.text('saved-meta', '{meta}', 'caption'),
+      b.node('saved-actions', 'stack', { direction: 'horizontal', wrap: true, gap: 'sm' }, [b.button('open-place', 'Open weather', 'open_place', { id: '{id}' }), b.button('remove-request', 'Remove', 'ask_remove', { id: '{id}' }, 'link')])]) }));
     if (s.removeId) children.push(b.node('remove-review', 'section', { title: `Remove ${s.locations.find(p => p.id === s.removeId)?.name}?`, description: 'This removes this place and all its saved datasets. Past source receipts remain until they age out of the 40-entry ledger.' }, [b.node('remove-actions', 'stack', { direction: 'horizontal', gap: 'sm' }, [b.button('remove-confirm', 'Remove place', 'remove_place', { id: s.removeId }, 'danger'), b.button('remove-cancel', 'Keep place', 'cancel_remove')])]));
     return children;
   }, '');

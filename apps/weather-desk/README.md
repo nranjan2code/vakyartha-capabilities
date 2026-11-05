@@ -10,12 +10,14 @@ Open **Places**, type or dictate a city/postal code, choose the right result, an
 
 | View | Implemented behavior |
 | --- | --- |
-| Today | Current model estimates, temperature/feels-like/humidity/wind, the current local day's range/precipitation/UV/sun times and a 24-hour temperature plot when values are complete. An explicit assistant button opens the shared inert studio to discuss saved facts. |
-| Forecast & planning | Up to 16 local days, a 48-hour temperature and precipitation-probability view, exact paged tables, explicit daily CSV export, and daylight runs matching the person's rain/wind limits. |
-| Air quality | Separate US and European AQI, modelled pollutants, exact hourly values and a US AQI chart when complete. These scales are never presented as a national local AQI or sensor reading. |
-| Places | Bounded search, explicit save/open, five-place overview and reviewed two-step removal. |
+| Today | A live sky for the place's current condition and time of day; a hero with the condition symbol, temperature, feels-like and high/low; a 24-hour scrolling strip; 10 days on one shared temperature scale; detail tiles (feels like, humidity, wind and direction, gusts, rain chance, precipitation, UV, sunrise, sunset, US AQI) and a 24-hour temperature plot when values are complete. An explicit assistant button opens the shared inert studio to discuss saved facts. |
+| Forecast & planning | Up to 16 local days as aligned range rows, a 48-hour strip, a 48-hour temperature and precipitation-probability view, exact paged tables, explicit daily CSV export, and daylight runs matching the person's rain/wind limits. |
+| Air quality | The US AQI with its US EPA category gauge, separate US and European AQI, modelled pollutants, exact hourly values and a US AQI chart when complete. These scales are never presented as a national local AQI or sensor reading. |
+| Places | Bounded search, explicit save/open, five-place overview with each place on its own live sky and reviewed two-step removal. |
 | Explore | Explicit past reanalysis (1940 onward, 1–31 days ending before local today), 48 marine source hours and seven river-discharge days. Latest successful range remains visible after a failed read. |
 | Sources & preferences | Unit preference, optional air refresh, core freshness and the last 40 source-read receipts. |
+
+Motion is gentle and stops with the system's reduced-motion setting. The sky and symbols are decoration from saved source fields; every value is also in text.
 
 Listen and Watch use one programme derived from those same records: current estimate, up to three forecast days, air-quality attribution, source times and caveats. The host owns the voice picker, synthesis, playback, captions, Watch stage and stop controls. Real voice quality and microphone operation require a separate listening check. Dictating a place uses the host's normal voice settings. Opening the assistant never sends; explicit Send uses the existing skills/provider/tool approvals and FinOps pipeline. App code has no model capability.
 

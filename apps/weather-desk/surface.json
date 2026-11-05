@@ -5,8 +5,11 @@
     "nodes": [
       {
         "id": "root",
-        "type": "stack",
+        "type": "scene",
         "props": {
+          "sky": "{/scene/sky}",
+          "phase": "{/scene/phase}",
+          "label": "{/scene/label}",
           "gap": "md",
           "density": "compact"
         },
@@ -75,26 +78,44 @@
           ]
         }
       },
+      "scene": {
+        "sky": "clear",
+        "phase": "day",
+        "label": "Weather Desk"
+      },
+      "hero": {
+        "glyph": "thermometer",
+        "condition": "Condition unavailable",
+        "temp": "Unavailable",
+        "line": "Feels like Unavailable",
+        "region": ""
+      },
       "stats": [
         {
-          "label": "Temperature",
-          "value": "Unavailable"
-        },
-        {
           "label": "Feels like",
+          "icon": "thermometer",
           "value": "Unavailable"
         },
         {
           "label": "Humidity",
+          "icon": "droplet",
           "value": "Unavailable"
         },
         {
           "label": "Wind",
+          "icon": "wind",
+          "value": "Unavailable"
+        },
+        {
+          "label": "Gusts",
+          "icon": "wind",
           "value": "Unavailable"
         }
       ],
       "hours": [],
-      "details": [],
+      "strip": [],
+      "dayRanges": [],
+      "dayTitle": "0-day forecast",
       "authorRequest": "Use Weather Desk's read-only get_weather tool for placeId (choose a place first). Explain the saved forecast, its source times, missing values and practical weather considerations. Follow the weather skill. Do not invent warnings, current readings or air quality scales. Any fresh external read uses the normal integration permissions."
     }
   },
@@ -104,8 +125,11 @@
     "nodes": [
       {
         "id": "root",
-        "type": "stack",
+        "type": "scene",
         "props": {
+          "sky": "{/scene/sky}",
+          "phase": "{/scene/phase}",
+          "label": "{/scene/label}",
           "gap": "md",
           "density": "compact"
         },
@@ -174,8 +198,15 @@
           ]
         }
       },
+      "scene": {
+        "sky": "clear",
+        "phase": "day",
+        "label": "Weather Desk"
+      },
       "hours": [],
       "days": [],
+      "strip": [],
+      "dayRanges": [],
       "maxRain": 30,
       "maxWind": 25,
       "matches": [],
@@ -190,8 +221,11 @@
     "nodes": [
       {
         "id": "root",
-        "type": "stack",
+        "type": "scene",
         "props": {
+          "sky": "{/scene/sky}",
+          "phase": "{/scene/phase}",
+          "label": "{/scene/label}",
           "gap": "md",
           "density": "compact"
         },
@@ -260,6 +294,11 @@
           ]
         }
       },
+      "scene": {
+        "sky": "clear",
+        "phase": "day",
+        "label": "Weather Desk"
+      },
       "airStats": [
         {
           "label": "US AQI",
@@ -278,7 +317,13 @@
           "value": "Unavailable"
         }
       ],
-      "airRows": []
+      "airRows": [],
+      "airHero": {
+        "value": "Unavailable",
+        "category": "Category unavailable",
+        "tone": "neutral",
+        "gauge": 0
+      }
     }
   },
   {
@@ -287,8 +332,11 @@
     "nodes": [
       {
         "id": "root",
-        "type": "stack",
+        "type": "scene",
         "props": {
+          "sky": "{/scene/sky}",
+          "phase": "{/scene/phase}",
+          "label": "{/scene/label}",
           "gap": "md",
           "density": "compact"
         },
@@ -393,6 +441,11 @@
           ]
         }
       },
+      "scene": {
+        "sky": "clear",
+        "phase": "day",
+        "label": "Weather Desk"
+      },
       "search": "",
       "candidates": [],
       "saved": [],
@@ -405,8 +458,11 @@
     "nodes": [
       {
         "id": "root",
-        "type": "stack",
+        "type": "scene",
         "props": {
+          "sky": "{/scene/sky}",
+          "phase": "{/scene/phase}",
+          "label": "{/scene/label}",
           "gap": "md",
           "density": "compact"
         },
@@ -475,6 +531,11 @@
           ]
         }
       },
+      "scene": {
+        "sky": "clear",
+        "phase": "day",
+        "label": "Weather Desk"
+      },
       "archive": [],
       "marine": [],
       "river": [],
@@ -488,8 +549,11 @@
     "nodes": [
       {
         "id": "root",
-        "type": "stack",
+        "type": "scene",
         "props": {
+          "sky": "{/scene/sky}",
+          "phase": "{/scene/phase}",
+          "label": "{/scene/label}",
           "gap": "md",
           "density": "compact"
         },
@@ -635,6 +699,11 @@
             }
           ]
         }
+      },
+      "scene": {
+        "sky": "clear",
+        "phase": "day",
+        "label": "Weather Desk"
       },
       "units": "metric",
       "includeAir": true,

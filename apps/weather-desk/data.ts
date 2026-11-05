@@ -111,3 +111,36 @@ export const unit = (kind: 'temperature' | 'wind' | 'rain', units: Units) => kin
 export const fmt = (v: unknown, suffix = '', digits = 0) => number(v) === null ? 'Unavailable' : `${(v as number).toFixed(digits)}${suffix ? ` ${suffix}` : ''}`;
 export const measure = (v: unknown, kind: 'temperature' | 'wind' | 'rain', units: Units) => fmt(convert(v, kind, units), unit(kind, units), kind === 'rain' ? units === 'metric' ? 1 : 2 : 0);
 export const stale = (d: Dataset | undefined, now: string) => !d || Date.parse(now) - Date.parse(d.at) > 2 * 3600_000 || Date.parse(d.at) > Date.parse(now) + 60_000;
+// Presentation only: which sky and symbol a WMO code reads as. Missing codes
+// stay missing (no symbol); the sky falls back to a plain clear backdrop so
+// the page never implies a condition the source did not give.
+export type Sky = 'clear' | 'partly-cloudy' | 'cloudy' | 'fog' | 'drizzle' | 'rain' | 'snow' | 'storm';
+export function sky(code: unknown): Sky {
+  const c = number(code);
+  if (c === null || c <= 1) return 'clear';
+  if (c === 2) return 'partly-cloudy';
+  if (c === 3) return 'cloudy';
+  if (c === 45 || c === 48) return 'fog';
+  if (c >= 51 && c <= 57) return 'drizzle';
+  if ((c >= 61 && c <= 67) || (c >= 80 && c <= 82)) return 'rain';
+  if ((c >= 71 && c <= 77) || c === 85 || c === 86) return 'snow';
+  return c >= 95 ? 'storm' : 'clear';
+}
+export function glyph(code: unknown, day = true): string {
+  const c = number(code);
+  if (c === null || codes[c] === undefined) return '';
+  if (c === 56 || c === 57 || c === 66 || c === 67) return 'sleet';
+  const s = sky(c);
+  return s === 'clear' ? day ? 'sun' : 'moon' : s === 'partly-cloudy' ? day ? 'cloud-sun' : 'cloud-moon' : s === 'cloudy' ? 'cloud' : s;
+}
+/** Dawn and dusk are the 45 minutes either side of the source's sunrise and sunset. */
+export function phase(local: string, sunrise: unknown, sunset: unknown, isDay: unknown): 'dawn' | 'day' | 'dusk' | 'night' {
+  const minutes = (t: unknown) => localStamp(t) ? Date.parse(t + 'Z') / 60000 : null;
+  const now = minutes(local), rise = minutes(sunrise), set = minutes(sunset);
+  if (now !== null && rise !== null && Math.abs(now - rise) <= 45) return 'dawn';
+  if (now !== null && set !== null && Math.abs(now - set) <= 45) return 'dusk';
+  if (number(isDay) !== null) return isDay === 1 ? 'day' : 'night';
+  return now !== null && rise !== null && set !== null ? now > rise && now < set ? 'day' : 'night' : 'day';
+}
+const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+export const compass = (deg: unknown) => number(deg) === null ? '' : COMPASS[Math.round(((deg as number) % 360) / 45) % 8]!;
