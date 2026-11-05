@@ -14,6 +14,10 @@ export async function saveHistory(db: Database, symbol: string, bars: Bar[]) {
     await db.run('COMMIT');
   } catch (e) { await db.run('ROLLBACK'); throw e; }
 }
+/** The saved daily bars for one symbol, oldest first. */
+export async function savedBars(db: Database, symbol: string): Promise<Bar[]> {
+  return (await db.query('SELECT date,open,high,low,close,volume FROM prices WHERE symbol=? ORDER BY date', [symbol])) as unknown as Bar[];
+}
 export async function analyze(db: Database, symbol: string) {
   const rows = await db.query(`WITH ordered AS (
     SELECT *, lag(close) OVER (ORDER BY date) AS prior_close,

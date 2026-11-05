@@ -14,8 +14,9 @@
 
 ```text
 field edit (batched by host) → handleAction(bindPath) → save draft or filter → render
-Refresh / trigger → all indices + movers + mood + bulk closes + ≤12 live quotes → checkAlerts → recordIntraday (market hours) → receipts, problem → render
-Analyse / Open → quote + history chunks (DuckDB transaction) + 52-week + vs benchmark + actions + volume + News Desk → render (focus Instrument)
+Refresh / trigger → all indices + movers + mood + bulk closes + ≤12 live quotes, read together → checkAlerts → recordIntraday (market hours) → receipts, problem → render
+Open → research saved today for this window → render (focus Instrument), no reads; otherwise as Analyse
+Analyse → quote + history (latest month merged into a saved window that still covers it, else chunks; DuckDB transaction) + 52-week, vs benchmark, actions, volume (each reused when read earlier the same India day; vs benchmark also by benchmark and window) + News Desk, read together → render (focus Instrument)
 Refresh movers / Explore / Compare / Search / Add watch / Save holding → their reads → render
 render → analyze(prices, symbol) → view(state, analysis) → 8 updates (nodes + whole data)
 registry → lint, apply on the previous snapshot, commit state + database + surfaces atomically
@@ -70,7 +71,7 @@ Portfolio, alert, watchlist and index drafts and the movers period use the relev
 
 ## Interaction and refresh cost
 
-The shared Apps host retains its header and assistant dock across view changes and reconciles only changed canonical views after actions or background refresh. Local search and paging stay in the surface. Field handlers save normalized drafts without external reads. Return all views affected by a domain change, including spoken projections. Prefer a focused update for a draft with no other consumers and preserve saved computed values. Keep SQL and source calls for operations that need them. Each app retains its own contained worker across successful commands. Keep running controls hosted scheduling and restart eligibility. Durable state belongs in host checkpoints. Measure saved-data clicks, draft saves, source refresh and cold open separately before claiming a latency improvement.
+The shared Apps host retains its header and assistant dock across view changes and reconciles only changed canonical views after actions or background refresh. Local search and paging stay in the surface. Field handlers save normalized drafts without external reads. Return all views affected by a domain change, including spoken projections. Prefer a focused update for a draft with no other consumers and preserve saved computed values. Keep SQL and source calls for operations that need them. Each app retains its own contained worker across successful commands. Keep running controls hosted scheduling and restart eligibility. Durable state belongs in host checkpoints. Measure saved-data clicks, draft saves, source refresh and cold open separately before claiming a latency improvement. Independent reads start together (the host keeps four in flight), so a market refresh takes about its slowest read rather than their sum; Open of a symbol researched today makes no read (`savedForToday`), and the daily sources are kept for the India day.
 
 ## 3.4.7 criteria and accepted results
 

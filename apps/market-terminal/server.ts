@@ -4,7 +4,7 @@
 // `view()` (views.ts) derives every surface from those two owners on each run, and
 // a failed read is recorded, never filled in. A run allows 16 governed tool calls,
 // so each action reads only what its view needs.
-import { initialize, saveHistory, analyze, type Database, type Bar } from './analytics.ts';
+import { initialize, saveHistory, savedBars, analyze, type Database, type Bar } from './analytics.ts';
 import {
   active as parseActive, allIndices, bulk, compareIndices, corporateActions, decode, historyChunk, indexHistory, indexMovers, indexNames,
   indexPerformance, mood as parseMood, movers as parseMovers, quote, range52, search as parseSearch, valuation, versus, volumeProfile,
@@ -23,7 +23,7 @@ export type Movers = ReturnType<typeof parseMovers>;
 export type Mood = ReturnType<typeof parseMood>;
 export interface Research {
   range?: ReturnType<typeof range52>; versus?: ReturnType<typeof versus>; actions?: ReturnType<typeof corporateActions>;
-  volume?: ReturnType<typeof volumeProfile>; news?: { title: string; source: string; url: string; publishedAt: string | null; publishers: number }[]; window?: string; at?: string;
+  volume?: ReturnType<typeof volumeProfile>; news?: { title: string; source: string; url: string; publishedAt: string | null; publishers: number }[]; window?: string; at?: string; versusKey?: string;
 }
 export interface Intraday { day: string; series: Record<string, { t: string; v: number }[]> }
 export const INTRADAY_KEYS = ['NIFTY 50', 'NIFTY BANK', 'NIFTY NEXT 50', 'NIFTY MIDCAP 100', 'NIFTY SMLCAP 100', 'INDIA VIX'], MAX_POINTS = 400;
@@ -200,24 +200,26 @@ export const tracked = (s: State) => [...new Set([...s.watchlist!, ...s.holdings
 /** Indices, movers, breadth and every tracked quote; also the scheduled refresh. At most 16 reads. */
 export async function refreshMarket(ctx: Context) {
   const s = (ctx.state = normalize(ctx.state));
-  const failures: (string | undefined)[] = [];
-  failures.push(await read(ctx, 'nse-cmmkt__cm_get_live_indices', { group: 'all', nameFilter: '' }, 'all indices', (raw) => {
-    const r = allIndices(raw);
-    return { sourceAt: r.sourceAt, rows: r.rows.length, ...(r.dropped ? { status: `Validated with ${r.dropped} row(s) dropped. First: ${r.diagnostics[0]}` } : {}), commit() { s.indices = r.rows; } };
-  }));
-  failures.push(await readMovers(ctx));
-  failures.push(await read(ctx, 'nse__get_market_mood', { date: 'today' }, 'market mood', (raw) => {
-    const m = parseMood(raw);
-    return { sourceAt: `${m.date} (end of day)`, rows: m.benchmarks.length, commit() { s.mood = m; } };
-  }));
   const all = tracked(s), live = all.slice(0, LIVE_QUOTES), rest = all.slice(LIVE_QUOTES, LIVE_QUOTES + 50);
-  if (rest.length) failures.push(await read(ctx, 'nse__get_bulk_quote', { symbols: rest }, `${rest.length} closes`, (raw) => {
-    const closes = bulk(raw, rest);
-    return { sourceAt: `${Object.values(closes)[0]?.date ?? '—'} close`, rows: Object.keys(closes).length, commit() {
-      for (const c of Object.values(closes)) s.quotes![c.symbol] = { ...c, asOf: `${c.date} close`, basis: 'close', fetchedAt: new Date().toISOString() };
-    } };
-  }));
-  for (const symbol of live) failures.push(await readQuote(ctx, symbol));
+  // Independent reads run together; the host keeps a few in flight and admits each one.
+  const failures = await Promise.all([
+    read(ctx, 'nse-cmmkt__cm_get_live_indices', { group: 'all', nameFilter: '' }, 'all indices', (raw) => {
+      const r = allIndices(raw);
+      return { sourceAt: r.sourceAt, rows: r.rows.length, ...(r.dropped ? { status: `Validated with ${r.dropped} row(s) dropped. First: ${r.diagnostics[0]}` } : {}), commit() { s.indices = r.rows; } };
+    }),
+    readMovers(ctx),
+    read(ctx, 'nse__get_market_mood', { date: 'today' }, 'market mood', (raw) => {
+      const m = parseMood(raw);
+      return { sourceAt: `${m.date} (end of day)`, rows: m.benchmarks.length, commit() { s.mood = m; } };
+    }),
+    ...(rest.length ? [read(ctx, 'nse__get_bulk_quote', { symbols: rest }, `${rest.length} closes`, (raw) => {
+      const closes = bulk(raw, rest);
+      return { sourceAt: `${Object.values(closes)[0]?.date ?? '—'} close`, rows: Object.keys(closes).length, commit() {
+        for (const c of Object.values(closes)) s.quotes![c.symbol] = { ...c, asOf: `${c.date} close`, basis: 'close', fetchedAt: new Date().toISOString() };
+      } };
+    })] : []),
+    ...live.map((symbol) => readQuote(ctx, symbol)),
+  ]);
   checkAlerts(s);
   if (session().tone === 'success') recordIntraday(s);
   settle(s, failures);
@@ -241,13 +243,23 @@ export function checkAlerts(s: State) {
   s.triggered = fired;
 }
 
-async function fetchInstrument(ctx: Context) {
-  const s = ctx.state, symbol = s.symbol!, months = WINDOWS[s.months!]!;
-  await initialize(ctx.database);
-  const failures = [await readQuote(ctx, symbol)];
+/** Research read earlier the same India day is reused: daily sources publish once a day. */
+const sameDay = (at: string | undefined, now = Date.now()) => !!at && istDay(Date.parse(at)) === istDay(now);
+/** Open shows saved research without any read when it is from today for the chosen window. */
+export const savedForToday = (s: State, symbol: string) => {
+  const r = s.research![symbol];
+  return !!r && r.window === s.months && sameDay(r.at) && !!s.historyFor![symbol] && !!s.quotes![symbol];
+};
+const monthsAgo = (months: number) => { const d = new Date(); d.setUTCMonth(d.getUTCMonth() - months); return d.toISOString().slice(0, 10); };
+
+/** Daily history for the window. A saved window that still covers it only reads the latest month. */
+async function readHistory(ctx: Context, symbol: string, months: number, savedMonths: number) {
+  const s = ctx.state, saved = await savedBars(ctx.database, symbol), cutoff = monthsAgo(months);
+  const recent = saved.at(-1)?.date ?? '';
+  const incremental = saved.length > 0 && savedMonths >= months && recent >= new Date(Date.now() - 25 * 86400_000).toISOString().slice(0, 10) && recent > cutoff;
   // History arrives in chunks of up to three months; each chunk names the next older one.
-  const bars: Bar[] = [];
-  let end = 'today', remaining = months, chunkFailed: string | undefined;
+  const bars: Bar[] = incremental ? saved.filter((b) => b.date >= cutoff) : [];
+  let end = 'today', remaining = incremental ? 1 : months, chunkFailed: string | undefined;
   while (remaining > 0 && !chunkFailed) {
     const take = Math.min(3, remaining);
     let next: string | null = null;
@@ -259,38 +271,50 @@ async function fetchInstrument(ctx: Context) {
     if (!next) break;
     end = next;
   }
-  failures.push(chunkFailed);
-  if (bars.length) {
+  if (bars.length && !(incremental && chunkFailed)) {
     const merged = [...new Map(bars.map((b) => [b.date, b])).values()].sort((a, b) => a.date.localeCompare(b.date));
     await saveHistory(ctx.database, symbol, merged);
     s.historyFor![symbol] = `${merged[0]!.date} – ${merged.at(-1)!.date} · ${merged.length} sessions${chunkFailed ? ` · older history unavailable (${chunkFailed.replace(/^[^:]+: /, '')})` : ''}`;
   }
-  const r: Research = { ...(s.research![symbol] ?? {}), window: s.months, at: new Date().toISOString() };
-  const from = new Date(Date.now() - 2 * 365 * 86400_000).toISOString().slice(0, 10), today = new Date().toISOString().slice(0, 10);
-  failures.push(await read(ctx, 'nse__get_52_week_high_low', { symbol }, `${symbol} 52-week`, (raw) => { const v = range52(raw, symbol); return { sourceAt: `close ${v.close}`, rows: 1, commit() { r.range = v; } }; }));
-  failures.push(await read(ctx, 'nse__get_stock_vs_index', { symbol, indexName: s.benchmark, months: Math.max(3, months), date: 'today' }, `${symbol} vs ${s.benchmark}`, (raw) => { const v = versus(raw, symbol); return { sourceAt: `${v.from} – ${v.to}`, rows: v.observations, commit() { r.versus = v; } }; }));
-  failures.push(await read(ctx, 'nse__get_corporate_actions', { symbol, fromDate: from, toDate: today }, `${symbol} actions`, (raw) => { const v = corporateActions(raw, symbol); return { sourceAt: `${from} – ${today}`, rows: v.length, commit() { r.actions = v; } }; }));
-  failures.push(await read(ctx, 'nse__get_volume_analysis', { symbol, days: 30 }, `${symbol} volume`, (raw) => { const v = volumeProfile(raw, symbol); return { sourceAt: `${v.days} sessions`, rows: v.days, commit() { r.volume = v; } }; }));
-  // News is optional: a missing News Desk is noted in the ledger but is not a market failure.
-  await read(ctx, 'app-news-desk__get_latest_articles', { query: symbol, limit: 6 }, `${symbol} news`, (raw) => {
-    const stories = Array.isArray(raw.stories) ? raw.stories.slice(0, 6) : [];
-    const news = stories.flatMap((x) => { const o = obj(x); return o && typeof o.title === 'string' && typeof o.url === 'string' && /^https:\/\//.test(o.url) ? [{ title: o.title.slice(0, 240), source: str(o.source, 80), url: o.url, publishedAt: typeof o.publishedAt === 'string' ? o.publishedAt : null, publishers: Array.isArray(o.publishers) ? o.publishers.length : 1 }] : []; });
-    return { sourceAt: typeof raw.checkedAt === 'string' ? raw.checkedAt : 'News Desk', rows: news.length, commit() { r.news = news; } };
-  });
+  return chunkFailed;
+}
+
+async function fetchInstrument(ctx: Context) {
+  const s = ctx.state, symbol = s.symbol!, months = WINDOWS[s.months!]!;
+  await initialize(ctx.database);
+  const prior = s.research![symbol] ?? {}, today = sameDay(prior.at), versusKey = `${s.benchmark}:${Math.max(3, months)}`;
+  const r: Research = { ...prior, window: s.months, at: new Date().toISOString() };
+  const from = new Date(Date.now() - 2 * 365 * 86400_000).toISOString().slice(0, 10), until = new Date().toISOString().slice(0, 10);
+  const skip = Promise.resolve(undefined);
+  const failures = await Promise.all([
+    readQuote(ctx, symbol),
+    readHistory(ctx, symbol, months, WINDOWS[prior.window ?? ''] ?? 0),
+    today && prior.range ? skip : read(ctx, 'nse__get_52_week_high_low', { symbol }, `${symbol} 52-week`, (raw) => { const v = range52(raw, symbol); return { sourceAt: `close ${v.close}`, rows: 1, commit() { r.range = v; } }; }),
+    today && prior.versus && prior.versusKey === versusKey ? skip : read(ctx, 'nse__get_stock_vs_index', { symbol, indexName: s.benchmark, months: Math.max(3, months), date: 'today' }, `${symbol} vs ${s.benchmark}`, (raw) => { const v = versus(raw, symbol); return { sourceAt: `${v.from} – ${v.to}`, rows: v.observations, commit() { r.versus = v; r.versusKey = versusKey; } }; }),
+    today && prior.actions ? skip : read(ctx, 'nse__get_corporate_actions', { symbol, fromDate: from, toDate: until }, `${symbol} actions`, (raw) => { const v = corporateActions(raw, symbol); return { sourceAt: `${from} – ${until}`, rows: v.length, commit() { r.actions = v; } }; }),
+    today && prior.volume ? skip : read(ctx, 'nse__get_volume_analysis', { symbol, days: 30 }, `${symbol} volume`, (raw) => { const v = volumeProfile(raw, symbol); return { sourceAt: `${v.days} sessions`, rows: v.days, commit() { r.volume = v; } }; }),
+    // News is optional: a missing News Desk is noted in the ledger but is not a market failure.
+    read(ctx, 'app-news-desk__get_latest_articles', { query: symbol, limit: 6 }, `${symbol} news`, (raw) => {
+      const stories = Array.isArray(raw.stories) ? raw.stories.slice(0, 6) : [];
+      const news = stories.flatMap((x) => { const o = obj(x); return o && typeof o.title === 'string' && typeof o.url === 'string' && /^https:\/\//.test(o.url) ? [{ title: o.title.slice(0, 240), source: str(o.source, 80), url: o.url, publishedAt: typeof o.publishedAt === 'string' ? o.publishedAt : null, publishers: Array.isArray(o.publishers) ? o.publishers.length : 1 }] : []; });
+      return { sourceAt: typeof raw.checkedAt === 'string' ? raw.checkedAt : 'News Desk', rows: news.length, commit() { r.news = news; } };
+    }).then(() => undefined),
+  ]);
   s.research![symbol] = r;
   checkAlerts(s);
-  settle(s, failures);
+  settle(s, failures.slice(0, -1));
 }
 
 async function studyIndex(ctx: Context) {
   const s = ctx.state, label = s.studyDraft!.trim();
   if (!label) throw new Error('Choose an index to explore');
   const study: IndexStudy = { label, ...(s.study?.label.toLowerCase() === label.toLowerCase() ? s.study : {}), at: new Date().toISOString() };
-  const failures: (string | undefined)[] = [];
-  if (!s.indexNames!.length) failures.push(await read(ctx, 'nse__get_index_snapshot', { date: 'today', filter: '' }, 'index list', (raw) => { const names = indexNames(raw); return { sourceAt: 'end of day', rows: names.length, commit() { s.indexNames = names; } }; }));
-  failures.push(await read(ctx, 'nse__get_index_performance', { indexName: label, date: 'today' }, `${label} performance`, (raw) => { const v = indexPerformance(raw); return { sourceAt: v.date, rows: v.horizons.length, commit() { study.performance = v; study.label = v.label; } }; }));
-  failures.push(await read(ctx, 'nse__get_index_history', { indexName: label, months: 12, endDate: 'today' }, `${label} history`, (raw) => { const v = indexHistory(raw); return { sourceAt: `${v.bars[0]!.date} – ${v.bars.at(-1)!.date}`, rows: v.bars.length, commit() { study.bars = v.bars; } }; }));
-  failures.push(await read(ctx, 'nse__get_index_valuation', { indexName: label, months: 24, date: 'today' }, `${label} valuation`, (raw) => { const v = valuation(raw); return { sourceAt: `${v.from} – ${v.to}`, rows: 3, commit() { study.valuation = v; } }; }));
+  const failures = await Promise.all([
+    s.indexNames!.length ? Promise.resolve(undefined) : read(ctx, 'nse__get_index_snapshot', { date: 'today', filter: '' }, 'index list', (raw) => { const names = indexNames(raw); return { sourceAt: 'end of day', rows: names.length, commit() { s.indexNames = names; } }; }),
+    read(ctx, 'nse__get_index_performance', { indexName: label, date: 'today' }, `${label} performance`, (raw) => { const v = indexPerformance(raw); return { sourceAt: v.date, rows: v.horizons.length, commit() { study.performance = v; study.label = v.label; } }; }),
+    read(ctx, 'nse__get_index_history', { indexName: label, months: 12, endDate: 'today' }, `${label} history`, (raw) => { const v = indexHistory(raw); return { sourceAt: `${v.bars[0]!.date} – ${v.bars.at(-1)!.date}`, rows: v.bars.length, commit() { study.bars = v.bars; } }; }),
+    read(ctx, 'nse__get_index_valuation', { indexName: label, months: 24, date: 'today' }, `${label} valuation`, (raw) => { const v = valuation(raw); return { sourceAt: `${v.from} – ${v.to}`, rows: 3, commit() { study.valuation = v; } }; }),
+  ]);
   s.study = study;
   settle(s, failures);
 }
@@ -335,9 +359,7 @@ export async function handleAction(controlId: string, value: unknown, ctx: Conte
       const next = [...new Set([...s.watchlist!, ...added])];
       if (next.length > MAX_WATCH) throw new Error(`The watchlist keeps up to ${MAX_WATCH} symbols; remove some first`);
       s.watchlist = next; if (!symbolArg) s.watchDraft = '';
-      const failures: (string | undefined)[] = [];
-      for (const symbol of added.filter((x) => !s.quotes![x]).slice(0, 12)) failures.push(await readQuote(ctx, symbol));
-      settle(s, failures);
+      settle(s, await Promise.all(added.filter((x) => !s.quotes![x]).slice(0, 12).map((symbol) => readQuote(ctx, symbol))));
       return render(ctx);
     }
     case 'switch_group': {
@@ -392,7 +414,8 @@ export async function handleAction(controlId: string, value: unknown, ctx: Conte
     case 'open_instrument': {
       const symbol = symbolArg ? one(symbolArg) : one(s.symbolDraft);
       s.symbol = s.symbolDraft = symbol;
-      await fetchInstrument(ctx);
+      // Open shows today's saved research at once; Analyse always reads again.
+      if (action === 'fetch_instrument' || !savedForToday(s, symbol)) await fetchInstrument(ctx);
       return render(ctx, 'instrument');
     }
     case 'save_holding': {
@@ -443,11 +466,11 @@ export async function handleAction(controlId: string, value: unknown, ctx: Conte
       return render(ctx);
     }
     case 'refresh_movers': {
-      const failures = [await readMovers(ctx)];
-      for (const [key, sortBy] of [['byValue', 'value'], ['byVolume', 'volume']] as const) {
-        failures.push(await read(ctx, 'nse__get_top_by_volume', { date: 'today', n: 15, sortBy }, `most active by ${sortBy}`, (raw) => { const v = parseActive(raw); return { sourceAt: v.date, rows: v.rows.length, commit() { s.active![key] = v; } }; }));
-      }
-      failures.push(await read(ctx, 'nse__get_index_movers', { date: 'today', period: s.period, n: 8, scope: 'all' }, `index movers ${s.period}`, (raw) => { const v = indexMovers(raw); return { sourceAt: v.base ? `${v.base} – ${v.date}` : v.date, rows: v.gainers.length + v.losers.length, commit() { s.indexMovers = v; } }; }));
+      const failures = await Promise.all([
+        readMovers(ctx),
+        ...(([['byValue', 'value'], ['byVolume', 'volume']] as const).map(([key, sortBy]) => read(ctx, 'nse__get_top_by_volume', { date: 'today', n: 15, sortBy }, `most active by ${sortBy}`, (raw) => { const v = parseActive(raw); return { sourceAt: v.date, rows: v.rows.length, commit() { s.active![key] = v; } }; }))),
+        read(ctx, 'nse__get_index_movers', { date: 'today', period: s.period, n: 8, scope: 'all' }, `index movers ${s.period}`, (raw) => { const v = indexMovers(raw); return { sourceAt: v.base ? `${v.base} – ${v.date}` : v.date, rows: v.gainers.length + v.losers.length, commit() { s.indexMovers = v; } }; }),
+      ]);
       settle(s, failures);
       return render(ctx);
     }
