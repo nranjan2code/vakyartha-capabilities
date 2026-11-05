@@ -19,10 +19,14 @@
       "upcoming": [],
       "all": [],
       "completed": [],
-      "hasToday": false,
-      "hasUpcoming": false,
-      "hasOpen": false,
+      "noToday": true,
+      "noUpcoming": true,
+      "noOpen": true,
+      "noDone": true,
       "hasDone": false,
+      "capturePreview": "",
+      "clearAsked": false,
+      "canAskClear": false,
       "counts": {
         "open": 0,
         "done": 0,
@@ -100,6 +104,7 @@
         "children": [
           "summary",
           "capture",
+          "capture-bar",
           "tabbed"
         ]
       },
@@ -113,23 +118,32 @@
       },
       {
         "id": "capture",
-        "type": "section",
+        "type": "form",
         "props": {
-          "title": "Quick capture",
-          "description": "Add the thought now. Add a date or repeat rule when it matters."
+          "submit": "capture_task",
+          "submitLabel": "Add task"
         },
         "children": [
           "capture-input",
-          "capture-bar"
+          "capture-preview"
         ]
       },
       {
         "id": "capture-input",
         "type": "input",
         "props": {
-          "label": "Task",
+          "label": "Quick capture",
           "bind": "/capture",
-          "placeholder": "What needs doing?"
+          "placeholder": "Call the bank tomorrow at 5pm !high"
+        }
+      },
+      {
+        "id": "capture-preview",
+        "type": "text",
+        "props": {
+          "content": "{/capturePreview}",
+          "variant": "caption",
+          "visibleIf": "{/capturePreview}"
         }
       },
       {
@@ -142,8 +156,8 @@
         },
         "children": [
           "capture-dictate",
-          "capture-save",
-          "new-task"
+          "new-task",
+          "capture-help"
         ]
       },
       {
@@ -159,21 +173,20 @@
         }
       },
       {
-        "id": "capture-save",
-        "type": "button",
-        "props": {
-          "label": "Add task",
-          "action": "capture_task",
-          "style": "primary"
-        }
-      },
-      {
         "id": "new-task",
         "type": "button",
         "props": {
           "label": "Add with details",
           "action": "new_task",
           "style": "secondary"
+        }
+      },
+      {
+        "id": "capture-help",
+        "type": "text",
+        "props": {
+          "content": "Type a day, time, repeat or priority with the task: friday, 12 nov, at 9:30, for 1h, every week, !high.",
+          "variant": "caption"
         }
       },
       {
@@ -193,7 +206,7 @@
         "type": "section",
         "props": {
           "title": "Today",
-          "description": "{/counts/today} due · {/counts/overdue} overdue"
+          "description": "{/counts/today} due today · {/counts/overdue} overdue"
         },
         "children": [
           "today-list",
@@ -215,21 +228,20 @@
         "id": "today-empty",
         "type": "text",
         "props": {
-          "content": "Nothing is due today. Use quick capture to save a task for later.",
+          "content": "Nothing is due today. Tasks with today's date or an earlier one appear here.",
           "variant": "caption",
-          "visibleIf": "{/hasToday}"
+          "visibleIf": "{/noToday}"
         }
       },
       {
         "id": "upcoming-panel",
         "type": "section",
         "props": {
-          "title": "Calendar",
-          "description": "Browse dated tasks by month, week, day or agenda."
+          "title": "Upcoming",
+          "description": "Dated tasks by month, week, day or agenda, then the list in date order."
         },
         "children": [
           "calendar",
-          "upcoming-heading",
           "upcoming-list",
           "upcoming-empty"
         ]
@@ -241,14 +253,6 @@
           "events": "{/calendarEvents}",
           "view": "month",
           "date": "{/todayDate}"
-        }
-      },
-      {
-        "id": "upcoming-heading",
-        "type": "text",
-        "props": {
-          "content": "Upcoming tasks",
-          "variant": "subheading"
         }
       },
       {
@@ -266,17 +270,17 @@
         "id": "upcoming-empty",
         "type": "text",
         "props": {
-          "content": "No future dated tasks yet. Add a due date to place one on the calendar.",
+          "content": "No future tasks yet. Add a day such as friday or 12 nov to place one on the calendar.",
           "variant": "caption",
-          "visibleIf": "{/hasUpcoming}"
+          "visibleIf": "{/noUpcoming}"
         }
       },
       {
         "id": "all-panel",
         "type": "section",
         "props": {
-          "title": "Open tasks",
-          "description": "{/counts/open} active tasks"
+          "title": "All open",
+          "description": "Late first, then by day, time and priority; undated tasks last."
         },
         "children": [
           "all-list",
@@ -300,7 +304,7 @@
         "props": {
           "content": "No open tasks. Quick capture is ready when you need it.",
           "variant": "caption",
-          "visibleIf": "{/hasOpen}"
+          "visibleIf": "{/noOpen}"
         }
       },
       {
@@ -308,11 +312,12 @@
         "type": "section",
         "props": {
           "title": "Completed",
-          "description": "{/counts/done} completed tasks"
+          "description": "{/counts/done} completed, newest first"
         },
         "children": [
           "completed-list",
-          "completed-empty"
+          "completed-empty",
+          "clear-bar"
         ]
       },
       {
@@ -332,7 +337,51 @@
         "props": {
           "content": "Completed tasks will appear here.",
           "variant": "caption",
-          "visibleIf": "{/hasDone}"
+          "visibleIf": "{/noDone}"
+        }
+      },
+      {
+        "id": "clear-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm"
+        },
+        "children": [
+          "clear-ask",
+          "clear-confirm",
+          "clear-cancel"
+        ]
+      },
+      {
+        "id": "clear-ask",
+        "type": "button",
+        "props": {
+          "label": "Clear completed",
+          "action": "ask_clear_completed",
+          "style": "link",
+          "visibleIf": "{/canAskClear}"
+        }
+      },
+      {
+        "id": "clear-confirm",
+        "type": "button",
+        "props": {
+          "label": "Delete {/counts/done} completed tasks",
+          "action": "confirm_clear_completed",
+          "style": "danger",
+          "visibleIf": "{/clearAsked}"
+        }
+      },
+      {
+        "id": "clear-cancel",
+        "type": "button",
+        "props": {
+          "label": "Keep them",
+          "action": "cancel_clear_completed",
+          "style": "secondary",
+          "visibleIf": "{/clearAsked}"
         }
       },
       {
@@ -374,7 +423,7 @@
         "type": "card",
         "props": {
           "title": "{title}",
-          "subtitle": "{dateLabel} · {priorityLabel}",
+          "subtitle": "{meta}",
           "body": "{notes}",
           "badge": "{repeatLabel}",
           "tone": "{tone}"
@@ -393,6 +442,7 @@
         },
         "children": [
           "task-done",
+          "task-snooze",
           "task-select",
           "task-delete",
           "confirm-delete",
@@ -409,6 +459,20 @@
             "id": "{id}"
           },
           "style": "secondary"
+        }
+      },
+      {
+        "id": "task-snooze",
+        "type": "button",
+        "props": {
+          "label": "Tomorrow",
+          "action": "snooze",
+          "payload": {
+            "id": "{id}",
+            "to": "tomorrow"
+          },
+          "style": "link",
+          "visibleIf": "{canSnooze}"
         }
       },
       {

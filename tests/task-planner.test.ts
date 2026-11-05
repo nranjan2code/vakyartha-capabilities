@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { handleAction, nextOccurrence, normalize, view } from "../apps/task-planner/server.ts";
+import { friendlyDay, handleAction, nextOccurrence, normalize, parseCapture, view } from "../apps/task-planner/server.ts";
 import type { Task } from "../apps/task-planner/server.ts";
 import { readFileSync } from "node:fs";
 
@@ -96,4 +96,57 @@ test("delete requires review and a second exact action", async () => {
   await handleAction("confirm_delete", { id: "task-other" }, c, "confirm_delete").then(() => assert.fail("foreign id accepted"), e => assert.match(String(e), /Review the task again/));
   await handleAction("confirm_delete", { id: "task-1" }, c, "confirm_delete");
   assert.equal(c.state.tasks!.length, 0);
+});
+
+test("quick capture understands days, times, lengths, repeats and priority, and keeps ordinary words", () => {
+  const today = "2026-11-05"; // a Thursday
+  const p = (t: string) => { const r = parseCapture(t, today); return [r.title, r.dueDate, r.startTime, r.durationMin, r.priority, r.repeat]; };
+  assert.deepEqual(p("Call bank tomorrow at 5pm !high"), ["Call bank", "2026-11-06", "17:00", 30, "high", "none"]);
+  assert.deepEqual(p("Gym every monday 7:30am for 1h"), ["Gym", "2026-11-09", "07:30", 60, "normal", "weekly"]);
+  assert.deepEqual(p("Dentist 12 nov at 10:15"), ["Dentist", "2026-11-12", "10:15", 30, "normal", "none"]);
+  assert.deepEqual(p("Renew passport 3 jan"), ["Renew passport", "2027-01-03", "", 30, "normal", "none"], "a passed date means next year");
+  assert.deepEqual(p("Review PR next week p3"), ["Review PR", "2026-11-09", "", 30, "low", "none"]);
+  assert.deepEqual(p("Water plants daily"), ["Water plants", today, "", 30, "normal", "daily"], "a repeat starts today");
+  assert.deepEqual(p("Meet Ana at noon"), ["Meet Ana", today, "12:00", 30, "normal", "none"]);
+  assert.deepEqual(p("Call Sun Pharma"), ["Call Sun Pharma", "", "", 30, "normal", "none"], "short weekday words need on/next");
+  assert.deepEqual(p("Read chapter 2 on sat"), ["Read chapter 2", "2026-11-07", "", 30, "normal", "none"]);
+  assert.equal(parseCapture("Buy milk", today).understood.length, 0);
+  assert.equal(friendlyDay("2026-11-06", today), "Tomorrow");
+  assert.equal(friendlyDay("2026-11-09", today), "Mon 9 Nov");
+  assert.equal(friendlyDay("2027-02-01", today), "1 Feb 2027");
+});
+
+test("capture saves what the preview showed; lists sort by what is due; empty states show only when empty", async () => {
+  const c: any = { state: {}, now: fixed };
+  let r: any = await handleAction("/capture", "Pay card bill tomorrow 9am !high", c);
+  assert.match(r.updates[0].data[0].value.capturePreview, /Adds “Pay card bill” · Due Tomorrow · at 09:00 · high priority/);
+  await handleAction("capture_task", null, c, "capture_task");
+  await handleAction("/capture", "Someday read a novel", c); await handleAction("capture_task", null, c, "capture_task");
+  await handleAction("/capture", "File taxes 2026-11-01", c); r = await handleAction("capture_task", null, c, "capture_task");
+  const data = r.updates[0].data[0].value;
+  assert.deepEqual(data.all.map((x: any) => x.title), ["File taxes", "Pay card bill", "read a novel"]);
+  assert.equal(data.all[2].meta, "No date · Low priority", "someday marks low priority");
+  assert.equal(data.all[0].dateLabel, "Overdue · 1 Nov");
+  assert.equal(data.all[1].meta, "Tomorrow · 09:00–09:30 · High priority");
+  assert.equal(data.noToday, false, "overdue work counts as today");
+  assert.equal(data.noDone, true);
+  const tabs = r.updates[0].nodes.find((n: any) => n.id === "today-panel");
+  assert.equal(tabs.props.title, "Today · 1");
+  const empty = view({}, "2026-11-04")[0]!.data[0]!.value as any;
+  assert.equal(empty.noToday && empty.noOpen && empty.noUpcoming, true);
+});
+
+test("tomorrow moves a late task, and clearing completed tasks needs a second step", async () => {
+  const c: any = { state: { tasks: [task({ dueDate: "2026-11-01" }), task({ id: "task-2", title: "Done thing", status: "done", completedAt: "2026-11-03T10:00:00.000Z" })] }, now: fixed };
+  let r: any = await handleAction("snooze", { id: "task-1", to: "tomorrow" }, c, "snooze");
+  assert.equal(c.state.tasks[0].dueDate, "2026-11-05");
+  await assert.rejects(handleAction("confirm_clear_completed", null, c, "confirm_clear_completed"), /Review the completed/);
+  r = await handleAction("ask_clear_completed", null, c, "ask_clear_completed");
+  assert.equal(r.updates[0].data[0].value.clearAsked, true);
+  await handleAction("confirm_clear_completed", null, c, "confirm_clear_completed");
+  assert.deepEqual(c.state.tasks.map((t: Task) => t.id), ["task-1"]);
+  await handleAction("select_task", { id: "task-1" }, c, "select_task");
+  await handleAction("ask_delete", { id: "task-1" }, c, "ask_delete");
+  r = await handleAction("confirm_delete", { id: "task-1" }, c, "confirm_delete");
+  assert.equal(r.focusSurface, "main", "deleting the open task returns to the list");
 });

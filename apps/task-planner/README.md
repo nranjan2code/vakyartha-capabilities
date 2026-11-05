@@ -1,6 +1,6 @@
 # Task Planner
 
-Task Planner is Vakyartha's local personal task manager. Capture a task quickly, then add a due date, priority, notes or a repeat-after-completion rule when useful. Browse Today, Open tasks, Completed and a calendar with month, week, day and agenda views.
+Task Planner is Vakyartha's local personal task manager. Capture a task quickly, typing its day, time, repeat or priority with it ("Call the bank tomorrow at 5pm !high", "Gym every monday 7:30am for 1h"); the line under the field shows what will be saved. Add notes or change anything later in the task details. Overdue and due-today tasks offer a one-click Tomorrow. Browse Today, Open tasks, Completed and a calendar with month, week, day and agenda views.
 
 ## Calendar and recurring tasks
 

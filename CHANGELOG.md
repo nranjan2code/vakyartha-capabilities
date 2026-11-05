@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- NSE Market Terminal: Open shows research saved today without any read; Analyse rereads the quote, the latest history month and news, and reuses the day's 52-week range, benchmark comparison, corporate actions and volume. Refresh, Analyse, movers, index study and new watchlist quotes read in parallel. Needs a Vakyartha host that keeps several app tool calls in flight; older hosts run them one at a time.
+- News Desk: ranking and topic discovery cache headline words, so a click takes about 30 ms instead of seconds with a few hundred articles; feeds refresh four at a time; filter changes update only Sections.
+- Task Planner: quick capture understands days, times, lengths, repeats and priorities typed with the task and previews them; lists sort by what is due; Tomorrow on late and due-today tasks; Complete, Move to tomorrow and Delete in task details; Clear completed with confirmation; tab counts and friendlier dates. Empty-state messages no longer show when a list has tasks.
 - Development-only items: an app or skill marked `channel: dev` stays on `main` and in Vakyartha's development builds, and signed releases leave it out. A release item may not use one, and `provides` counts release items only.
 - Add Task Planner, a local personal task app with quick capture, due-date calendar views, explicit repeat-after-completion, charts, and an optional task-planning skill. No model calls or external services are required.
 - Describe task tracking, day planning and meeting-action integrations generically, without naming external services.

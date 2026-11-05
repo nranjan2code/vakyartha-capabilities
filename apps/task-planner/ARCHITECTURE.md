@@ -25,3 +25,12 @@ Each completed recurring task remains as a completed record. Completion creates 
 - `server.ts`: canonical state validation, action handling and derived views.
 - `surface.json`: empty-state snapshot generated from `surfaceFile()`.
 - `skills/task-planner-guide/SKILL.md`: optional assistant procedure, not execution authority.
+
+## Quick capture
+
+`parseCapture(text, today)` reads a day (today, tomorrow, a weekday name, "on sat", "next week", "in 3 days", "12 nov", ISO dates; a passed date without a year means next year), a time ("at 5pm", "17:30", "at noon"), a length ("for 45 min", rounded to the offered blocks), a repeat ("daily", "every week", "every monday") and a priority ("!high", "!", "urgent", "p1", "!low", "p3", "someday"). Short weekday forms count only after on, by, due, next or this. A time or repeat without a day means today. Fixed local rules: no model call. The rest is the title; `capturePreview` shows what will be saved while typing, and the capture form submits on Enter.
+
+## Ordering and actions
+
+Open lists sort late first, then by day, time and priority; undated tasks last, high priority first. Completed lists newest first. Row actions: Complete or Reopen, Tomorrow (late, due today or undated tasks), Edit, Delete with confirmation. Details adds Complete or Reopen, Move to tomorrow and Delete; deleting the open task returns to the list. Clear completed asks first. Empty states show only for empty lists, and tab titles carry their counts.
+
