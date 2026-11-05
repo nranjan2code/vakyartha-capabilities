@@ -48,3 +48,18 @@ test("versions and signatures are never set without a person at a terminal", () 
   assert.deepEqual(readItems().map(({ id, version }) => ({ id, version })), versions);
   assert.deepEqual(readdirSync("signatures").sort(), signatures);
 });
+
+test("development-only items stay out of releases, and release items never use them", async () => {
+  const { releaseItems } = await import("../scripts/catalog.ts");
+  const items = readItems();
+  assert.ok(items.every(i => i.channel === "release" || i.channel === "dev"));
+  const base = items.find(i => i.kind === "skill")!;
+  const dev = { ...base, id: "dev-only-probe", channel: "dev" as const, requires: [], enhances: [] };
+  const user = { ...base, id: "release-user-probe", requires: [[{ kind: "skill" as const, id: "dev-only-probe" }]], enhances: [] };
+  assert.deepEqual(releaseItems([dev, base]).map(i => i.id), [base.id], "a release carries no development-only item");
+  const manifest = readManifest();
+  const counted = { ...manifest, provides: { ...manifest.provides, skills: manifest.provides.skills + 1 } };
+  assert.throws(() => checkCatalog(counted, [...items, dev, user]), /cannot use skill:dev-only-probe, which is for development builds only/);
+  // A development-only item may use release items, and is not counted in what a release provides.
+  checkCatalog(manifest, [...items, { ...dev, requires: [[{ kind: "skill", id: base.id }]] }]);
+});

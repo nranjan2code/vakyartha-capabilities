@@ -47,6 +47,16 @@ instead of being required by it.
 2. A skill that requires an app is not allowed as a separate item: it belongs inside that app.
 3. Skill names are unique across standalone skills and skills shipped inside apps.
 4. Requirements form no cycle.
+5. A release item never requires or enhances a development-only item.
+6. `provides` in `capabilities.json` counts release items only.
+
+## Development-only items
+
+An app (`"channel": "dev"` in `app.json`) or a skill (`channel: dev` under `metadata`) may be marked for development builds only. It lives on `main` with every other item, passes every rule above and is public like the rest of this repository, so it carries nothing that must stay private.
+
+- A signed release leaves it out: it is not in `index.json`, has no archive, is not on the website and needs no version from `version.ts`.
+- Vakyartha's development build (Vakyartha Dev) bundles it together with the release items; Vakyartha's release builds never do. To release it, remove the channel (or set it to `release`), give it a version, and release the catalog as usual.
+- Integrations follow Vakyartha's release and have no development channel.
 
 ## Signed releases
 
@@ -60,8 +70,8 @@ Every catalog release is signed. The signed object is the exact bytes of
   signature and refuses to publish an unsigned or mis-signed release.
 - The public key is `keys/catalog.pub` in this repository. Vakyartha compiles in
   the key from the release it pins and accepts nothing that does not verify.
-- Vakyartha's bundled items come from the pinned release and are verified
-  against the same signature when Vakyartha is built.
+- Vakyartha's release builds bundle the release items of the release they pin and
+  verify them against the same signature when they are built.
 
 ## Changing what Vakyartha ships
 

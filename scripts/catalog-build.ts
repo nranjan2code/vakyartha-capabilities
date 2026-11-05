@@ -5,19 +5,21 @@
 import { createHash } from "node:crypto";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { APP_GROUPS, INTEGRATION_GROUPS, ROOT, SCHEMA, SKILL_GROUPS, checkCatalog, readItems, readManifest, refText, usedBy, type Item } from "./catalog.ts";
+import { APP_GROUPS, INTEGRATION_GROUPS, ROOT, SCHEMA, SKILL_GROUPS, checkCatalog, readItems, readManifest, refText, releaseItems, usedBy, type Item } from "./catalog.ts";
 import { site } from "./site.ts";
 
-export interface IndexItem extends Omit<Item, "files"> { usedBy: string[]; file: string; sha256: string; bytes: number }
+export interface IndexItem extends Omit<Item, "files" | "channel"> { usedBy: string[]; file: string; sha256: string; bytes: number }
 export interface Index { schema: number; name: string; version: string; groups: Record<string, Record<string, string>>; requires: { vakyartha: { min: string; below: string; provides: { skills: string[]; integrations: string[] } } }; items: IndexItem[] }
 
 export function build(out: string): Index {
-  const manifest = readManifest(), items = readItems();
-  checkCatalog(manifest, items);
+  const manifest = readManifest(), all = readItems();
+  checkCatalog(manifest, all);
+  // A signed release carries release items only; development-only items stay in the repository.
+  const items = releaseItems(all);
   const users = usedBy(items);
   rmSync(out, { recursive: true, force: true });
   mkdirSync(path.join(out, "archives"), { recursive: true });
-  const listed: IndexItem[] = items.map(({ files, ...item }) => {
+  const listed: IndexItem[] = items.map(({ files, channel: _channel, ...item }) => {
     const data = Buffer.from(JSON.stringify({ schema: SCHEMA, kind: item.kind, id: item.id, version: item.version, files: Object.fromEntries(files.map(([n, d]) => [n, d.toString("base64")])) }));
     const sha256 = createHash("sha256").update(data).digest("hex");
     // The name carries the content hash, so a published file name can never point at different bytes.

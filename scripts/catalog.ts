@@ -36,8 +36,10 @@ export interface Ref { kind: Kind; id: string }
 export interface Access { network: "none" | "governed tools" | "hosts"; tools: string[]; hosts: string[]; database: boolean; schedule: boolean; files: number; credentials: string[] }
 /** A skill that ships inside an app and lives and dies with it. */
 export interface PartSkill { name: string; description: string; path: string; requires: Ref[][] }
+/** Where an item ships: in signed releases, or only in development builds of Vakyartha (Vakyartha Dev). */
+export type Channel = "release" | "dev";
 export interface Item {
-  kind: Kind; id: string; version: string; name: string; description: string;
+  kind: Kind; id: string; version: string; channel: Channel; name: string; description: string;
   category: string; author: string; access: Access;
   requires: Ref[][]; enhances: Ref[]; skills: PartSkill[];
   files: [string, Buffer][];
@@ -131,6 +133,15 @@ function checkFiles(label: string, files: [string, Buffer][]): void {
   if (total > MAX_ITEM) throw new Error(`${label}: larger than 8 MiB`);
 }
 
+function channel(where: string, value: unknown): Channel {
+  if (value === undefined || value === "release") return "release";
+  if (value === "dev") return "dev";
+  throw new Error(`${where}: channel must be release or dev`);
+}
+
+/** The items a signed release carries: everything not marked for development builds only. */
+export const releaseItems = (items: Item[]): Item[] => items.filter(i => i.channel === "release");
+
 function group(kind: Kind, id: string, category: string): string {
   if (!Object.hasOwn(GROUPS[kind], category)) throw new Error(`${KIND_DIRS[kind]}/${id}: category must be one of ${Object.keys(GROUPS[kind]).join(", ")}`);
   return category;
@@ -152,7 +163,7 @@ function skill(id: string): Item {
   const tools = (fm["allowed-tools"] ?? "").split(/\s+/).filter(Boolean).sort();
   const where = `skills/${id}`;
   return {
-    kind: "skill", id, version, name: title(id), description: fm.description, category: group("skill", id, fm["metadata.category"] ?? ""), author: "Vakyartha",
+    kind: "skill", id, version, channel: channel(where, fm["metadata.channel"]), name: title(id), description: fm.description, category: group("skill", id, fm["metadata.category"] ?? ""), author: "Vakyartha",
     access: { network: "none", tools, hosts: [], database: false, schedule: false, files: files.length, credentials: [] },
     requires: requirements(fm["metadata.requires"], where), enhances: optional(fm["metadata.enhances"], where), skills: [], files,
   };
@@ -198,7 +209,7 @@ function app(id: string): Item {
   const declared = skills.map(s => `skills/${s.name}/`);
   for (const [name] of files) if (name.startsWith("skills/") && !declared.some(d => name.startsWith(d))) throw new Error(`apps/${id}/${name}: not part of a declared skill`);
   return {
-    kind: "app", id, version: m.version, name: m.name, description: m.description, category: group("app", id, m.category ?? ""), author: "Vakyartha",
+    kind: "app", id, version: m.version, channel: channel(`apps/${id}`, m.channel), name: m.name, description: m.description, category: group("app", id, m.category ?? ""), author: "Vakyartha",
     access: { network: m.entitlements?.network?.mode === "brokered" ? "governed tools" : "none", tools, hosts: [], database: !!m.entitlements?.storage?.duckdb, schedule: (m.triggers ?? []).some((t: { kind: string }) => t.kind === "cron"), files: files.length, credentials: [] },
     requires: [...owners.values()].map(r => [r]), enhances: [...extras.values()], skills, files,
   };
@@ -231,7 +242,7 @@ function integration(id: string): Item {
   if (s.kind === "http" && s.url && !hosts.includes(new URL(s.url).hostname)) throw new Error(`${where}: egress must list ${new URL(s.url).hostname}`);
   const credentials: string[] = (d.config ?? []).filter((c: { kind: string }) => c.kind === "secret").map((c: { label: string }) => c.label);
   return {
-    kind: "integration", id, version: d.version, name: d.name, description: d.description, category: group("integration", id, d.category ?? ""), author: d.publisher,
+    kind: "integration", id, version: d.version, channel: channel(where, d.channel), name: d.name, description: d.description, category: group("integration", id, d.category ?? ""), author: d.publisher,
     access: { network: "hosts", tools: d.tools?.only ?? [], hosts, database: false, schedule: false, files: 1, credentials },
     requires: [], enhances: [], skills: [], files,
   };
@@ -250,7 +261,9 @@ export function readItems(): Item[] {
 export function checkCatalog(m: Manifest, items: Item[]): void {
   if (m.schema !== SCHEMA || m.name !== "vakyartha-capabilities") throw new Error("capabilities.json: wrong schema or name");
   for (const v of [m.version, m.requires.vakyartha.min, m.requires.vakyartha.below]) if (!SEMVER.test(v)) throw new Error(`capabilities.json: ${v} is not exact x.y.z`);
-  const counts = { apps: items.filter(i => i.kind === "app").length, skills: items.filter(i => i.kind === "skill").length, integrations: items.filter(i => i.kind === "integration").length };
+  // provides counts what a signed release carries; development-only items are not in it.
+  const shipped = releaseItems(items);
+  const counts = { apps: shipped.filter(i => i.kind === "app").length, skills: shipped.filter(i => i.kind === "skill").length, integrations: shipped.filter(i => i.kind === "integration").length };
   if (JSON.stringify(m.provides) !== JSON.stringify(counts)) throw new Error(`capabilities.json: provides must be ${JSON.stringify(counts)}; run node scripts/version.ts ${m.version}`);
   const core = m.requires.vakyartha.provides;
   // One namespace per kind: catalog items, skills inside apps and Vakyartha's own core items never share a name.
@@ -268,6 +281,8 @@ export function checkCatalog(m: Manifest, items: Item[]): void {
     const all = [...i.requires.flat(), ...i.enhances, ...i.skills.flatMap(s => s.requires.flat())];
     for (const r of all) if (!exists(r)) throw new Error(`${KIND_DIRS[i.kind]}/${i.id}: requires ${refText(r)}, which neither this catalog nor Vakyartha provides`);
     if (i.kind === "skill" && i.requires.flat().some(r => r.kind === "app")) throw new Error(`skills/${i.id}: needs an app, so it must ship inside that app`);
+    // A release never names an item it does not carry.
+    if (i.channel === "release") for (const r of all) if (items.find(o => refText(o) === refText(r))?.channel === "dev") throw new Error(`${KIND_DIRS[i.kind]}/${i.id}: a release item cannot use ${refText(r)}, which is for development builds only`);
     edges.set(refText(i), i.requires.flat().map(refText));
   }
   // Requirements form no cycle, so adding and removing always has an order.

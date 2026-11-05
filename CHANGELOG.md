@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Development-only items: an app or skill marked `channel: dev` stays on `main` and in Vakyartha's development builds, and signed releases leave it out. A release item may not use one, and `provides` counts release items only.
 - Add Task Planner, a local personal task app with quick capture, due-date calendar views, explicit repeat-after-completion, charts, and an optional task-planning skill. No model calls or external services are required.
 - Describe task tracking, day planning and meeting-action integrations generically, without naming external services.
 - Video Studio: Shorts (a vertical 9:16 feed of library shorts), Playlists, Continue watching and Recently watched; Watch on any card plays from there through the rest, and Creator Studio previews from the selected scene. Needs a Vakyartha host with the `voice.watch` button action.

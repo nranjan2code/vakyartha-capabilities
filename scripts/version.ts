@@ -4,7 +4,7 @@
 // Item versions live in each item (SKILL.md metadata.version, app.json version).
 import { writeFileSync } from "node:fs";
 import path from "node:path";
-import { ROOT, readItems, readManifest } from "./catalog.ts";
+import { ROOT, readItems, readManifest, releaseItems } from "./catalog.ts";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { confirmVersion, typeItemVersion } from "./human.ts";
@@ -16,7 +16,8 @@ function changedItems() {
   const last = git("tag", "--list", "capabilities-v*", "--sort=-v:refname").split("\n")[0];
   if (!last) return [];
   return readItems().flatMap((item) => {
-    if (item.kind === "integration") return [];
+    // Integrations follow Vakyartha's release; development-only items are never released.
+    if (item.kind === "integration" || item.channel === "dev") return [];
     const dir = item.kind === "app" ? `apps/${item.id}` : `skills/${item.id}`;
     const file = item.kind === "app" ? `${dir}/app.json` : `${dir}/SKILL.md`;
     // A first release has no old path in the signed tag, and a just-created item
@@ -54,6 +55,7 @@ for (const { item, file } of changedItems()) {
 }
 const items = readItems(), manifest = readManifest();
 manifest.version = version;
-manifest.provides = { apps: items.filter(i => i.kind === "app").length, skills: items.filter(i => i.kind === "skill").length, integrations: items.filter(i => i.kind === "integration").length };
+const shipped = releaseItems(items);
+manifest.provides = { apps: shipped.filter(i => i.kind === "app").length, skills: shipped.filter(i => i.kind === "skill").length, integrations: shipped.filter(i => i.kind === "integration").length };
 writeFileSync(path.join(ROOT, "capabilities.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 console.log(`capabilities ${version}: ${JSON.stringify(manifest.provides)}`);
