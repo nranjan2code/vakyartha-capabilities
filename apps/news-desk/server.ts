@@ -181,16 +181,13 @@ export async function refresh(c: Context) {
   if (!feeds.length) { s.problem = 'No feeds are enabled. Enable at least one feed in Sources.'; return { updates: view(s) }; }
   const due = [...feeds].sort((a, b) => (s.health![a.url]?.at ?? '').localeCompare(s.health![b.url]?.at ?? '')).slice(0, READS);
   const incoming: Article[] = [], failed: string[] = [], started = Date.now(), read: Feed[] = [];
-  for (const x of due) {
-    // A run that outlives its time limit is recorded as uncertain and blocks every control until reviewed;
-    // stop starting reads well inside the limit and leave the rest to the next rotation.
-    if (Date.now() - started > BUDGET_MS) break;
-    read.push(x);
+  const rowsOf = new Map<Feed, Article[]>();
+  const readFeed = async (x: Feed) => {
     const at = new Date().toISOString(), previous = s.health![x.url];
     try {
       const rows = parseFeed(sourceBody(await c.callTool('web__fetch_page', { url: x.url })), x, at);
       if (!rows.length) throw new Error('Feed has no usable article URLs');
-      incoming.push(...rows);
+      rowsOf.set(x, rows);
       s.health![x.url] = { at, ok: at, failures: 0, items: rows.length, images: rows.filter((r) => r.image).length };
       s.receipts!.unshift({ source: x.name, url: x.url, at, rows: rows.length, status: 'Validated' });
     } catch (e) {
@@ -199,7 +196,20 @@ export async function refresh(c: Context) {
       s.health![x.url] = { ...(previous ?? { items: 0, images: 0 }), at, failures: (previous?.failures ?? 0) + 1, error: message };
       s.receipts!.unshift({ source: x.name, url: x.url, at, rows: 0, status: `Failed: ${message}` });
     }
-  }
+  };
+  // Four feeds are read at a time (the host's in-flight bound). A run that outlives its time
+  // limit is recorded as uncertain and blocks every control until reviewed, so no read starts
+  // late in the budget; the rest wait for the next rotation.
+  const queue = [...due];
+  await Promise.all(Array.from({ length: Math.min(4, queue.length) }, async () => {
+    for (let x = queue.shift(); x; x = queue.shift()) {
+      if (Date.now() - started > BUDGET_MS) return;
+      read.push(x);
+      await readFeed(x);
+    }
+  }));
+  // Rows merge in rotation order, so a story carried by two feeds resolves the same way every time.
+  for (const x of due) incoming.push(...(rowsOf.get(x) ?? []));
   const byId = new Map(s.articles!.map((a) => [a.id, a]));
   const first = s.checkedAt ?? new Date().toISOString();
   for (const row of incoming) byId.set(row.id, { ...row, firstSeen: byId.get(row.id)?.firstSeen ?? new Date().toISOString() });
@@ -277,6 +287,8 @@ export async function handleAction(controlId: string, value: unknown, c: Context
     c.state = normalize(s);
     const current = ranked(c.state, Date.now());
     if (draft || controlId === '/opml') return { updates: [sourcesSurface(current)] };
+    // Filters shape only the Sections reading list; other views and the bulletin are unchanged.
+    if (filter || controlId === '/category') return { updates: [sectionsSurface(current)] };
     if (controlId === '/topicDraft') return { updates: [followingSurface(current)] };
     if (controlId === '/muteDraft') return { updates: [preferencesSurface(current)] };
     return { updates: view(c.state) };

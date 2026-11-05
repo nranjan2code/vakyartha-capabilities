@@ -21,7 +21,20 @@ const STOP = new Set(('a an and are as at be been but by for from has have he he
 const WINDOW_MS = 48 * 3600_000, HALF_LIFE_H = 8, SECTION_STEP = 1.5;
 
 /** Significant title words: case- and accent-folded, stop words removed, a light plural/possessive fold. */
+// Ranking, topic discovery and filters ask for the same headlines' words many thousands
+// of times per command; the words of a text never change, so they are kept (bounded).
+const TERMS = new Map<string, string[]>(), WORD_SETS = new Map<string, Set<string>>(), CACHE_LIMIT = 20_000;
+const kept = <T>(cache: Map<string, T>, key: string, make: () => T): T => {
+  let value = cache.get(key);
+  if (value === undefined) { if (cache.size >= CACHE_LIMIT) cache.clear(); value = make(); cache.set(key, value); }
+  return value;
+};
+const wordSet = (text: string) => kept(WORD_SETS, text, () => new Set(terms(text)));
+
 export function terms(text: string): string[] {
+  return kept(TERMS, text, () => splitTerms(text)).slice();
+}
+function splitTerms(text: string): string[] {
   // "$6.3bn" and "$6.3 billion" are the same figure: keep decimals whole and spell out unit suffixes.
   const units: Record<string, string> = { bn: 'billion', b: 'billion', m: 'million', mn: 'million', k: 'thousand', cr: 'crore', tn: 'trillion' };
   return [...new Set(text.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/['’]s\b/g, '')
@@ -80,11 +93,13 @@ export function group(articles: Article[]): Article[][] {
   return groups.filter((g) => g.members.length).map((g) => g.members);
 }
 
+const articleWords = (a: Article) => wordSet(`${a.title} ${a.excerpt} ${(a.tags ?? []).join(' ')}`);
+
 /** A followed topic matches when every one of its words appears in the article's headline, excerpt or tags. */
 export function matches(topic: string, a: Article): boolean {
   const need = terms(topic);
   if (!need.length) return false;
-  const have = new Set(terms(`${a.title} ${a.excerpt} ${(a.tags ?? []).join(' ')}`));
+  const have = articleWords(a);
   return need.every((w) => have.has(w));
 }
 
@@ -99,7 +114,7 @@ export function publisher(url: string): string {
 /** A muted word hides a report when it appears in the headline or publisher tags; a leading "-" is accepted and ignored. */
 export function muted(mutes: string[], a: Article): boolean {
   if (!mutes.length) return false;
-  const have = new Set(terms(`${a.title} ${(a.tags ?? []).join(' ')}`));
+  const have = wordSet(`${a.title} ${(a.tags ?? []).join(' ')}`);
   return mutes.some((m) => { const need = terms(m.replace(/^-/, '')); return need.length > 0 && need.every((w) => have.has(w)); });
 }
 /**
@@ -203,8 +218,10 @@ export function discoverTopics(articles: Article[], followed: string[] = [], cat
   }
 
   const scored: { label: string; lower: string; articles: number }[] = [];
+  const sets = articles.map(articleWords);
   for (const [lower, label] of candidates.entries()) {
-    const count = articles.filter((a) => matches(label, a)).length;
+    const need = terms(label);
+    const count = need.length ? sets.filter((have) => need.every((w) => have.has(w))).length : 0;
     if (count >= 3) scored.push({ label, lower, articles: count });
   }
 

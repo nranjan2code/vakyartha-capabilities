@@ -26,7 +26,7 @@ State as in AGENTS.md. Surface data is derived per surface: `/lead`, `/forYou`, 
 
 ## Boundaries
 
-Each command runs in its app’s dedicated sandbox instance with a 30 s deadline with at most 16 governed tool calls; feeds are reached only through the governed tool. Responses over 240,000 characters, DTDs, entity declarations and malformed nesting are rejected. Images are URLs only; the app never downloads them. Limits as in README.md.
+Each command runs in its app’s dedicated sandbox instance with a 30 s deadline with at most 16 governed tool calls; feeds are reached only through the governed tool. Responses over 240,000 characters, DTDs, entity declarations and malformed nesting are rejected. Feeds are read four at a time within the time budget and merged in rotation order. Images are URLs only; the app never downloads them. After a refresh the host saves the images its views show and lists their hosts in Access (Vakyartha ADR-079), so reading never waits on publishers. Headline word splitting is cached in the instance, so ranking and topic discovery stay fast (about 30 ms for 450 articles); a filter change returns only Sections. Limits as in README.md.
 
 ## Reading layout
 
