@@ -10,6 +10,10 @@ CI signs, tags or changes a version.
    version for each listed item (a suggestion is shown, never applied). This
    also refreshes the counts in `capabilities.json`. Widen `requires` only after
    Vakyartha has been tested against the release.
+
+   A newly added app or skill uses `0.0.0` only as a draft sentinel. It appears in
+   `--list` even though the previous signed tag has no matching path; the owner
+   must type its first released version in this step.
 3. `node scripts/ci.ts full` again on the versioned tree.
 4. **Owner:** `node scripts/sign.ts`, type the version again, and approve the
    Keychain prompt. It writes `signatures/capabilities-X.Y.Z.sig`.

@@ -16,6 +16,7 @@ Rules: [AGENTS.md](../../AGENTS.md). Relationships: [DEPENDENCIES.md](../../DEPE
 | Integration | `integrations/<id>/integration.json` | data only: an exact npm version published at least 14 days ago or an https endpoint, every host it may reach |
 
 - An item whose files change needs a new version before the next release. A signed release never changes; fix forward. The person types item versions in `node scripts/version.ts X.Y.Z` (`--list` shows which items need one).
+- A new app or skill starts at the draft sentinel version `0.0.0`; `version.ts --list` includes it even before it exists in the last signed tag, and the owner types its first released version during the version command.
 - Declare every relationship (part of an app, requires) and make sure each requirement exists here or in Vakyartha's declared core.
 - Items are self-contained: no imports from outside the item, no vendored code, no keys or tokens, UTF-8 text only.
 - Public boundary: no links to private repositories, no local paths, no submodules. Refer to Vakyartha's guides by name.

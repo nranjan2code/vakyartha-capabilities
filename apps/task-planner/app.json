@@ -1,0 +1,45 @@
+{
+  "id": "task-planner",
+  "version": "0.0.0",
+  "name": "Task Planner",
+  "description": "Capture personal tasks, set due dates and repeat rules, and browse work in calendar, agenda and task views.",
+  "author": "Vakyartha",
+  "icon": "check",
+  "brand": "#2563eb",
+  "category": "productivity",
+  "entrypoints": {
+    "backend": "server.ts",
+    "surface": "surface.json",
+    "render": "renderApp"
+  },
+  "runtime": {
+    "engine": "node26",
+    "memoryLimitMb": 128,
+    "cpuTimeLimitSec": 8,
+    "maxStorageMb": 16
+  },
+  "entitlements": {
+    "network": { "mode": "airgap", "allowedDomains": [] },
+    "mcpTools": [],
+    "toolPurposes": {},
+    "toolActions": {},
+    "storage": { "duckdb": false }
+  },
+  "triggers": [],
+  "voice": {
+    "listen": {
+      "surface": "main",
+      "path": "/spoken/summary",
+      "label": "Listen to the task summary"
+    }
+  },
+  "exports": {
+    "skills": [
+      {
+        "name": "task-planner-guide",
+        "description": "Turn a personal brain dump into clear, manageable tasks and use Task Planner views without inventing deadlines or calendar events.",
+        "path": "skills/task-planner-guide/SKILL.md"
+      }
+    ]
+  }
+}

@@ -1,0 +1,667 @@
+[
+  {
+    "id": "main",
+    "title": "Tasks",
+    "data": {
+      "capture": "",
+      "draft": {
+        "title": "",
+        "notes": "",
+        "dueDate": "",
+        "startTime": "",
+        "durationMin": 30,
+        "priority": "normal",
+        "repeat": "none"
+      },
+      "edit": {},
+      "editDirty": false,
+      "today": [],
+      "upcoming": [],
+      "all": [],
+      "completed": [],
+      "hasToday": false,
+      "hasUpcoming": false,
+      "hasOpen": false,
+      "hasDone": false,
+      "counts": {
+        "open": 0,
+        "done": 0,
+        "overdue": 0,
+        "today": 0,
+        "upcoming": 0
+      },
+      "todayDate": "2000-01-01",
+      "chart": {
+        "statusLabels": [
+          "Open",
+          "Completed"
+        ],
+        "statusSeries": [
+          {
+            "name": "Tasks",
+            "values": [
+              0,
+              0
+            ]
+          }
+        ],
+        "trendLabels": [
+          "12-19",
+          "12-20",
+          "12-21",
+          "12-22",
+          "12-23",
+          "12-24",
+          "12-25",
+          "12-26",
+          "12-27",
+          "12-28",
+          "12-29",
+          "12-30",
+          "12-31",
+          "01-01"
+        ],
+        "trendSeries": [
+          {
+            "name": "Completed",
+            "values": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "summary": "0 open tasks · 0 due todays · 0 overdues",
+      "calendarEvents": [],
+      "selected": null,
+      "spoken": {
+        "summary": "No tasks saved yet. Add one with quick capture."
+      }
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "summary",
+          "capture",
+          "tabbed"
+        ]
+      },
+      {
+        "id": "summary",
+        "type": "text",
+        "props": {
+          "content": "{/summary}",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "capture",
+        "type": "section",
+        "props": {
+          "title": "Quick capture",
+          "description": "Add the thought now. Add a date or repeat rule when it matters."
+        },
+        "children": [
+          "capture-input",
+          "capture-bar"
+        ]
+      },
+      {
+        "id": "capture-input",
+        "type": "input",
+        "props": {
+          "label": "Task",
+          "bind": "/capture",
+          "placeholder": "What needs doing?"
+        }
+      },
+      {
+        "id": "capture-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm"
+        },
+        "children": [
+          "capture-dictate",
+          "capture-save",
+          "new-task"
+        ]
+      },
+      {
+        "id": "capture-dictate",
+        "type": "button",
+        "props": {
+          "label": "Dictate",
+          "action": "voice.dictate",
+          "payload": {
+            "into": "capture-input"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "capture-save",
+        "type": "button",
+        "props": {
+          "label": "Add task",
+          "action": "capture_task",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "new-task",
+        "type": "button",
+        "props": {
+          "label": "Add with details",
+          "action": "new_task",
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "tabbed",
+        "type": "tabs",
+        "props": {},
+        "children": [
+          "today-panel",
+          "upcoming-panel",
+          "all-panel",
+          "completed-panel",
+          "insights-panel"
+        ]
+      },
+      {
+        "id": "today-panel",
+        "type": "section",
+        "props": {
+          "title": "Today",
+          "description": "{/counts/today} due · {/counts/overdue} overdue"
+        },
+        "children": [
+          "today-list",
+          "today-empty"
+        ]
+      },
+      {
+        "id": "today-list",
+        "type": "stack",
+        "props": {
+          "gap": "sm"
+        },
+        "children": {
+          "each": "/today",
+          "template": "task-row"
+        }
+      },
+      {
+        "id": "today-empty",
+        "type": "text",
+        "props": {
+          "content": "Nothing is due today. Use quick capture to save a task for later.",
+          "variant": "caption",
+          "visibleIf": "{/hasToday}"
+        }
+      },
+      {
+        "id": "upcoming-panel",
+        "type": "section",
+        "props": {
+          "title": "Calendar",
+          "description": "Browse dated tasks by month, week, day or agenda."
+        },
+        "children": [
+          "calendar",
+          "upcoming-heading",
+          "upcoming-list",
+          "upcoming-empty"
+        ]
+      },
+      {
+        "id": "calendar",
+        "type": "calendar",
+        "props": {
+          "events": "{/calendarEvents}",
+          "view": "month",
+          "date": "{/todayDate}"
+        }
+      },
+      {
+        "id": "upcoming-heading",
+        "type": "text",
+        "props": {
+          "content": "Upcoming tasks",
+          "variant": "subheading"
+        }
+      },
+      {
+        "id": "upcoming-list",
+        "type": "stack",
+        "props": {
+          "gap": "sm"
+        },
+        "children": {
+          "each": "/upcoming",
+          "template": "task-row"
+        }
+      },
+      {
+        "id": "upcoming-empty",
+        "type": "text",
+        "props": {
+          "content": "No future dated tasks yet. Add a due date to place one on the calendar.",
+          "variant": "caption",
+          "visibleIf": "{/hasUpcoming}"
+        }
+      },
+      {
+        "id": "all-panel",
+        "type": "section",
+        "props": {
+          "title": "Open tasks",
+          "description": "{/counts/open} active tasks"
+        },
+        "children": [
+          "all-list",
+          "all-empty"
+        ]
+      },
+      {
+        "id": "all-list",
+        "type": "stack",
+        "props": {
+          "gap": "sm"
+        },
+        "children": {
+          "each": "/all",
+          "template": "task-row"
+        }
+      },
+      {
+        "id": "all-empty",
+        "type": "text",
+        "props": {
+          "content": "No open tasks. Quick capture is ready when you need it.",
+          "variant": "caption",
+          "visibleIf": "{/hasOpen}"
+        }
+      },
+      {
+        "id": "completed-panel",
+        "type": "section",
+        "props": {
+          "title": "Completed",
+          "description": "{/counts/done} completed tasks"
+        },
+        "children": [
+          "completed-list",
+          "completed-empty"
+        ]
+      },
+      {
+        "id": "completed-list",
+        "type": "stack",
+        "props": {
+          "gap": "sm"
+        },
+        "children": {
+          "each": "/completed",
+          "template": "task-row"
+        }
+      },
+      {
+        "id": "completed-empty",
+        "type": "text",
+        "props": {
+          "content": "Completed tasks will appear here.",
+          "variant": "caption",
+          "visibleIf": "{/hasDone}"
+        }
+      },
+      {
+        "id": "insights-panel",
+        "type": "section",
+        "props": {
+          "title": "Insights",
+          "description": "Counts come directly from saved task records; no scores or estimates."
+        },
+        "children": [
+          "status-chart",
+          "trend-chart"
+        ]
+      },
+      {
+        "id": "status-chart",
+        "type": "chart",
+        "props": {
+          "kind": "bar",
+          "title": "Open and completed",
+          "labels": "{/chart/statusLabels}",
+          "series": "{/chart/statusSeries}",
+          "height": "sm"
+        }
+      },
+      {
+        "id": "trend-chart",
+        "type": "chart",
+        "props": {
+          "kind": "line",
+          "title": "Completed each day · last 14 days",
+          "labels": "{/chart/trendLabels}",
+          "series": "{/chart/trendSeries}",
+          "height": "sm"
+        }
+      },
+      {
+        "id": "task-row",
+        "type": "card",
+        "props": {
+          "title": "{title}",
+          "subtitle": "{dateLabel} · {priorityLabel}",
+          "body": "{notes}",
+          "badge": "{repeatLabel}",
+          "tone": "{tone}"
+        },
+        "children": [
+          "task-actions"
+        ]
+      },
+      {
+        "id": "task-actions",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm"
+        },
+        "children": [
+          "task-done",
+          "task-select",
+          "task-delete",
+          "confirm-delete",
+          "cancel-delete"
+        ]
+      },
+      {
+        "id": "task-done",
+        "type": "button",
+        "props": {
+          "label": "{doneLabel}",
+          "action": "toggle_done",
+          "payload": {
+            "id": "{id}"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "task-select",
+        "type": "button",
+        "props": {
+          "label": "Edit",
+          "action": "select_task",
+          "payload": {
+            "id": "{id}"
+          },
+          "style": "link"
+        }
+      },
+      {
+        "id": "task-delete",
+        "type": "button",
+        "props": {
+          "label": "Delete",
+          "action": "ask_delete",
+          "payload": {
+            "id": "{id}"
+          },
+          "style": "link",
+          "visibleIf": "{canAskDelete}"
+        }
+      },
+      {
+        "id": "confirm-delete",
+        "type": "button",
+        "props": {
+          "label": "Confirm delete",
+          "action": "confirm_delete",
+          "payload": {
+            "id": "{id}"
+          },
+          "style": "danger",
+          "visibleIf": "{confirmDelete}"
+        }
+      },
+      {
+        "id": "cancel-delete",
+        "type": "button",
+        "props": {
+          "label": "Keep task",
+          "action": "cancel_delete",
+          "style": "secondary",
+          "visibleIf": "{confirmDelete}"
+        }
+      }
+    ]
+  },
+  {
+    "id": "details",
+    "title": "Task details",
+    "data": {
+      "draft": {
+        "title": "",
+        "notes": "",
+        "dueDate": "",
+        "startTime": "",
+        "durationMin": 30,
+        "priority": "normal",
+        "repeat": "none"
+      },
+      "spoken": {
+        "detail": "No task details yet. Add a title, then save the task."
+      }
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "new-form",
+          "read-detail"
+        ]
+      },
+      {
+        "id": "new-form",
+        "type": "form",
+        "props": {
+          "submit": "save_task",
+          "submitLabel": "Save task"
+        },
+        "children": [
+          "new-title",
+          "dictate-new-title",
+          "new-date",
+          "new-time",
+          "new-duration",
+          "new-priority",
+          "new-repeat",
+          "new-notes",
+          "dictate-new-notes"
+        ]
+      },
+      {
+        "id": "new-title",
+        "type": "input",
+        "props": {
+          "label": "Task",
+          "bind": "/draft/title",
+          "placeholder": "A clear next action"
+        }
+      },
+      {
+        "id": "dictate-new-title",
+        "type": "button",
+        "props": {
+          "label": "Dictate task title",
+          "action": "voice.dictate",
+          "payload": {
+            "into": "new-title"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "new-date",
+        "type": "date",
+        "props": {
+          "label": "Due date",
+          "bind": "/draft/dueDate"
+        }
+      },
+      {
+        "id": "new-time",
+        "type": "input",
+        "props": {
+          "label": "Start time",
+          "kind": "time",
+          "bind": "/draft/startTime"
+        }
+      },
+      {
+        "id": "new-duration",
+        "type": "select",
+        "props": {
+          "label": "Time block",
+          "bind": "/draft/durationMin",
+          "options": [
+            {
+              "label": "15 minutes",
+              "value": "15"
+            },
+            {
+              "label": "30 minutes",
+              "value": "30"
+            },
+            {
+              "label": "45 minutes",
+              "value": "45"
+            },
+            {
+              "label": "1 hour",
+              "value": "60"
+            },
+            {
+              "label": "1.5 hours",
+              "value": "90"
+            },
+            {
+              "label": "2 hours",
+              "value": "120"
+            }
+          ]
+        }
+      },
+      {
+        "id": "new-priority",
+        "type": "select",
+        "props": {
+          "label": "Priority",
+          "bind": "/draft/priority",
+          "options": [
+            {
+              "label": "Normal",
+              "value": "normal"
+            },
+            {
+              "label": "High",
+              "value": "high"
+            },
+            {
+              "label": "Low",
+              "value": "low"
+            }
+          ]
+        }
+      },
+      {
+        "id": "new-repeat",
+        "type": "select",
+        "props": {
+          "label": "Repeat after completion",
+          "bind": "/draft/repeat",
+          "options": [
+            {
+              "label": "Never",
+              "value": "none"
+            },
+            {
+              "label": "Daily",
+              "value": "daily"
+            },
+            {
+              "label": "Weekly",
+              "value": "weekly"
+            },
+            {
+              "label": "Monthly",
+              "value": "monthly"
+            }
+          ]
+        }
+      },
+      {
+        "id": "new-notes",
+        "type": "textarea",
+        "props": {
+          "label": "Notes",
+          "bind": "/draft/notes",
+          "placeholder": "Optional context"
+        }
+      },
+      {
+        "id": "dictate-new-notes",
+        "type": "button",
+        "props": {
+          "label": "Dictate notes",
+          "action": "voice.dictate",
+          "payload": {
+            "into": "new-notes"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "read-detail",
+        "type": "button",
+        "props": {
+          "label": "Read task aloud",
+          "action": "voice.read",
+          "payload": {
+            "text": "/spoken/detail"
+          },
+          "style": "secondary"
+        }
+      }
+    ]
+  }
+]
