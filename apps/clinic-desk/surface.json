@@ -4,11 +4,13 @@
     "title": "Schedule",
     "data": {
       "date": "2026-11-01",
+      "view": "list",
       "notToday": false,
       "isToday": true,
       "canBook": false,
       "title": "Today · Sun 1 Nov",
-      "subtitle": "Our Clinic · 0 appointments · 0 doctors on duty. Attendance estimates appear after 20 completed or missed visits (0 so far). They are learned from this clinic's own history.",
+      "subtitle": "Our Clinic · 0 appointments · 0 doctors on duty · No clinic hours",
+      "insight": "Attendance estimates appear after 20 completed or missed visits (0 so far).",
       "filter": "all",
       "doctorFilterOptions": [
         {
@@ -23,14 +25,13 @@
         "missed": 0,
         "free": 0
       },
-      "load": {
-        "value": 0,
-        "max": 1,
-        "note": "No clinic hours this day",
-        "tone": "info"
+      "tabTitles": {
+        "appts": "Appointments",
+        "attn": "Needs attention",
+        "waiting": "Waiting list",
+        "remind": "Reminders"
       },
       "events": [],
-      "monthLabel": "November 2026",
       "attention": [],
       "appts": [],
       "hasAppts": false,
@@ -41,49 +42,12 @@
       },
       "quick": [],
       "waitlist": [],
-      "waitText": "0 patients waiting for a slot. Find a slot books them and clears the entry.",
-      "remindText": "0 patients booked for Monday 2 November. The messages are written for you to send yourself.",
+      "waitText": "",
+      "remindText": "",
       "remindLines": [],
       "remind": {
         "name": "reminders-2026-11-02",
         "csv": "Phone,Patient,Doctor,Date,Time,Message"
-      },
-      "chart": {
-        "labels": [
-          "Sun 1",
-          "Mon 2",
-          "Tue 3",
-          "Wed 4",
-          "Thu 5",
-          "Fri 6",
-          "Sat 7"
-        ],
-        "series": [
-          {
-            "name": "Booked",
-            "values": [
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0
-            ]
-          },
-          {
-            "name": "Free",
-            "values": [
-              0,
-              0,
-              0,
-              0,
-              0,
-              0,
-              0
-            ]
-          }
-        ]
       },
       "week": [
         {
@@ -216,7 +180,8 @@
         "id": "root",
         "type": "stack",
         "props": {
-          "gap": "lg"
+          "gap": "md",
+          "density": "compact"
         },
         "children": [
           "setup-alert"
@@ -239,11 +204,8 @@
         "type": "button",
         "props": {
           "label": "Set up doctors",
-          "action": "view.open",
-          "style": "primary",
-          "payload": {
-            "surface": "setup"
-          }
+          "action": "setup_doctors",
+          "style": "primary"
         }
       }
     ]
@@ -307,7 +269,7 @@
         "eve": []
       },
       "noSlots": "Choose a doctor. Try another day above, or use Next available.",
-      "summary": "Pick a time on the left first.",
+      "summary": "Pick a time first.",
       "confirmTitle": "No time chosen yet",
       "confirmBody": "Choose a day and a time slot.",
       "movingText": "",
@@ -318,7 +280,8 @@
         "id": "root",
         "type": "stack",
         "props": {
-          "gap": "lg"
+          "gap": "md",
+          "density": "compact"
         },
         "children": [
           "none"
@@ -341,11 +304,8 @@
         "type": "button",
         "props": {
           "label": "Open Setup",
-          "action": "view.open",
-          "style": "primary",
-          "payload": {
-            "surface": "setup"
-          }
+          "action": "setup_doctors",
+          "style": "primary"
         }
       }
     ]
@@ -354,13 +314,7 @@
     "id": "patients",
     "title": "Patients",
     "data": {
-      "subtitle": "0 patients on record. Records stay on this computer.",
-      "stats": {
-        "all": 0,
-        "upcoming": 0,
-        "missed": 0,
-        "missedTone": "neutral"
-      },
+      "subtitle": "0 patients · 0 upcoming visits · 0 missed visits. Records stay on this computer.",
       "newPatient": {
         "name": "",
         "phone": "",
@@ -385,7 +339,8 @@
       },
       "detail": {
         "title": "",
-        "summary": ""
+        "summary": "",
+        "visitsTitle": ""
       },
       "history": []
     },
@@ -394,33 +349,13 @@
         "id": "root",
         "type": "stack",
         "props": {
-          "gap": "lg"
+          "gap": "md",
+          "density": "compact"
         },
         "children": [
-          "head",
-          "stats",
-          "add",
-          "empty"
+          "subtitle",
+          "cols"
         ]
-      },
-      {
-        "id": "head",
-        "type": "stack",
-        "props": {
-          "gap": "xs"
-        },
-        "children": [
-          "title",
-          "subtitle"
-        ]
-      },
-      {
-        "id": "title",
-        "type": "text",
-        "props": {
-          "content": "Patients",
-          "variant": "heading"
-        }
       },
       {
         "id": "subtitle",
@@ -431,42 +366,33 @@
         }
       },
       {
-        "id": "stats",
-        "type": "grid",
+        "id": "cols",
+        "type": "split",
         "props": {
-          "columns": 3,
-          "gap": "sm"
+          "ratio": "1:2",
+          "gap": "lg"
         },
         "children": [
-          "st-all",
-          "st-up",
-          "st-miss"
+          "browse",
+          "add"
         ]
       },
       {
-        "id": "st-all",
-        "type": "stat",
+        "id": "browse",
+        "type": "section",
         "props": {
-          "label": "Patients",
-          "value": "{/stats/all}"
-        }
+          "title": "All patients"
+        },
+        "children": [
+          "empty"
+        ]
       },
       {
-        "id": "st-up",
-        "type": "stat",
+        "id": "empty",
+        "type": "text",
         "props": {
-          "label": "Upcoming visits",
-          "value": "{/stats/upcoming}",
-          "tone": "info"
-        }
-      },
-      {
-        "id": "st-miss",
-        "type": "stat",
-        "props": {
-          "label": "Missed visits",
-          "value": "{/stats/missed}",
-          "tone": "{/stats/missedTone}"
+          "content": "No patients yet. Add one here, or book an appointment and the record is created for you.",
+          "variant": "caption"
         }
       },
       {
@@ -477,23 +403,22 @@
           "description": "Name and phone are enough. Booking also creates the record."
         },
         "children": [
+          "add-grid",
           "add-bar"
         ]
       },
       {
-        "id": "add-bar",
-        "type": "stack",
+        "id": "add-grid",
+        "type": "grid",
         "props": {
-          "direction": "horizontal",
-          "wrap": true,
-          "gap": "sm",
-          "align": "end"
+          "columns": 3,
+          "minItemWidth": "sm",
+          "gap": "sm"
         },
         "children": [
           "np-name",
           "np-phone",
-          "np-dob",
-          "np-add"
+          "np-dob"
         ]
       },
       {
@@ -511,7 +436,8 @@
         "props": {
           "label": "Phone",
           "bind": "/newPatient/phone",
-          "placeholder": "Number the clinic can call"
+          "placeholder": "Number the clinic can call",
+          "kind": "tel"
         }
       },
       {
@@ -523,36 +449,25 @@
         }
       },
       {
+        "id": "add-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
+        },
+        "children": [
+          "np-add"
+        ]
+      },
+      {
         "id": "np-add",
         "type": "button",
         "props": {
           "label": "Add patient",
           "action": "add_patient",
           "style": "primary"
-        }
-      },
-      {
-        "id": "empty",
-        "type": "card",
-        "props": {
-          "title": "No patients yet",
-          "body": "Add the first patient above, or book an appointment and the record is created for you.",
-          "tone": "neutral"
-        },
-        "children": [
-          "empty-book"
-        ]
-      },
-      {
-        "id": "empty-book",
-        "type": "button",
-        "props": {
-          "label": "Book an appointment",
-          "action": "view.open",
-          "style": "primary",
-          "payload": {
-            "surface": "book"
-          }
         }
       }
     ]
@@ -572,12 +487,12 @@
         "util": "",
         "nextFree": "",
         "week": "2026-10-26",
-        "weekLabel": "",
         "events": [],
         "chart": {
           "labels": [],
           "series": []
         },
+        "comingTitle": "",
         "upcoming": []
       }
     },
@@ -586,31 +501,13 @@
         "id": "root",
         "type": "stack",
         "props": {
-          "gap": "lg"
+          "gap": "md",
+          "density": "compact"
         },
         "children": [
-          "head",
+          "subtitle",
           "empty"
         ]
-      },
-      {
-        "id": "head",
-        "type": "stack",
-        "props": {
-          "gap": "xs"
-        },
-        "children": [
-          "title",
-          "subtitle"
-        ]
-      },
-      {
-        "id": "title",
-        "type": "text",
-        "props": {
-          "content": "Doctors",
-          "variant": "heading"
-        }
       },
       {
         "id": "subtitle",
@@ -637,11 +534,8 @@
         "type": "button",
         "props": {
           "label": "Set up doctors",
-          "action": "view.open",
-          "style": "primary",
-          "payload": {
-            "surface": "setup"
-          }
+          "action": "setup_doctors",
+          "style": "primary"
         }
       }
     ]
@@ -958,32 +852,14 @@
         "id": "root",
         "type": "stack",
         "props": {
-          "gap": "lg"
+          "gap": "md",
+          "density": "compact"
         },
         "children": [
-          "head",
+          "subtitle",
           "bar",
           "empty"
         ]
-      },
-      {
-        "id": "head",
-        "type": "stack",
-        "props": {
-          "gap": "xs"
-        },
-        "children": [
-          "title",
-          "subtitle"
-        ]
-      },
-      {
-        "id": "title",
-        "type": "text",
-        "props": {
-          "content": "Insights",
-          "variant": "heading"
-        }
       },
       {
         "id": "subtitle",
@@ -1076,6 +952,7 @@
         "address": ""
       },
       "newDoctor": "",
+      "doctorsTitle": "Doctors",
       "doctorText": "Add the first doctor to start booking.",
       "doctors": [],
       "doctor": {
@@ -1094,7 +971,6 @@
         "to": "",
         "note": ""
       },
-      "leaveText": "Leave removes that doctor's slots on those days.",
       "leaveList": [],
       "editor": {
         "title": "",
@@ -1108,32 +984,13 @@
         "id": "root",
         "type": "stack",
         "props": {
-          "gap": "lg"
+          "gap": "md",
+          "density": "compact"
         },
         "children": [
-          "head",
-          "clinic",
-          "doctors"
+          "subtitle",
+          "tabs"
         ]
-      },
-      {
-        "id": "head",
-        "type": "stack",
-        "props": {
-          "gap": "xs"
-        },
-        "children": [
-          "title",
-          "subtitle"
-        ]
-      },
-      {
-        "id": "title",
-        "type": "text",
-        "props": {
-          "content": "Setup",
-          "variant": "heading"
-        }
       },
       {
         "id": "subtitle",
@@ -1144,33 +1001,49 @@
         }
       },
       {
-        "id": "clinic",
-        "type": "section",
-        "props": {
-          "title": "Clinic and branding",
-          "description": "The name, tagline, phone and address head the schedule, reminders and exports. The time zone decides what \"today\" and \"now\" mean for slots."
-        },
+        "id": "tabs",
+        "type": "tabs",
+        "props": {},
         "children": [
-          "clinic-bar"
+          "clinic",
+          "doctors"
         ]
       },
       {
-        "id": "clinic-bar",
-        "type": "stack",
+        "id": "clinic",
+        "type": "section",
         "props": {
-          "direction": "horizontal",
-          "wrap": true,
-          "gap": "sm",
-          "align": "end"
+          "title": "Clinic",
+          "description": "The name, tagline, phone and address head the schedule, reminders and exports. The time zone decides what \"today\" and \"now\" mean for slots."
+        },
+        "children": [
+          "c-grid",
+          "c-bar"
+        ]
+      },
+      {
+        "id": "c-grid",
+        "type": "grid",
+        "props": {
+          "columns": 3,
+          "minItemWidth": "md",
+          "gap": "sm"
         },
         "children": [
           "c-name",
           "c-tag",
           "c-phone",
           "c-addr",
-          "c-zone",
-          "c-save"
+          "c-zone"
         ]
+      },
+      {
+        "id": "c-name",
+        "type": "input",
+        "props": {
+          "label": "Clinic name",
+          "bind": "/clinic/name"
+        }
       },
       {
         "id": "c-tag",
@@ -1186,7 +1059,8 @@
         "type": "input",
         "props": {
           "label": "Clinic phone",
-          "bind": "/clinic/phone"
+          "bind": "/clinic/phone",
+          "kind": "tel"
         }
       },
       {
@@ -1195,14 +1069,6 @@
         "props": {
           "label": "Address",
           "bind": "/clinic/address"
-        }
-      },
-      {
-        "id": "c-name",
-        "type": "input",
-        "props": {
-          "label": "Clinic name",
-          "bind": "/clinic/name"
         }
       },
       {
@@ -1215,10 +1081,23 @@
         }
       },
       {
+        "id": "c-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
+        },
+        "children": [
+          "c-save"
+        ]
+      },
+      {
         "id": "c-save",
         "type": "button",
         "props": {
-          "label": "Save",
+          "label": "Save changes",
           "action": "save_clinic",
           "style": "primary"
         }
@@ -1227,8 +1106,29 @@
         "id": "doctors",
         "type": "section",
         "props": {
-          "title": "Doctors",
+          "title": "{/doctorsTitle}",
           "description": "{/doctorText}"
+        },
+        "children": [
+          "d-cols"
+        ]
+      },
+      {
+        "id": "d-cols",
+        "type": "split",
+        "props": {
+          "ratio": "1:2",
+          "gap": "lg"
+        },
+        "children": [
+          "roster"
+        ]
+      },
+      {
+        "id": "roster",
+        "type": "stack",
+        "props": {
+          "gap": "sm"
         },
         "children": [
           "add-bar"

@@ -24,7 +24,9 @@ export interface Draft { doctorId: string; date: string; time: string; name: str
 export interface Ui {
   date: string; filter: string; draft: Draft; openPatientId: string; confirmDelete: boolean; openDoctorId: string;
   newDoctor: string; leave: { from: string; to: string; note: string };
-  view: "list" | "week" | "month"; insightDays: string; insightDoctor: string; docWeek: string; newPatient: { name: string; phone: string; dob: string };
+  view: "list" | "week" | "month"; insightDays: string; insightDoctor: string; newPatient: { name: string; phone: string; dob: string };
+  /** Which tab an action asked each screen to show, with a counter so asking again is a new request. */
+  go: Record<string, { tab: string; n: number }>;
 }
 export interface State { clinic?: { name: string; timezone: string; tagline: string; phone: string; address: string }; doctors?: Doctor[]; leave?: Leave[]; patients?: Patient[]; appts?: Appt[]; waitlist?: Wait[]; seq?: number; ui?: Ui }
 
@@ -130,12 +132,19 @@ export function normalize(s: State): State {
     openDoctorId: doctorIds.has(u.openDoctorId as string) ? u.openDoctorId! : doctors[0]?.id ?? "",
     newDoctor: line(u.newDoctor, 80),
     leave: { from: isDate(u.leave?.from) ? u.leave!.from : "", to: isDate(u.leave?.to) ? u.leave!.to : "", note: line(u.leave?.note, 120) },
-    view: viewOf(u), insightDays: ["7", "30", "90"].includes(u.insightDays as string) ? u.insightDays! : "30", insightDoctor: doctorIds.has(u.insightDoctor as string) ? u.insightDoctor! : "", docWeek: isDate(u.docWeek) ? u.docWeek : "",
+    view: viewOf(u), insightDays: ["7", "30", "90"].includes(u.insightDays as string) ? u.insightDays! : "30", insightDoctor: doctorIds.has(u.insightDoctor as string) ? u.insightDoctor! : "",
     newPatient: { name: line(u.newPatient?.name, 100), phone: line(u.newPatient?.phone, 24), dob: isDate(u.newPatient?.dob) ? u.newPatient!.dob : "" },
+    go: Object.fromEntries(Object.entries(u.go && typeof u.go === "object" ? u.go : {}).filter(([k, v]) => TAB_KEYS.includes(k) && typeof v?.tab === "string" && Number.isInteger(v.n)).map(([k, v]) => [k, { tab: line(v.tab, 20), n: v.n }])),
   };
   return { clinic, doctors, leave, patients, appts, waitlist, seq: Number.isInteger(s.seq) ? s.seq : appts.length + patients.length + waitlist.length, ui };
 }
 
+const TAB_KEYS = ["schedule", "patient", "doctor", "setup"];
+/** Ask a screen to show one of its tabs. The counter makes a repeated request count; it follows the clock so it
+ * never repeats an earlier value, even after the app's data is reset while a view still remembers the old one. */
+let goClock = 0;
+const go = (ui: Ui, key: string, tab: string) => { ui.go[key] = { tab, n: Math.max((ui.go[key]?.n ?? 0) + 1, goClock) }; };
+const activeTab = (ui: Ui, key: string) => (ui.go[key] ? `${ui.go[key]!.tab}#${ui.go[key]!.n}` : undefined);
 const nextId = (s: State, kind: string) => `${kind}-${(s.seq = (s.seq ?? 0) + 1)}`;
 const viewOf = (v: unknown): "list" | "week" | "month" => { const x = (v as { view?: unknown } | null)?.view; return x === "week" || x === "month" ? x : "list"; };
 const doctorOf = (s: State, id: string) => s.doctors!.find((d) => d.id === id);
@@ -197,6 +206,7 @@ export async function handleAction(controlId: string, value: unknown, context: C
   const s = (context.state = normalize(context.state));
   const nowDate = context.now?.() ?? new Date();
   const now = nowDate.toISOString();
+  goClock = nowDate.getTime();
   const ui = s.ui!, draft = ui.draft;
   const payload = (value && typeof value === "object" ? value : {}) as { id?: unknown; time?: unknown; status?: unknown };
   const payloadId = typeof payload.id === "string" ? payload.id : "";
@@ -222,6 +232,7 @@ export async function handleAction(controlId: string, value: unknown, context: C
   if (!action) {
     const doctorField = controlId.match(/^\/doctor\/(name|specialty|room|days|start|end|slot|breakStart|breakEnd)$/);
     if (controlId === "/date") { if (!isDate(value)) throw new Error("Pick a valid date"); ui.date = value; touched = ["today"]; }
+    else if (controlId === "/view") { ui.view = viewOf({ view: value }); touched = ["today"]; }
     else if (controlId === "/filter") { ui.filter = doctorOf(s, String(value)) ? String(value) : ""; touched = ["today"]; }
     else if (/^\/draft\/(doctorId|date|name|phone|reason|kind|patientId)$/.test(controlId)) {
       const k = controlId.slice(7) as "doctorId" | "date" | "name" | "phone" | "reason" | "kind" | "patientId";
@@ -333,7 +344,7 @@ export async function handleAction(controlId: string, value: unknown, context: C
       s.waitlist = s.waitlist!.filter((w) => w.patientId !== patient.id);
     }
     ui.draft = { ...blankDraft(), doctorId: doctor.id, date: draft.date };
-    ui.date = date;
+    ui.date = date; ui.view = "list"; go(ui, "schedule", "appts");
     focusSurface = "today";
   } else if (action === "prepare_booking") {
     // The assistant only fills the Book form; a person still presses Book, so nothing is held until they do.
@@ -365,7 +376,7 @@ export async function handleAction(controlId: string, value: unknown, context: C
     touched = ["book"];
   } else if (action === "open_patient") {
     if (!patientOf(s, payloadId)) throw new Error("That patient no longer exists");
-    ui.openPatientId = payloadId; ui.confirmDelete = false;
+    ui.openPatientId = payloadId; ui.confirmDelete = false; go(ui, "patient", "details");
     focusSurface = "patients"; touched = ["patients"];
   } else if (action === "book_for_patient") {
     const p = openPatient();
@@ -387,22 +398,20 @@ export async function handleAction(controlId: string, value: unknown, context: C
     if (s.doctors!.length >= MAX_DOCTORS) throw new Error(`Clinic Desk keeps up to ${MAX_DOCTORS} doctors`);
     const d: Doctor = { id: nextId(s, "doc"), name: ui.newDoctor, specialty: "", days: PRESETS["mon-sat"]!, start: "09:00", end: "17:00", slot: 15, breakStart: "13:00", breakEnd: "14:00", active: true, room: "" };
     s.doctors!.push(d);
-    ui.openDoctorId = d.id; ui.newDoctor = "";
+    ui.openDoctorId = d.id; ui.newDoctor = ""; go(ui, "setup", "doctors");
   } else if (action === "open_doctor") {
     if (!doctorOf(s, payloadId)) throw new Error("That doctor no longer exists");
-    ui.openDoctorId = payloadId; ui.docWeek = ""; touched = ["setup", "doctors"];
-  } else if (action === "doc_week_prev" || action === "doc_week_next") {
-    const base = ui.docWeek || mondayOf(today(s, nowDate));
-    ui.docWeek = addDays(base, action === "doc_week_next" ? 7 : -7); touched = ["doctors"];
+    ui.openDoctorId = payloadId; go(ui, (value as { to?: unknown })?.to === "doctors" ? "doctor" : "setup", (value as { to?: unknown })?.to === "doctors" ? "week" : "doctors");
+    touched = ["setup", "doctors"];
+  } else if (action === "setup_doctors") {
+    // From a doctor's profile or the welcome card: Setup opens on its Doctors tab, on that doctor when one is chosen.
+    if (payloadId && doctorOf(s, payloadId)) ui.openDoctorId = payloadId;
+    go(ui, "setup", "doctors"); focusSurface = "setup"; touched = ["setup"];
   } else if (action === "book_with_doctor") {
     const d = openDoctor();
     if (!d?.active) throw new Error("Restore this doctor in Setup before booking with them");
     ui.draft = { ...blankDraft(), doctorId: d.id, date: draft.date };
     focusSurface = "book"; touched = ["book"];
-  } else if (action === "shift_month") {
-    const by = Number((value as { by?: unknown })?.by) === -1 ? -1 : 1, base = new Date(`${effective(ui.date, s, nowDate).slice(0, 7)}-01T00:00:00Z`);
-    base.setUTCMonth(base.getUTCMonth() + by);
-    ui.date = base.toISOString().slice(0, 10); touched = ["today"];
   } else if (action === "book_patient") {
     const p = patientOf(s, payloadId);
     if (!p) throw new Error("That patient no longer exists");
@@ -434,12 +443,9 @@ export async function handleAction(controlId: string, value: unknown, context: C
     ui.leave = { from: "", to: "", note: "" };
   } else if (action === "remove_leave") {
     s.leave = s.leave!.filter((l) => l.id !== payloadId);
-  } else if (action === "set_view") {
-    ui.view = viewOf(value);
-    touched = ["today"];
   } else if (action === "open_day") {
     if (!isDate((value as { date?: unknown })?.date)) throw new Error("Pick a valid date");
-    ui.date = (value as { date: string }).date; ui.view = "list"; focusSurface = "today"; touched = ["today"];
+    ui.date = (value as { date: string }).date; ui.view = "list"; go(ui, "schedule", "appts"); focusSurface = "today"; touched = ["today"];
   } else if (action === "pick_day") {
     if (!isDate((value as { date?: unknown })?.date)) throw new Error("Pick a valid date");
     draft.date = (value as { date: string }).date; draft.time = ""; touched = ["book"];
@@ -461,7 +467,7 @@ export async function handleAction(controlId: string, value: unknown, context: C
     const patient = patientFor(draft.name, draft.phone);
     if (s.waitlist!.some((x) => x.patientId === patient.id)) throw new Error(`${patient.name} is already on the waiting list`);
     s.waitlist!.push({ id: nextId(s, "wait"), patientId: patient.id, doctorId: doctorOf(s, draft.doctorId)?.active ? draft.doctorId : "", note: draft.reason, created: now });
-    ui.draft = { ...blankDraft(), doctorId: draft.doctorId, date: draft.date };
+    ui.draft = { ...blankDraft(), doctorId: draft.doctorId, date: draft.date }; go(ui, "schedule", "waiting");
     focusSurface = "today"; touched = ["today", "book", "patients"];
   } else if (action === "waitlist_book") {
     const w = s.waitlist!.find((x) => x.id === payloadId), p = w && patientOf(s, w.patientId);
@@ -584,12 +590,21 @@ export const assistantWorkflow = {
   review: { label: "Review the booking", surface: "book", tool: "prepare_booking" },
 };
 
+/** A phone number shown on screen never breaks across lines. */
+const phoneText = (v: string) => v.replace(/ /g, "\u00a0");
 const kindLine = (a: Appt) => [a.kind !== "Consultation" ? a.kind : "", a.reason].filter(Boolean).join(" · ");
 const dayTag = (date: string) => `${dayName(date)} ${Number(date.slice(8))}`;
 const surname = (n: string) => n.split(" ").filter(Boolean).at(-1) ?? n;
 const age = (dob: string, on: string) => { const y = Number(on.slice(0, 4)) - Number(dob.slice(0, 4)) - (on.slice(5) < dob.slice(5) ? 1 : 0); return y >= 0 ? y : 0; };
 const doctorOptions = (s: State) => s.doctors!.filter((d) => d.active).map((d) => ({ label: d.name, value: d.id }));
 
+const caption = (id: string, content: string): Node => ({ id, type: "text", props: { content, variant: "caption" } });
+const chips = (id: string, each: string, template: string): Node => ({ id, type: "stack", props: { direction: "horizontal", wrap: true, gap: "xs" }, children: { each, template } });
+const rows = (id: string, each: string, template: string, extra: Record<string, unknown> = {}): Node => ({ id, type: "grid", props: { columns: 1, gap: "xs", ...extra }, children: { each, template } });
+const panel = (id: string, title: string, children: string[], description?: string): Node => ({ id, type: "section", props: { title, ...(description ? { description } : {}) }, children });
+const counted = (label: string, n: number) => (n ? `${label} (${n})` : label);
+
+/** Schedule: the day at a glance, then one tab per job (the queue, follow-ups, the waiting list, reminders, the week ahead). */
 function todaySurface(s: State, nowDate: Date): Update {
   const ui = s.ui!, date = effective(ui.date, s, nowDate), now0 = today(s, nowDate);
   const doctors = s.doctors!, active = doctors.filter((d) => d.active), inView = (id: string) => !ui.filter || id === ui.filter;
@@ -604,18 +619,18 @@ function todaySurface(s: State, nowDate: Date): Update {
   const risks = new Map(shown.map((a) => [a.id, riskOf(model, a)]));
   const from = date < now0 ? now0 : date;
   const week = weekOutlook(s, from, nowDate, model);
-  const monday = addDays(date, -DAYS.indexOf(dayName(date)));
-  const rangeFrom = ui.view === "month" ? `${date.slice(0, 7)}-01` : monday, rangeTo = ui.view === "month" ? `${date.slice(0, 7)}-31` : addDays(monday, 6);
+  // The calendar pages on its own, so it gets the weeks around the chosen day, not only the visible one.
+  const rangeFrom = addDays(`${date.slice(0, 7)}-01`, -42), rangeTo = addDays(`${date.slice(0, 7)}-01`, 75);
   const alerts = attention(s, nowDate, model, now0);
-  const events = s.appts!.filter((a) => a.date >= rangeFrom && a.date <= rangeTo && a.status !== "cancelled" && inView(a.doctorId)).slice(0, 400)
+  const events = s.appts!.filter((a) => a.date >= rangeFrom && a.date <= rangeTo && a.status !== "cancelled" && inView(a.doctorId)).slice(0, 600)
     .map((a) => ({ title: `${shortName(patientOf(s, a.patientId)!.name)} · ${surname(doctorOf(s, a.doctorId)!.name)}`, date: a.date, start: a.time, end: clock(minutes(a.time) + a.minutes), note: kindLine(a), tone: STATUS_TONE[a.status] }));
   const quick = active.filter((d) => inView(d.id)).flatMap((d) => {
     const out: { doctorId: string; date: string; time: string; label: string }[] = [];
-    for (let i = 0; i < 14 && out.length < 3; i++) {
+    for (let i = 0; i < 14 && out.length < 2; i++) {
       const day = addDays(now0, i);
       for (const t of freeSlots(s, d, day, nowDate)) {
         out.push({ doctorId: d.id, date: day, time: t, label: `${i === 0 ? "Today" : i === 1 ? "Tomorrow" : shortDate(day)} ${spokenTime(t)} · ${d.name}` });
-        if (out.length >= 3) break;
+        if (out.length >= 2) break;
       }
     }
     return out;
@@ -625,81 +640,76 @@ function todaySurface(s: State, nowDate: Date): Update {
   const message = (a: Appt) => `Hello ${patientOf(s, a.patientId)!.name.split(" ")[0]}, this is ${s.clinic!.name}. A reminder of your appointment with ${doctorOf(s, a.doctorId)!.name} on ${longDate(a.date)} at ${spokenTime(a.time)}. Please call us${s.clinic!.phone ? ` on ${s.clinic!.phone}` : ""} if you need to change it.`;
   const waiting = s.waitlist!.map((w) => ({ w, p: patientOf(s, w.patientId)! }));
 
-  const nodes: Node[] = [{ id: "root", type: "stack", props: { gap: "lg" }, children: [] }];
+  const nodes: Node[] = [{ id: "root", type: "stack", props: { gap: "md", density: "compact" }, children: [] }];
   const root = nodes[0]!;
   if (!doctors.length) {
     root.children = ["setup-alert"];
-    nodes.push({ id: "setup-alert", type: "card", props: { title: "Welcome to Clinic Desk", body: "Add your first doctor and their weekly hours. Bookings, the day's schedule and the waiting list appear as soon as one is set up.", tone: "info" }, children: ["setup-go"] }, btn("setup-go", "Set up doctors", "view.open", "primary", { surface: "setup" }));
+    nodes.push({ id: "setup-alert", type: "card", props: { title: "Welcome to Clinic Desk", body: "Add your first doctor and their weekly hours. Bookings, the day's schedule and the waiting list appear as soon as one is set up.", tone: "info" }, children: ["setup-go"] }, btn("setup-go", "Set up doctors", "setup_doctors", "primary"));
   } else {
-    root.children = ["head", "bar", "bar2", "stats", "load", ...(alerts.length ? ["attn"] : []), ...(ui.view === "month" ? ["month-bar"] : []), ui.view !== "list" ? "cal" : shown.length ? "list" : "empty",
-      ...(isFuture && quick.length ? ["quick"] : []), ...(waiting.length ? ["wait"] : []), ...(remind.length ? ["remind"] : []), "week-head", "week-chart", "week"];
+    // Week and month are separate nodes: a calendar keeps its own view once shown, so one node could not switch.
+    const queue = ui.view !== "list" ? [`cal-${ui.view}`] : shown.length ? ["list"] : ["empty"];
+    root.children = ["head", "bar", "filters", "stats", "tabs"];
     nodes.push(
       { id: "head", type: "stack", props: { gap: "xs" }, children: ["title", "subtitle"] },
       { id: "title", type: "text", props: { content: "{/title}", variant: "heading" } },
-      { id: "subtitle", type: "text", props: { content: "{/subtitle}", variant: "caption" } },
-      row("bar", ["prev", "date", "next", "now", "walkin", "book", "export", "ask"]),
-      btn("prev", "Previous day", "prev_day"), { id: "date", type: "date", props: { label: "Day", bind: "/date" } }, btn("next", "Next day", "next_day"),
-      btn("now", "Today", "go_today", "link", undefined, { visibleIf: "{/notToday}" }),
+      caption("subtitle", "{/subtitle}"),
+      row("bar", ["prev", "date", "next", "now", "walkin", "book", "ask", "export"]),
+      btn("prev", "Previous day", "prev_day"), { id: "date", type: "date", props: { label: "Day", bind: "/date", maxWidth: "sm" } }, btn("next", "Next day", "next_day"),
+      btn("now", "Today", "go_today", "secondary", undefined, { visibleIf: "{/notToday}" }),
       btn("walkin", "Walk-in", "walk_in", "primary", undefined, { visibleIf: "{/isToday}" }),
-      btn("book", "New booking", "view.open", ui.filter || isToday ? "secondary" : "primary", { surface: "book" }),
-      btn("export", "Export CSV", "file.save", "secondary", { name: "/export/name", text: "/export/csv" }, { visibleIf: "{/hasAppts}" }),
+      btn("book", "New booking", "view.open", isToday ? "secondary" : "primary", { surface: "book" }),
       btn("ask", "Ask assistant", "assistant.compose", "secondary", { path: "assistantRequest", workflowPath: "assistantWorkflow" }),
-      row("bar2", ["filter", "v-list", "v-week", "v-month"]),
-      btn("v-month", "Month", "set_view", ui.view === "month" ? "primary" : "secondary", { view: "month" }),
-      row("month-bar", ["m-prev", "m-label", "m-next"]),
-      btn("m-prev", "Previous month", "shift_month", "secondary", { by: -1 }),
-      { id: "m-label", type: "text", props: { content: "{/monthLabel}", variant: "subheading" } },
-      btn("m-next", "Next month", "shift_month", "secondary", { by: 1 }),
-      { id: "attn", type: "section", props: { title: "Needs attention", description: "Prompts from this clinic's own records. Each one is a call, an offer or a rebooking that a person makes." }, children: ["attn-grid"] },
-      { id: "attn-grid", type: "grid", props: { columns: "auto", minItemWidth: "md", gap: "sm" }, children: { each: "/attention", template: "attn-card" } },
-      { id: "attn-card", type: "card", props: { title: "{title}", body: "{body}", tone: "{tone}" }, children: ["attn-open", "attn-offer", "attn-book", "attn-day"] },
-      btn("attn-open", "{label}", "open_patient", "secondary", { id: "{pid}" }, { visibleIf: "{isCall}" }),
-      btn("attn-offer", "{label}", "waitlist_offer", "primary", { id: "{id}", doctorId: "{doctorId}", date: "{date}", time: "{time}" }, { visibleIf: "{isOffer}" }),
-      btn("attn-book", "{label}", "book_patient", "primary", { id: "{pid}" }, { visibleIf: "{isBook}" }),
-      btn("attn-day", "{label}", "open_day", "secondary", { date: "{date}" }, { visibleIf: "{isDay}" }),
+      btn("export", "Export CSV", "file.save", "link", { name: "/export/name", text: "/export/csv" }, { visibleIf: "{/hasAppts}" }),
+      row("filters", ["filter", "view"]),
       { id: "filter", type: "select", props: { label: "Doctor", bind: "/filter", options: "{/doctorFilterOptions}" } },
-      btn("v-list", "List", "set_view", ui.view === "list" ? "primary" : "secondary", { view: "list" }),
-      btn("v-week", "Week calendar", "set_view", ui.view === "week" ? "primary" : "secondary", { view: "week" }),
-      { id: "stats", type: "grid", props: { columns: 5, gap: "sm" }, children: ["st-booked", "st-in", "st-done", "st-miss", "st-free"] },
-      { id: "st-booked", type: "stat", props: { label: "Waiting", value: "{/stats/booked}" } },
+      { id: "view", type: "select", props: { label: "Show", bind: "/view", options: [{ label: "Day list", value: "list" }, { label: "Week", value: "week" }, { label: "Month", value: "month" }] } },
+      { id: "stats", type: "grid", props: { columns: 5, minItemWidth: "sm", gap: "sm" }, children: ["st-booked", "st-in", "st-done", "st-miss", "st-free"] },
+      { id: "st-booked", type: "stat", props: { label: "To arrive", value: "{/stats/booked}", tone: "info" } },
       { id: "st-in", type: "stat", props: { label: "Checked in", value: "{/stats/checkedIn}", tone: "warning" } },
       { id: "st-done", type: "stat", props: { label: "Completed", value: "{/stats/completed}", tone: "success" } },
       { id: "st-miss", type: "stat", props: { label: "No-shows", value: "{/stats/missed}", tone: count("no_show") ? "danger" : "neutral" } },
       { id: "st-free", type: "stat", props: { label: "Free slots", value: "{/stats/free}" } },
-      { id: "load", type: "progress", props: { kind: "bar", value: "{/load/value}", max: "{/load/max}", label: "Day capacity", note: "{/load/note}", tone: "{/load/tone}" } },
-      { id: "cal", type: "calendar", props: { events: "{/events}", view: ui.view === "month" ? "month" : "week", date: "{/date}" } },
-      { id: "list", type: "grid", props: { columns: "auto", minItemWidth: "lg", gap: "sm" }, children: { each: "/appts", template: "appt" } },
-      { id: "appt", type: "card", props: { title: "{title}", subtitle: "{subtitle}", body: "{body}", badge: "{status}", tone: "{tone}" }, children: ["appt-bar"] },
-      row("appt-bar", ["a-in", "a-done", "a-noshow", "a-resched", "a-cancel", "a-reopen", "a-patient"]),
+      { id: "tabs", type: "tabs", props: { ...(activeTab(ui, "schedule") ? { active: activeTab(ui, "schedule") } : {}) }, children: ["appts", "attn", "waiting", "remind", "ahead"] },
+      panel("appts", "{/tabTitles/appts}", queue, "{/insight}"),
+      { id: "cal-week", type: "calendar", props: { events: "{/events}", view: "week", date: "{/date}" } },
+      { id: "cal-month", type: "calendar", props: { events: "{/events}", view: "month", date: "{/date}" } },
+      rows("list", "/appts", "appt"),
+      { id: "appt", type: "card", props: { title: "{title}", subtitle: "{subtitle}", body: "{body}", badge: "{status}", tone: "{tone}", layout: "row", action: "open_patient", payload: { id: "{patientId}" }, actionLabel: "Open patient record" }, children: ["a-in", "a-done", "a-noshow", "a-resched", "a-cancel", "a-reopen"] },
       btn("a-in", "Check in", "set_status", "primary", { id: "{id}", status: "checked_in" }, { visibleIf: "{canCheckIn}" }),
       btn("a-done", "Complete", "set_status", "primary", { id: "{id}", status: "completed" }, { visibleIf: "{canComplete}" }),
       btn("a-noshow", "No-show", "set_status", "secondary", { id: "{id}", status: "no_show" }, { visibleIf: "{canNoShow}" }),
       btn("a-resched", "Reschedule", "reschedule", "secondary", { id: "{id}" }, { visibleIf: "{canReschedule}" }),
       btn("a-cancel", "Cancel", "set_status", "danger", { id: "{id}", status: "cancelled" }, { visibleIf: "{canCancel}" }),
       btn("a-reopen", "{reopenLabel}", "set_status", "secondary", { id: "{id}", status: "{reopenTo}" }, { visibleIf: "{canReopen}" }),
-      btn("a-patient", "Patient", "open_patient", "link", { id: "{patientId}" }),
       { id: "empty", type: "card", props: { title: `Nothing booked ${when.toLowerCase()}`, body: "{/emptyText}", tone: "neutral" }, children: ["empty-bar"] },
       row("empty-bar", ["empty-book", "empty-walk"]),
       btn("empty-book", "Book an appointment", "view.open", "primary", { surface: "book" }, { visibleIf: "{/canBook}" }),
       btn("empty-walk", "Walk-in", "walk_in", "secondary", undefined, { visibleIf: "{/isToday}" }),
-      { id: "quick", type: "section", props: { title: "Next open slots", description: "Tap a time to start a booking." }, children: ["quick-grid"] },
-      { id: "quick-grid", type: "grid", props: { columns: 4, gap: "sm", searchable: false }, children: { each: "/quick", template: "q-slot" } },
-      btn("q-slot", "{label}", "quick_book", "secondary", { doctorId: "{doctorId}", date: "{date}", time: "{time}" }),
-      { id: "wait", type: "section", props: { title: "Waiting list", description: "{/waitText}" }, children: ["wait-list"] },
-      { id: "wait-list", type: "grid", props: { columns: 3, gap: "sm" }, children: { each: "/waitlist", template: "w-card" } },
-      { id: "w-card", type: "card", props: { title: "{name}", subtitle: "{who}", body: "{note}" }, children: ["w-bar"] },
-      row("w-bar", ["w-book", "w-drop"]),
+      panel("attn", "{/tabTitles/attn}", [alerts.length ? "attn-grid" : "attn-none"], "Prompts from this clinic's own records. Each is a call, an offer or a rebooking that a person makes."),
+      caption("attn-none", "Nothing needs a call or an offer right now."),
+      { id: "attn-grid", type: "grid", props: { columns: 2, minItemWidth: "md", gap: "sm" }, children: { each: "/attention", template: "attn-card" } },
+      { id: "attn-card", type: "card", props: { title: "{title}", body: "{body}", tone: "{tone}" }, children: ["attn-open", "attn-offer", "attn-book", "attn-day"] },
+      btn("attn-open", "{label}", "open_patient", "secondary", { id: "{pid}" }, { visibleIf: "{isCall}" }),
+      btn("attn-offer", "{label}", "waitlist_offer", "primary", { id: "{id}", doctorId: "{doctorId}", date: "{date}", time: "{time}" }, { visibleIf: "{isOffer}" }),
+      btn("attn-book", "{label}", "book_patient", "primary", { id: "{pid}" }, { visibleIf: "{isBook}" }),
+      btn("attn-day", "{label}", "open_day", "secondary", { date: "{date}" }, { visibleIf: "{isDay}" }),
+      panel("waiting", "{/tabTitles/waiting}", [waiting.length ? "wait-list" : "wait-none"], "{/waitText}"),
+      caption("wait-none", "When no time suits a patient, add them to the waiting list from Book."),
+      rows("wait-list", "/waitlist", "w-card"),
+      { id: "w-card", type: "card", props: { title: "{name}", subtitle: "{who}", body: "{note}", layout: "row" }, children: ["w-book", "w-drop"] },
       btn("w-book", "Find a slot", "waitlist_book", "primary", { id: "{id}" }),
       btn("w-drop", "Remove", "waitlist_remove", "link", { id: "{id}" }),
-      { id: "remind", type: "section", props: { title: "Reminders for tomorrow", description: "{/remindText}" }, children: ["remind-list", "remind-bar"] },
-      { id: "remind-list", type: "list", props: { items: "{/remindLines}" } },
+      panel("remind", "{/tabTitles/remind}", remind.length ? ["remind-list", "remind-bar"] : ["remind-none"], "{/remindText}"),
+      caption("remind-none", "Nobody is booked for tomorrow yet."),
+      { id: "remind-list", type: "list", props: { items: "{/remindLines}", pageSize: 10 } },
       row("remind-bar", ["remind-export"]),
       btn("remind-export", "Export reminder messages", "file.save", "secondary", { name: "/remind/name", text: "/remind/csv" }),
-      { id: "week-head", type: "text", props: { content: "Next 7 days", variant: "subheading" } },
-      { id: "week-chart", type: "chart", props: { kind: "stacked", labels: "{/chart/labels}", series: "{/chart/series}", height: "sm" } },
-      { id: "week", type: "grid", props: { columns: 7, gap: "sm" }, children: { each: "/week", template: "week-day" } },
-      { id: "week-day", type: "card", props: { title: "{label}", subtitle: "{summary}", badge: "{word}", tone: "{tone}" }, children: ["week-open"] },
-      btn("week-open", "Open day", "open_day", "link", { date: "{date}" }),
+      panel("ahead", "Week ahead", ["week", ...(isFuture && quick.length ? ["quick-t", "quick"] : [])], "Choose a day to open its list."),
+      { id: "week", type: "grid", props: { columns: 7, minItemWidth: "sm", gap: "sm" }, children: { each: "/week", template: "week-day" } },
+      { id: "week-day", type: "card", props: { title: "{label}", subtitle: "{summary}", badge: "{word}", tone: "{tone}", action: "open_day", payload: { date: "{date}" }, actionLabel: "Open day" } },
+      { id: "quick-t", type: "text", props: { content: "Next open slots", variant: "subheading" } },
+      chips("quick", "/quick", "q-slot"),
+      btn("q-slot", "{label}", "quick_book", "secondary", { doctorId: "{doctorId}", date: "{date}", time: "{time}" }),
     );
   }
 
@@ -718,23 +728,25 @@ function todaySurface(s: State, nowDate: Date): Update {
   });
   const expected = waitingAppts.reduce((n, a) => n + (risks.get(a.id)?.p ?? 0), 0);
   const insight = model.history < MIN_HISTORY
-    ? `Attendance estimates appear after ${MIN_HISTORY} completed or missed visits (${model.history} so far). They are learned from this clinic's own history.`
-    : waitingAppts.length ? `About ${Math.round(expected)} of ${plural(waitingAppts.length, "waiting appointment")} may be missed, judged from this clinic's history. Flagged rows are worth a reminder call.` : "No waiting appointments to estimate.";
+    ? `Attendance estimates appear after ${MIN_HISTORY} completed or missed visits (${model.history} so far).`
+    : waitingAppts.length ? `About ${Math.round(expected)} of ${plural(waitingAppts.length, "patient")} still to arrive may miss, judged from this clinic's history. Flagged rows are worth a reminder call.` : "";
   const capacity = held + free, pct = capacity ? Math.round((held / capacity) * 100) : 0;
+  const onDuty = active.filter((d) => inView(d.id) && freeSlots(s, d, date, nowDate).length + shown.filter((a) => a.doctorId === d.id).length > 0).length;
   const data = {
-    date, notToday: !isToday, isToday, canBook: isFuture && free > 0,
-    title: `${when}${isToday ? ` · ${shortDate(date)}` : ""}`,
-    subtitle: `${[s.clinic!.name, s.clinic!.tagline].filter(Boolean).join(" · ")} · ${plural(live.length, "appointment")} · ${plural(active.filter((d) => inView(d.id) && freeSlots(s, d, date, nowDate).length + shown.filter((a) => a.doctorId === d.id).length > 0).length, "doctor")} on duty. ${insight}`,
+    date, view: ui.view, notToday: !isToday, isToday, canBook: isFuture && free > 0,
+    title: `${when}${isToday || date === addDays(now0, 1) ? ` · ${shortDate(date)}` : ""}`,
+    subtitle: [s.clinic!.name, plural(live.length, "appointment"), `${plural(onDuty, "doctor")} on duty`, capacity ? `${pct}% of slots taken` : "No clinic hours"].join(" · "),
+    insight,
     filter: ui.filter || "all", doctorFilterOptions: [{ label: "All doctors", value: "all" }, ...doctors.map((d) => ({ label: d.active ? d.name : `${d.name} (retired)`, value: d.id }))],
     stats: { booked: count("booked"), checkedIn: count("checked_in"), completed: count("completed"), missed: count("no_show"), free },
-    load: { value: held, max: Math.max(1, capacity), note: capacity ? `${held} of ${plural(capacity, "slot")} taken (${pct}%)` : "No clinic hours this day", tone: pct >= 85 ? "warning" : "info" },
-    events, monthLabel: new Date(`${date}T00:00:00Z`).toLocaleDateString("en-GB", { timeZone: "UTC", month: "long", year: "numeric" }),
+    tabTitles: { appts: counted(ui.view === "list" ? "Appointments" : ui.view === "week" ? "Week" : "Month", ui.view === "list" ? live.length : 0), attn: counted("Needs attention", alerts.length), waiting: counted("Waiting list", waiting.length), remind: counted("Reminders", remind.length) },
+    events,
     attention: alerts.map((a) => { const pl = (a.payload ?? {}) as { id?: string; doctorId?: string; date?: string; time?: string }; return { id: pl.id ?? a.id, pid: pl.id ?? "", doctorId: pl.doctorId ?? "", date: pl.date ?? "", time: pl.time ?? "", title: a.title, body: a.body, tone: a.tone, label: a.label, isCall: a.action === "open_patient", isOffer: a.action === "waitlist_offer", isBook: a.action === "book_patient", isDay: a.action === "open_day" }; }),
     appts: shown.map((a) => {
       const patient = patientOf(s, a.patientId)!, doctor = doctorOf(s, a.doctorId)!;
       return {
-        id: a.id, patientId: patient.id, title: `${spokenTime(a.time)} · ${patient.name}`, subtitle: `${doctor.name}${doctor.specialty ? ` · ${doctor.specialty}` : ""} · ${a.minutes} min`,
-        body: [kindLine(a), patient.phone, riskNote(risks.get(a.id))].filter(Boolean).join(" · ") || "No reason given", status: STATUS_LABEL[a.status], tone: STATUS_TONE[a.status],
+        id: a.id, patientId: patient.id, title: `${spokenTime(a.time)} · ${patient.name}`, subtitle: [doctor.name, doctor.room, `${a.minutes} min`, phoneText(patient.phone)].filter(Boolean).join(" · "),
+        body: [patient.allergies ? `Allergies: ${patient.allergies}` : "", kindLine(a), riskNote(risks.get(a.id))].filter(Boolean).join(" · "), status: STATUS_LABEL[a.status], tone: STATUS_TONE[a.status],
         canCheckIn: a.status === "booked", canComplete: a.status === "checked_in", canNoShow: a.status === "booked",
         canReschedule: a.status === "booked", canCancel: a.status === "booked" || a.status === "checked_in",
         canReopen: a.status === "completed" || a.status === "cancelled" || a.status === "no_show",
@@ -745,19 +757,19 @@ function todaySurface(s: State, nowDate: Date): Update {
     emptyText: free ? `${plural(free, "slot")} ${isFuture ? "open" : "were open"}. Book a patient, or take a walk-in.` : isFuture ? "No doctor is available that day, or every slot is taken." : "No appointments were recorded for this day.",
     export: { name: `appointments-${date}`, csv: ["Date,Time,Doctor,Patient,Phone,Type,Reason,Status", ...shown.map((a) => [a.date, a.time, doctorOf(s, a.doctorId)!.name, patientOf(s, a.patientId)!.name, patientOf(s, a.patientId)!.phone, a.kind, a.reason, STATUS_LABEL[a.status]].map(csvCell).join(","))].join("\n") },
     quick: quick.map((q) => ({ ...q })),
-    waitlist: waiting.map(({ w, p }) => ({ id: w.id, name: p.name, who: `${w.doctorId ? doctorOf(s, w.doctorId)!.name : "Any doctor"} · ${p.phone}`, note: w.note || "No reason given" })),
-    waitText: `${plural(waiting.length, "patient")} waiting for a slot. Find a slot books them and clears the entry.`,
-    remindText: `${plural(remind.length, "patient")} booked for ${longDate(tomorrow)}. The messages are written for you to send yourself.`,
-    remindLines: remind.slice(0, 6).map((a) => `${a.time} · ${patientOf(s, a.patientId)!.name} · ${patientOf(s, a.patientId)!.phone}`),
+    waitlist: waiting.map(({ w, p }) => ({ id: w.id, name: p.name, who: `${w.doctorId ? doctorOf(s, w.doctorId)!.name : "Any doctor"} · ${phoneText(p.phone)}`, note: w.note || "No reason given" })),
+    waitText: waiting.length ? "Find a slot opens Book for them; booking clears the entry." : "",
+    remindText: remind.length ? `Booked for ${longDate(tomorrow)}. The messages are written for you to send yourself.` : "",
+    remindLines: remind.map((a) => `${spokenTime(a.time)} · ${patientOf(s, a.patientId)!.name} · ${patientOf(s, a.patientId)!.phone} · ${doctorOf(s, a.doctorId)!.name}`),
     remind: { name: `reminders-${tomorrow}`, csv: ["Phone,Patient,Doctor,Date,Time,Message", ...remind.map((a) => [patientOf(s, a.patientId)!.phone, patientOf(s, a.patientId)!.name, doctorOf(s, a.doctorId)!.name, a.date, a.time, message(a)].map(csvCell).join(","))].join("\n") },
-    chart: { labels: week.map((d) => dayTag(d.date)), series: [{ name: "Booked", values: week.map((d) => d.booked) }, { name: "Free", values: week.map((d) => Math.max(0, d.capacity - d.booked)) }] },
-    week: week.map((d) => ({ date: d.date, label: dayTag(d.date), word: d.label, tone: d.label === "Busy" ? "warning" : d.label === "Closed" ? "neutral" : d.label === "Quiet" ? "info" : "success", summary: d.capacity ? `${d.booked}/${d.capacity} booked${d.atRisk >= 1 ? ` · ~${Math.round(d.atRisk)} may miss` : ""}` : "No clinic" })),
+    week: week.map((d) => ({ date: d.date, label: dayTag(d.date), word: d.label, tone: d.label === "Busy" ? "warning" : d.label === "Closed" ? "neutral" : d.label === "Quiet" ? "info" : "success", summary: d.capacity ? `${d.booked} of ${d.capacity} booked${d.atRisk >= 1 ? ` · ~${Math.round(d.atRisk)} may miss` : ""}` : "No clinic" })),
     assistantRequest: assistantRequest(s, date), assistantWorkflow,
     spoken: { brief },
   };
   return { surface: "today", nodes: reachable(nodes), data: replaceAll(data) };
 }
 
+/** Book: pick the doctor, day and time on the left; the patient and a summary to confirm on the right. */
 function bookSurface(s: State, nowDate: Date): Update {
   const draft = s.ui!.draft, now0 = today(s, nowDate);
   const active = s.doctors!.filter((d) => d.active);
@@ -774,31 +786,33 @@ function bookSurface(s: State, nowDate: Date): Update {
     const n = doctor ? freeSlots(s, doctor, d, nowDate, draft.rescheduleId).length : 0;
     return { date: d, label: `${dayTag(d)} · ${n ? `${n} free` : "none"}`, style: d === date ? "primary" : "secondary" };
   });
-  const nodes: Node[] = [{ id: "root", type: "stack", props: { gap: "lg" }, children: active.length ? [...(moving ? ["moving"] : []), "cols"] : ["none"] }];
-  if (!active.length) nodes.push({ id: "none", type: "card", props: { title: "No doctor to book", body: "Add or restore a doctor in Setup, then come back to book.", tone: "warning" }, children: ["none-go"] }, btn("none-go", "Open Setup", "view.open", "primary", { surface: "setup" }));
+  const nodes: Node[] = [{ id: "root", type: "stack", props: { gap: "md", density: "compact" }, children: active.length ? [...(moving ? ["moving"] : []), "cols"] : ["none"] }];
+  if (!active.length) nodes.push({ id: "none", type: "card", props: { title: "No doctor to book", body: "Add or restore a doctor in Setup, then come back to book.", tone: "warning" }, children: ["none-go"] }, btn("none-go", "Open Setup", "setup_doctors", "primary"));
   else nodes.push(
     ...(moving ? [
-      { id: "moving", type: "card", props: { title: "Rescheduling", body: "{/movingText}", tone: "warning" }, children: ["moving-cancel"] },
-      btn("moving-cancel", "Keep the current time", "cancel_reschedule", "link"),
+      { id: "moving", type: "card", props: { title: "Rescheduling", body: "{/movingText}", tone: "warning", layout: "row" }, children: ["moving-cancel"] },
+      btn("moving-cancel", "Keep the current time", "cancel_reschedule", "secondary"),
     ] : []),
     { id: "cols", type: "split", props: { ratio: "1:1", gap: "lg" }, children: ["when", "who"] },
     { id: "when", type: "section", props: { title: "1 · Doctor and time", description: "{/slotHint}" }, children: ["doctor", "days", "when-bar", ...(parts.length ? parts.map((g) => g.id) : ["no-slots"])] },
     { id: "doctor", type: "select", props: { label: "Doctor", bind: "/draft/doctorId", options: "{/doctorOptions}" } },
-    { id: "days", type: "grid", props: { columns: 7, gap: "sm" }, children: { each: "/strip", template: "day" } },
+    chips("days", "/strip", "day"),
     btn("day", "{label}", "pick_day", "{style}", { date: "{date}" }),
     row("when-bar", ["day-pick", "next-free"]),
-    { id: "day-pick", type: "date", props: { label: "Another day", bind: "/draft/date" } },
+    { id: "day-pick", type: "date", props: { label: "Another day", bind: "/draft/date", maxWidth: "sm" } },
     btn("next-free", "Next available", "next_available"),
     ...(parts.length ? parts.flatMap((g) => [
-      { id: g.id, type: "section", props: { title: `${g.title} · ${g.items.length} free` }, children: [`${g.id}-grid`] },
-      { id: `${g.id}-grid`, type: "grid", props: { columns: 4, gap: "sm", searchable: false }, children: { each: `/slots/${g.id}`, template: `${g.id}-slot` } },
+      { id: g.id, type: "stack", props: { gap: "xs" }, children: [`${g.id}-t`, `${g.id}-row`] },
+      { id: `${g.id}-t`, type: "text", props: { content: `${g.title} · ${g.items.length} free`, variant: "subheading" } },
+      chips(`${g.id}-row`, `/slots/${g.id}`, `${g.id}-slot`),
       btn(`${g.id}-slot`, "{label}", "pick_slot", "{style}", { time: "{time}" }),
-    ]) : [{ id: "no-slots", type: "text", props: { content: "{/noSlots}", variant: "caption" } }]),
-    { id: "who", type: "section", props: { title: moving ? "2 · Confirm" : "2 · Patient", description: "{/summary}" }, children: moving ? ["confirm-card", "confirm"] : [...(s.patients!.length ? ["pick"] : []), "name", "phone", ...(match ? ["returning"] : []), "kind", "reason", "confirm-card", "who-bar"] },
+    ]) : [caption("no-slots", "{/noSlots}")]),
+    { id: "who", type: "section", props: { title: moving ? "2 · Confirm" : "2 · Patient", description: "{/summary}" }, children: moving ? ["confirm-card", "confirm"] : [...(s.patients!.length ? ["pick"] : []), "contact", ...(match ? ["returning"] : []), "kind", "reason", "confirm-card", "who-bar"] },
     ...(moving ? [] : [
-      { id: "pick", type: "select", props: { label: "Existing patient", bind: "/draft/patientId", options: "{/patientOptions}", presentation: "dropdown" } },
+      { id: "pick", type: "select", props: { label: "Returning patient", bind: "/draft/patientId", options: "{/patientOptions}", presentation: "dropdown" } },
+      { id: "contact", type: "grid", props: { columns: 2, minItemWidth: "sm", gap: "sm" }, children: ["name", "phone"] },
       { id: "name", type: "input", props: { label: "Patient name", bind: "/draft/name", placeholder: "Full name" } },
-      { id: "phone", type: "input", props: { label: "Phone", bind: "/draft/phone", placeholder: "Number the clinic can call" } },
+      { id: "phone", type: "input", props: { label: "Phone", bind: "/draft/phone", placeholder: "Number the clinic can call", kind: "tel" } },
       ...(match ? [{ id: "returning", type: "alert", props: { title: "Returning patient", body: "{/returningText}", tone: "info" } }] : []),
       { id: "kind", type: "select", props: { label: "Visit type", bind: "/draft/kind", options: VISIT_TYPES } },
       { id: "reason", type: "input", props: { label: "Reason for visit", bind: "/draft/reason", placeholder: "Fever, check-up, follow-up" } },
@@ -816,7 +830,7 @@ function bookSurface(s: State, nowDate: Date): Update {
     strip,
     slots: { am: group("00:00", "12:00"), pm: group("12:00", "17:00"), eve: group("17:00", "24:00") },
     noSlots: `${whyNone(s, doctor, date, nowDate)} Try another day above, or use Next available.`,
-    summary: picked ? "Review the details, then book." : "Pick a time on the left first.",
+    summary: picked ? "Review the details, then book." : "Pick a time first.",
     confirmTitle: picked ? `${doctor!.name} · ${shortDate(date)} · ${spokenTime(picked)}` : "No time chosen yet",
     confirmBody: picked ? [moving ? patientOf(s, moving.patientId)!.name : draft.name || "Patient name needed", draft.kind, draft.reason].filter(Boolean).join(" · ") : "Choose a day and a time slot.",
     movingText: moving ? `${patientOf(s, moving.patientId)!.name}, currently ${shortDate(moving.date)} at ${spokenTime(moving.time)}. Pick the new time, then confirm.` : "",
@@ -825,68 +839,64 @@ function bookSurface(s: State, nowDate: Date): Update {
   return { surface: "book", nodes: reachable(nodes), data: replaceAll(data) };
 }
 
+/** Patients: the list on the left; the open record (details and visit history tabs) or a short add form on the right. */
 function patientsSurface(s: State, nowDate: Date): Update {
   const ui = s.ui!, now0 = today(s, nowDate), open = patientOf(s, ui.openPatientId);
   const live = upcoming(s, nowDate);
   const visits = (id: string) => s.appts!.filter((a) => a.patientId === id);
-  const history = open ? visits(open.id).sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`)).slice(0, 30) : [];
+  const history = open ? visits(open.id).sort((a, b) => `${b.date}${b.time}`.localeCompare(`${a.date}${a.time}`)).slice(0, 200) : [];
   const nodes: Node[] = [
-    { id: "root", type: "stack", props: { gap: "lg" }, children: ["head", "stats", "add", ...(open ? ["detail"] : []), ...(s.patients!.length ? ["list"] : ["empty"])] },
-    { id: "head", type: "stack", props: { gap: "xs" }, children: ["title", "subtitle"] },
-    { id: "title", type: "text", props: { content: "Patients", variant: "heading" } },
-    { id: "subtitle", type: "text", props: { content: "{/subtitle}", variant: "caption" } },
-    { id: "stats", type: "grid", props: { columns: 3, gap: "sm" }, children: ["st-all", "st-up", "st-miss"] },
-    { id: "st-all", type: "stat", props: { label: "Patients", value: "{/stats/all}" } },
-    { id: "st-up", type: "stat", props: { label: "Upcoming visits", value: "{/stats/upcoming}", tone: "info" } },
-    { id: "st-miss", type: "stat", props: { label: "Missed visits", value: "{/stats/missed}", tone: "{/stats/missedTone}" } },
-    { id: "add", type: "section", props: { title: "Add a patient", description: "Name and phone are enough. Booking also creates the record." }, children: ["add-bar"] },
-    row("add-bar", ["np-name", "np-phone", "np-dob", "np-add"]),
+    { id: "root", type: "stack", props: { gap: "md", density: "compact" }, children: ["subtitle", "cols"] },
+    caption("subtitle", "{/subtitle}"),
+    { id: "cols", type: "split", props: { ratio: "1:2", gap: "lg" }, children: ["browse", open ? "detail" : "add"] },
+    panel("browse", "All patients", [s.patients!.length ? "list" : "empty"]),
+    caption("empty", "No patients yet. Add one here, or book an appointment and the record is created for you."),
+    rows("list", "/patients", "p-card", { searchable: true, pageSize: 10 }),
+    { id: "p-card", type: "card", props: { title: "{name}", subtitle: "{phone}", body: "{summary}", badge: "{badge}", tone: "{tone}", action: "open_patient", payload: { id: "{id}" }, actionLabel: "Open record" } },
+    panel("add", "Add a patient", ["add-grid", "add-bar"], "Name and phone are enough. Booking also creates the record."),
+    { id: "add-grid", type: "grid", props: { columns: 3, minItemWidth: "sm", gap: "sm" }, children: ["np-name", "np-phone", "np-dob"] },
     { id: "np-name", type: "input", props: { label: "Name", bind: "/newPatient/name", placeholder: "Full name" } },
-    { id: "np-phone", type: "input", props: { label: "Phone", bind: "/newPatient/phone", placeholder: "Number the clinic can call" } },
+    { id: "np-phone", type: "input", props: { label: "Phone", bind: "/newPatient/phone", placeholder: "Number the clinic can call", kind: "tel" } },
     { id: "np-dob", type: "date", props: { label: "Date of birth", bind: "/newPatient/dob" } },
+    row("add-bar", ["np-add"]),
     btn("np-add", "Add patient", "add_patient", "primary"),
-    { id: "empty", type: "card", props: { title: "No patients yet", body: "Add the first patient above, or book an appointment and the record is created for you.", tone: "neutral" }, children: ["empty-book"] },
-    btn("empty-book", "Book an appointment", "view.open", "primary", { surface: "book" }),
-    { id: "list", type: "grid", props: { columns: "auto", minItemWidth: "md", gap: "sm", searchable: true, pageSize: 8 }, children: { each: "/patients", template: "p-card" } },
-    { id: "p-card", type: "card", props: { title: "{name}", subtitle: "{phone}", body: "{summary}", badge: "{badge}", tone: "{tone}" }, children: ["p-open"] },
-    btn("p-open", "Open record", "open_patient", "secondary", { id: "{id}" }),
   ];
   if (open) nodes.push(
-    { id: "detail", type: "section", props: { title: "{/detail/title}", description: "{/detail/summary}" }, children: ["d-facts", "d-bar", "d-care", "d-notes", "d-hist-title", ...(history.length ? ["d-hist"] : ["d-none"]), "d-actions", ...(ui.confirmDelete ? ["d-confirm"] : [])] },
-    { id: "d-facts", type: "grid", props: { columns: 4, gap: "sm" }, children: ["f-att", "f-last", "f-next", "f-doc"] },
+    { id: "detail", type: "section", props: { title: "{/detail/title}", description: "{/detail/summary}" }, children: ["d-facts", "d-actions", ...(ui.confirmDelete ? ["d-confirm"] : []), "d-tabs"] },
+    { id: "d-facts", type: "grid", props: { columns: 4, minItemWidth: "sm", gap: "sm" }, children: ["f-att", "f-last", "f-next", "f-doc"] },
     { id: "f-att", type: "stat", props: { label: "Attendance", value: "{/facts/attendance}", tone: "{/facts/tone}" } },
     { id: "f-last", type: "stat", props: { label: "Last seen", value: "{/facts/last}" } },
     { id: "f-next", type: "stat", props: { label: "Next visit", value: "{/facts/next}", tone: "info" } },
     { id: "f-doc", type: "stat", props: { label: "Usual doctor", value: "{/facts/doctor}" } },
-    row("d-bar", ["d-name", "d-phone", "d-email", "d-dob"]),
-    { id: "d-email", type: "input", props: { label: "Email", bind: "/patient/email" } },
-    row("d-care", ["d-allergy", "d-emerg"]),
-    { id: "d-allergy", type: "input", props: { label: "Allergies and alerts", bind: "/patient/allergies", placeholder: "Shown on every visit card" } },
-    { id: "d-emerg", type: "input", props: { label: "Emergency contact", bind: "/patient/emergency", placeholder: "Name and number" } },
-    { id: "d-name", type: "input", props: { label: "Name", bind: "/patient/name" } },
-    { id: "d-phone", type: "input", props: { label: "Phone", bind: "/patient/phone" } },
-    { id: "d-dob", type: "date", props: { label: "Date of birth", bind: "/patient/dob" } },
-    { id: "d-notes", type: "textarea", props: { label: "Notes for the front desk", bind: "/patient/notes", placeholder: "Preferences, access needs, who to call" } },
-    { id: "d-hist-title", type: "text", props: { content: "Visit history", variant: "subheading" } },
-    { id: "d-hist", type: "table", props: { columns: [{ key: "date", label: "Date" }, { key: "time", label: "Time" }, { key: "doctor", label: "Doctor" }, { key: "kind", label: "Type" }, { key: "status", label: "Status" }, { key: "reason", label: "Reason" }], rows: "{/history}" } },
-    { id: "d-none", type: "text", props: { content: "No visits yet.", variant: "caption" } },
-    row("d-actions", ["d-book", "d-delete", "d-close"]),
+    row("d-actions", ["d-book", "d-close", "d-delete"]),
     btn("d-book", "Book for this patient", "book_for_patient", "primary"),
-    btn("d-delete", "Delete record", "ask_delete_patient", "danger"),
-    btn("d-close", "Close", "close_patient", "link"),
+    btn("d-close", "Add another patient", "close_patient", "secondary"),
+    btn("d-delete", "Delete record", "ask_delete_patient", "link"),
     { id: "d-confirm", type: "alert", props: { title: "Delete this record?", body: "The patient and their visit history are removed from this computer. This cannot be undone.", tone: "danger" }, children: ["d-yes", "d-no"] },
     btn("d-yes", "Yes, delete", "delete_patient", "danger"),
     btn("d-no", "Keep", "cancel_delete_patient", "secondary"),
+    { id: "d-tabs", type: "tabs", props: { ...(activeTab(ui, "patient") ? { active: activeTab(ui, "patient") } : {}) }, children: ["details", "visits"] },
+    panel("details", "Details", ["d-fields", "d-notes"], "Changes save as you type. These are front-desk details, not a medical record."),
+    { id: "d-fields", type: "grid", props: { columns: 2, minItemWidth: "md", gap: "sm" }, children: ["d-name", "d-phone", "d-email", "d-dob", "d-allergy", "d-emerg"] },
+    { id: "d-name", type: "input", props: { label: "Name", bind: "/patient/name" } },
+    { id: "d-phone", type: "input", props: { label: "Phone", bind: "/patient/phone", kind: "tel" } },
+    { id: "d-email", type: "input", props: { label: "Email", bind: "/patient/email", kind: "email" } },
+    { id: "d-dob", type: "date", props: { label: "Date of birth", bind: "/patient/dob" } },
+    { id: "d-allergy", type: "input", props: { label: "Allergies and alerts", bind: "/patient/allergies", placeholder: "Shown on every visit" } },
+    { id: "d-emerg", type: "input", props: { label: "Emergency contact", bind: "/patient/emergency", placeholder: "Name and number" } },
+    { id: "d-notes", type: "textarea", props: { label: "Notes for the front desk", bind: "/patient/notes", placeholder: "Preferences, access needs, who to call" } },
+    panel("visits", "{/detail/visitsTitle}", [history.length ? "d-hist" : "d-none"]),
+    { id: "d-hist", type: "table", props: { columns: [{ key: "date", label: "Date" }, { key: "time", label: "Time" }, { key: "doctor", label: "Doctor" }, { key: "kind", label: "Type" }, { key: "status", label: "Status" }, { key: "reason", label: "Reason" }], rows: "{/history}", pageSize: 10 } },
+    caption("d-none", "No visits yet."),
   );
   const missed = s.appts!.filter((a) => a.status === "no_show").length;
   const data = {
-    subtitle: `${plural(s.patients!.length, "patient")} on record. Records stay on this computer.`,
-    stats: { all: s.patients!.length, upcoming: s.appts!.filter(live).length, missed, missedTone: missed ? "warning" : "neutral" },
+    subtitle: `${plural(s.patients!.length, "patient")} · ${plural(s.appts!.filter(live).length, "upcoming visit")} · ${plural(missed, "missed visit")}. Records stay on this computer.`,
     newPatient: { ...ui.newPatient },
     patients: s.patients!.slice().sort((a, b) => a.name.localeCompare(b.name)).slice(0, 1000).map((p) => {
       const mine = visits(p.id), next = mine.filter(live).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))[0];
       const missedN = mine.filter((a) => a.status === "no_show").length;
-      return { id: p.id, name: p.name, phone: p.phone || "No phone", summary: [p.dob ? `${age(p.dob, now0)} yrs` : "", `${plural(mine.filter((a) => a.status === "completed").length, "past visit")}`].filter(Boolean).join(" · "), badge: next ? `Next ${shortDate(next.date)}` : missedN ? `${missedN} missed` : "", tone: next ? "info" : missedN ? "warning" : "neutral" };
+      return { id: p.id, name: p.name, phone: p.phone || "No phone", summary: [p.dob ? `${age(p.dob, now0)} yrs` : "", `${plural(mine.filter((a) => a.status === "completed").length, "past visit")}`].filter(Boolean).join(" · "), badge: p.id === ui.openPatientId ? "Open" : next ? `Next ${shortDate(next.date)}` : missedN ? `${missedN} missed` : "", tone: p.id === ui.openPatientId ? "success" : next ? "info" : missedN ? "warning" : "neutral" };
     }),
     patient: open ? { name: open.name, phone: open.phone, dob: open.dob, notes: open.notes, email: open.email, allergies: open.allergies, emergency: open.emergency } : { name: "", phone: "", dob: "", notes: "", email: "", allergies: "", emergency: "" },
     facts: (() => {
@@ -894,153 +904,160 @@ function patientsSurface(s: State, nowDate: Date): Update {
       const f = patientFacts(s, open.id, now0);
       return { attendance: f.completed + f.missed ? `${Math.round(f.attendance * 100)}%` : "New", tone: f.missed >= 2 ? "danger" : f.missed ? "warning" : "success", last: f.last ? shortDate(f.last) : "Never", next: f.next ? `${shortDate(f.next.date)} ${spokenTime(f.next.time)}` : "None booked", doctor: f.topDoctor ? doctorOf(s, f.topDoctor)?.name ?? "-" : "-" };
     })(),
-    detail: open ? { title: open.name, summary: [open.allergies ? `Allergies: ${open.allergies}` : "", open.dob ? `${age(open.dob, now0)} years` : "", `${plural(visits(open.id).filter(live).length, "upcoming visit")}`, `${plural(visits(open.id).length, "visit")} in all`].filter(Boolean).join(" · ") } : { title: "", summary: "" },
+    detail: open ? { title: open.name, summary: [phoneText(open.phone), open.dob ? `${age(open.dob, now0)} years` : "", open.allergies ? `Allergies: ${open.allergies}` : ""].filter(Boolean).join(" · "), visitsTitle: counted("Visit history", visits(open.id).length) } : { title: "", summary: "", visitsTitle: "" },
     history: history.map((a) => ({ date: shortDate(a.date), time: spokenTime(a.time), doctor: doctorOf(s, a.doctorId)!.name, kind: a.kind, status: STATUS_LABEL[a.status], reason: a.reason || "-" })),
   };
   return { surface: "patients", nodes: reachable(nodes), data: replaceAll(data) };
 }
 
+const doctorCard = (to: string): Node => ({ id: "d-card", type: "card", props: { title: "{name}", subtitle: "{subtitle}", body: "{body}", badge: "{badge}", tone: "{tone}", action: "open_doctor", payload: { id: "{id}", to }, actionLabel: "Open" } });
+
+/** Setup: clinic details in one tab; doctors, their hours and time away in another. */
 function setupSurface(s: State): Update {
   const ui = s.ui!, open = doctorOf(s, ui.openDoctorId);
   const nodes: Node[] = [
-    { id: "root", type: "stack", props: { gap: "lg" }, children: ["head", "clinic", "doctors", ...(open ? ["editor"] : [])] },
-    { id: "head", type: "stack", props: { gap: "xs" }, children: ["title", "subtitle"] },
-    { id: "title", type: "text", props: { content: "Setup", variant: "heading" } },
-    { id: "subtitle", type: "text", props: { content: "{/subtitle}", variant: "caption" } },
-    { id: "clinic", type: "section", props: { title: "Clinic and branding", description: "The name, tagline, phone and address head the schedule, reminders and exports. The time zone decides what \"today\" and \"now\" mean for slots." }, children: ["clinic-bar"] },
-    row("clinic-bar", ["c-name", "c-tag", "c-phone", "c-addr", "c-zone", "c-save"]),
-    { id: "c-tag", type: "input", props: { label: "Tagline", bind: "/clinic/tagline", placeholder: "Care that listens" } },
-    { id: "c-phone", type: "input", props: { label: "Clinic phone", bind: "/clinic/phone" } },
-    { id: "c-addr", type: "input", props: { label: "Address", bind: "/clinic/address" } },
+    { id: "root", type: "stack", props: { gap: "md", density: "compact" }, children: ["subtitle", "tabs"] },
+    caption("subtitle", "{/subtitle}"),
+    { id: "tabs", type: "tabs", props: { ...(activeTab(ui, "setup") ? { active: activeTab(ui, "setup") } : {}) }, children: ["clinic", "doctors"] },
+    panel("clinic", "Clinic", ["c-grid", "c-bar"], "The name, tagline, phone and address head the schedule, reminders and exports. The time zone decides what \"today\" and \"now\" mean for slots."),
+    { id: "c-grid", type: "grid", props: { columns: 3, minItemWidth: "md", gap: "sm" }, children: ["c-name", "c-tag", "c-phone", "c-addr", "c-zone"] },
     { id: "c-name", type: "input", props: { label: "Clinic name", bind: "/clinic/name" } },
+    { id: "c-tag", type: "input", props: { label: "Tagline", bind: "/clinic/tagline", placeholder: "Care that listens" } },
+    { id: "c-phone", type: "input", props: { label: "Clinic phone", bind: "/clinic/phone", kind: "tel" } },
+    { id: "c-addr", type: "input", props: { label: "Address", bind: "/clinic/address" } },
     { id: "c-zone", type: "input", props: { label: "Time zone", bind: "/clinic/timezone", placeholder: "Asia/Kolkata" } },
-    btn("c-save", "Save", "save_clinic", "primary"),
-    { id: "doctors", type: "section", props: { title: "Doctors", description: "{/doctorText}" }, children: ["add-bar", ...(s.doctors!.length ? ["d-list"] : [])] },
+    row("c-bar", ["c-save"]),
+    btn("c-save", "Save changes", "save_clinic", "primary"),
+    panel("doctors", "{/doctorsTitle}", ["d-cols"], "{/doctorText}"),
+    { id: "d-cols", type: "split", props: { ratio: "1:2", gap: "lg" }, children: ["roster", ...(open ? ["editor"] : [])] },
+    { id: "roster", type: "stack", props: { gap: "sm" }, children: ["add-bar", ...(s.doctors!.length ? ["d-list"] : [])] },
     row("add-bar", ["new-doc", "add-doc"]),
     { id: "new-doc", type: "input", props: { label: "New doctor", bind: "/newDoctor", placeholder: "Dr. Name" } },
     btn("add-doc", "Add doctor", "add_doctor", "primary"),
-    { id: "d-list", type: "grid", props: { columns: "auto", minItemWidth: "md", gap: "sm", pageSize: 6 }, children: { each: "/doctors", template: "d-card" } },
-    { id: "d-card", type: "card", props: { title: "{name}", subtitle: "{subtitle}", body: "{body}", badge: "{badge}", tone: "{tone}" }, children: ["d-open"] },
-    btn("d-open", "{openLabel}", "open_doctor", "{style}", { id: "{id}" }),
+    rows("d-list", "/doctors", "d-card", { pageSize: 10 }),
+    doctorCard("setup"),
   ];
   if (open) nodes.push(
-    { id: "editor", type: "section", props: { title: "{/editor/title}", description: "{/editor/summary}" }, children: ["e-who", "e-days", "e-presets", "e-hours", "leave", "e-active"] },
-    row("e-who", ["e-name", "e-spec", "e-room"]),
-    { id: "e-room", type: "input", props: { label: "Room", bind: "/doctor/room", placeholder: "Room 2" } },
+    { id: "editor", type: "stack", props: { gap: "md" }, children: ["e-head", "e-who", "e-days", "e-presets", "e-hours", "leave-t", "l-bar", ...(s.leave!.some((l) => l.doctorId === open.id) ? ["l-list"] : []), "e-active"] },
+    { id: "e-head", type: "stack", props: { gap: "xs" }, children: ["e-title", "e-sub"] },
+    { id: "e-title", type: "text", props: { content: "{/editor/title}", variant: "subheading" } },
+    caption("e-sub", "{/editor/summary}"),
+    { id: "e-who", type: "grid", props: { columns: 3, minItemWidth: "sm", gap: "sm" }, children: ["e-name", "e-spec", "e-room"] },
     { id: "e-name", type: "input", props: { label: "Name", bind: "/doctor/name" } },
     { id: "e-spec", type: "input", props: { label: "Specialty", bind: "/doctor/specialty", placeholder: "General practice" } },
+    { id: "e-room", type: "input", props: { label: "Room", bind: "/doctor/room", placeholder: "Room 2" } },
     { id: "e-days", type: "select", props: { label: "Working days", bind: "/doctor/days", options: DAYS, multiple: true } },
     row("e-presets", ["pr-wk", "pr-sat", "pr-all"]),
     btn("pr-wk", "Mon to Fri", "days_preset", "link", { preset: "weekdays" }),
     btn("pr-sat", "Mon to Sat", "days_preset", "link", { preset: "mon-sat" }),
     btn("pr-all", "Every day", "days_preset", "link", { preset: "every-day" }),
-    row("e-hours", ["e-start", "e-end", "e-slot", "e-bs", "e-be"]),
+    { id: "e-hours", type: "grid", props: { columns: 3, minItemWidth: "sm", gap: "sm" }, children: ["e-start", "e-end", "e-slot", "e-bs", "e-be"] },
     { id: "e-start", type: "select", props: { label: "Starts", bind: "/doctor/start", options: TIMES, presentation: "dropdown" } },
     { id: "e-end", type: "select", props: { label: "Ends", bind: "/doctor/end", options: TIMES, presentation: "dropdown" } },
     { id: "e-slot", type: "select", props: { label: "Visit length (min)", bind: "/doctor/slot", options: SLOT_MINUTES.map(String), presentation: "dropdown" } },
     { id: "e-bs", type: "select", props: { label: "Break from", bind: "/doctor/breakStart", options: ["none", ...TIMES], presentation: "dropdown" } },
     { id: "e-be", type: "select", props: { label: "Break until", bind: "/doctor/breakEnd", options: ["none", ...TIMES], presentation: "dropdown" } },
-    { id: "leave", type: "section", props: { title: "Time away", description: "{/leaveText}" }, children: ["l-bar", ...(s.leave!.some((l) => l.doctorId === open.id) ? ["l-list"] : [])] },
+    { id: "leave-t", type: "stack", props: { gap: "xs" }, children: ["leave-h", "leave-d"] },
+    { id: "leave-h", type: "text", props: { content: "Time away", variant: "subheading" } },
+    caption("leave-d", "Leave removes this doctor's slots on those days."),
     row("l-bar", ["l-from", "l-to", "l-note", "l-add"]),
     { id: "l-from", type: "date", props: { label: "From", bind: "/leave/from" } },
     { id: "l-to", type: "date", props: { label: "To", bind: "/leave/to" } },
     { id: "l-note", type: "input", props: { label: "Note", bind: "/leave/note", placeholder: "Conference, holiday" } },
     btn("l-add", "Add time away", "add_leave", "primary"),
-    { id: "l-list", type: "grid", props: { columns: "auto", minItemWidth: "md", gap: "sm" }, children: { each: "/leaveList", template: "l-card" } },
-    { id: "l-card", type: "card", props: { title: "{range}", body: "{note}" }, children: ["l-drop"] },
+    rows("l-list", "/leaveList", "l-card"),
+    { id: "l-card", type: "card", props: { title: "{range}", body: "{note}", layout: "row" }, children: ["l-drop"] },
     btn("l-drop", "Remove", "remove_leave", "link", { id: "{id}" }),
-    btn("e-active", "{/editor/toggle}", "toggle_doctor", "{/editor/toggleStyle}"),
+    row("e-active", ["e-toggle"]),
+    btn("e-toggle", "{/editor/toggle}", "toggle_doctor", "{/editor/toggleStyle}"),
   );
   const activeN = s.doctors!.filter((d) => d.active).length;
   const data = {
     subtitle: `${s.clinic!.name} · ${plural(activeN, "doctor")} taking bookings`,
     clinic: { name: s.clinic!.name, timezone: s.clinic!.timezone, tagline: s.clinic!.tagline, phone: s.clinic!.phone, address: s.clinic!.address },
-    newDoctor: ui.newDoctor,
-    doctorText: s.doctors!.length ? "Open a doctor to change their days, hours and time away." : "Add the first doctor to start booking.",
+    newDoctor: ui.newDoctor, doctorsTitle: counted("Doctors", s.doctors!.length),
+    doctorText: s.doctors!.length ? "Choose a doctor to change their days, hours and time away. Changes save as you make them." : "Add the first doctor to start booking.",
     doctors: s.doctors!.map((d) => ({
-      id: d.id, name: d.name, subtitle: d.specialty || "General", body: `${d.days.length === 7 ? "Every day" : d.days.join(", ") || "No days set"} · ${d.start}–${d.end} · ${d.slot}-minute visits`,
-      badge: d.active ? (d.id === ui.openDoctorId ? "Editing" : "Active") : "Retired", tone: d.active ? "success" : "neutral",
-      openLabel: d.id === ui.openDoctorId ? "Editing" : "Edit", style: d.id === ui.openDoctorId ? "primary" : "secondary",
+      id: d.id, name: d.name, subtitle: [d.specialty || "General", d.room].filter(Boolean).join(" · "), body: `${d.days.length === 7 ? "Every day" : d.days.join(", ") || "No days set"} · ${d.start}–${d.end} · ${d.slot}-minute visits`,
+      badge: d.id === ui.openDoctorId ? "Editing" : d.active ? "Active" : "Retired", tone: d.id === ui.openDoctorId ? "info" : d.active ? "success" : "neutral",
     })),
     doctor: open ? { name: open.name, specialty: open.specialty, room: open.room, days: open.days, start: open.start, end: open.end, slot: String(open.slot), breakStart: open.breakStart || "none", breakEnd: open.breakEnd || "none" } : { name: "", room: "", specialty: "", days: [], start: "09:00", end: "17:00", slot: "15", breakStart: "none", breakEnd: "none" },
     leave: { ...ui.leave },
-    leaveText: "Leave removes that doctor's slots on those days.",
     leaveList: open ? s.leave!.filter((l) => l.doctorId === open.id).sort((a, b) => a.from.localeCompare(b.from)).map((l) => ({ id: l.id, range: l.from === l.to ? shortDate(l.from) : `${shortDate(l.from)} to ${shortDate(l.to)}`, note: l.note || "No note" })) : [],
-    editor: open ? { title: open.name, summary: open.active ? "Changes save as you make them." : "Retired: not offered for new bookings.", toggle: open.active ? "Retire doctor" : "Restore doctor", toggleStyle: open.active ? "danger" : "primary" } : { title: "", summary: "", toggle: "", toggleStyle: "secondary" },
+    editor: open ? { title: open.name, summary: open.active ? "Taking bookings." : "Retired: not offered for new bookings.", toggle: open.active ? "Retire doctor" : "Restore doctor", toggleStyle: open.active ? "danger" : "primary" } : { title: "", summary: "", toggle: "", toggleStyle: "secondary" },
   };
   return { surface: "setup", nodes: reachable(nodes), data: replaceAll(data) };
 }
 
-
 const mondayOf = (date: string) => addDays(date, -DAYS.indexOf(dayName(date)));
 const pctText = (v: number) => `${Math.round(v * 100)}%`;
 
-/** One doctor at a glance, and a drill-down with their own week, results and time away. */
+/** Doctors: the roster on the left; the chosen doctor's week, upcoming visits and results as tabs on the right. */
 function doctorsSurface(s: State, nowDate: Date): Update {
   const ui = s.ui!, now0 = today(s, nowDate), open = doctorOf(s, ui.openDoctorId);
-  const week = ui.docWeek || mondayOf(now0);
+  const week = mondayOf(now0);
   const model = riskModel(s);
+  const live = upcoming(s, nowDate);
+  const coming = open ? s.appts!.filter((a) => a.doctorId === open.id && live(a)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`)) : [];
   const nodes: Node[] = [
-    { id: "root", type: "stack", props: { gap: "lg" }, children: ["head", ...(s.doctors!.length ? ["cards", ...(open ? ["profile"] : [])] : ["empty"])] },
-    { id: "head", type: "stack", props: { gap: "xs" }, children: ["title", "subtitle"] },
-    { id: "title", type: "text", props: { content: "Doctors", variant: "heading" } },
-    { id: "subtitle", type: "text", props: { content: "{/subtitle}", variant: "caption" } },
+    { id: "root", type: "stack", props: { gap: "md", density: "compact" }, children: ["subtitle", s.doctors!.length ? "cols" : "empty"] },
+    caption("subtitle", "{/subtitle}"),
     { id: "empty", type: "card", props: { title: "No doctors yet", body: "Add a doctor and their weekly hours in Setup. Their profile, week calendar and results appear here.", tone: "info" }, children: ["empty-go"] },
-    btn("empty-go", "Set up doctors", "view.open", "primary", { surface: "setup" }),
-    { id: "cards", type: "grid", props: { columns: "auto", minItemWidth: "md", gap: "sm", pageSize: 6 }, children: { each: "/doctors", template: "d-card" } },
-    { id: "d-card", type: "card", props: { title: "{name}", subtitle: "{subtitle}", body: "{body}", badge: "{badge}", tone: "{tone}" }, children: ["d-open"] },
-    btn("d-open", "{openLabel}", "open_doctor", "{style}", { id: "{id}", to: "doctors" }),
+    btn("empty-go", "Set up doctors", "setup_doctors", "primary"),
+    { id: "cols", type: "split", props: { ratio: "1:2", gap: "lg" }, children: ["roster", ...(open ? ["profile"] : [])] },
+    panel("roster", "All doctors", ["cards"]),
+    rows("cards", "/doctors", "d-card", { pageSize: 10 }),
+    doctorCard("doctors"),
   ];
   if (open) nodes.push(
-    { id: "profile", type: "section", props: { title: "{/profile/title}", description: "{/profile/summary}" }, children: ["p-stats", "p-bar", "p-cal", "p-chart-title", "p-chart", "p-next-title", ...(open ? ["p-next"] : [])] },
-    { id: "p-stats", type: "grid", props: { columns: 4, gap: "sm" }, children: ["ps-visits", "ps-miss", "ps-util", "ps-free"] },
+    { id: "profile", type: "section", props: { title: "{/profile/title}", description: "{/profile/summary}" }, children: ["p-stats", "p-bar", "p-tabs"] },
+    { id: "p-stats", type: "grid", props: { columns: 4, minItemWidth: "sm", gap: "sm" }, children: ["ps-visits", "ps-miss", "ps-util", "ps-free"] },
     { id: "ps-visits", type: "stat", props: { label: "Visits (30 days)", value: "{/profile/visits}" } },
     { id: "ps-miss", type: "stat", props: { label: "No-show rate", value: "{/profile/noShow}", tone: "{/profile/noShowTone}" } },
-    { id: "ps-util", type: "stat", props: { label: "Utilisation", value: "{/profile/util}", tone: "info" } },
+    { id: "ps-util", type: "stat", props: { label: "Slots used", value: "{/profile/util}", tone: "info" } },
     { id: "ps-free", type: "stat", props: { label: "Next free slot", value: "{/profile/nextFree}", tone: "success" } },
-    row("p-bar", ["p-prev", "p-label", "p-nextw", "p-book", "p-edit"]),
-    btn("p-prev", "Previous week", "doc_week_prev"),
-    { id: "p-label", type: "text", props: { content: "{/profile/weekLabel}", variant: "subheading" } },
-    btn("p-nextw", "Next week", "doc_week_next"),
+    row("p-bar", ["p-book", "p-edit"]),
     btn("p-book", "Book with this doctor", "book_with_doctor", "primary"),
-    btn("p-edit", "Edit hours and leave", "view.open", "secondary", { surface: "setup" }),
+    btn("p-edit", "Edit hours and leave", "setup_doctors", "secondary", { id: open.id }),
+    { id: "p-tabs", type: "tabs", props: { ...(activeTab(ui, "doctor") ? { active: activeTab(ui, "doctor") } : {}) }, children: ["week", "coming", "results"] },
+    panel("week", "Calendar", ["p-cal"]),
     { id: "p-cal", type: "calendar", props: { events: "{/profile/events}", view: "week", date: "{/profile/week}" } },
-    { id: "p-chart-title", type: "text", props: { content: "Visits by weekday (30 days)", variant: "subheading" } },
+    panel("coming", "{/profile/comingTitle}", [coming.length ? "p-next" : "p-none"]),
+    { id: "p-next", type: "table", props: { columns: [{ key: "when", label: "When" }, { key: "patient", label: "Patient" }, { key: "kind", label: "Type" }, { key: "risk", label: "Attendance" }], rows: "{/profile/upcoming}", pageSize: 10 } },
+    caption("p-none", "No upcoming visits."),
+    panel("results", "Results", ["p-chart"], "Visits by weekday over the last 30 days."),
     { id: "p-chart", type: "chart", props: { kind: "bar", labels: "{/profile/chart/labels}", series: "{/profile/chart/series}", height: "sm" } },
-    { id: "p-next-title", type: "text", props: { content: "Upcoming visits", variant: "subheading" } },
-    { id: "p-next", type: "table", props: { columns: [{ key: "when", label: "When" }, { key: "patient", label: "Patient" }, { key: "kind", label: "Type" }, { key: "risk", label: "Attendance" }], rows: "{/profile/upcoming}" } },
   );
   const stat = open ? report(s, addDays(now0, -29), now0, now0, open.id) : undefined;
-  const live = upcoming(s, nowDate);
   const next = open ? (() => { for (let i = 0; i < 30; i++) { const date = addDays(now0, i), t = freeSlots(s, open, date, nowDate)[0]; if (t) return `${i === 0 ? "Today" : i === 1 ? "Tomorrow" : shortDate(date)} ${spokenTime(t)}`; } return "None in 30 days"; })() : "";
   const todayBooked = (id: string) => s.appts!.filter((a) => a.doctorId === id && a.date === now0 && a.status !== "cancelled").length;
   const data = {
-    subtitle: s.doctors!.length ? `${plural(s.doctors!.filter((d) => d.active).length, "doctor")} taking bookings. Open one for their week, results and time away.` : "Add a doctor in Setup to begin.",
+    subtitle: s.doctors!.length ? `${plural(s.doctors!.filter((d) => d.active).length, "doctor")} taking bookings. Choose one for their week, upcoming visits and results.` : "Add a doctor in Setup to begin.",
     doctors: s.doctors!.map((d) => ({
       id: d.id, name: d.name, subtitle: [d.specialty || "General practice", d.room].filter(Boolean).join(" · "),
       body: `${d.days.length === 7 ? "Every day" : d.days.join(", ") || "No days set"} · ${d.start}–${d.end} · ${todayBooked(d.id)} booked today`,
-      badge: !d.active ? "Retired" : onLeave(s, d.id, now0) ? "Away" : d.id === ui.openDoctorId ? "Open" : "Active",
-      tone: !d.active ? "neutral" : onLeave(s, d.id, now0) ? "warning" : "success",
-      openLabel: d.id === ui.openDoctorId ? "Viewing" : "View profile", style: d.id === ui.openDoctorId ? "primary" : "secondary",
+      badge: d.id === ui.openDoctorId ? "Open" : !d.active ? "Retired" : onLeave(s, d.id, now0) ? "Away" : "Active",
+      tone: d.id === ui.openDoctorId ? "info" : !d.active ? "neutral" : onLeave(s, d.id, now0) ? "warning" : "success",
     })),
     profile: open && stat ? {
       title: open.name, summary: [open.specialty, open.room, `${open.days.join(", ")} ${open.start}–${open.end}`, `${open.slot}-minute visits`].filter(Boolean).join(" · "),
       visits: stat.completed + stat.noShow + stat.upcoming, noShow: stat.completed + stat.noShow >= 5 ? pctText(stat.noShowRate) : "Not enough yet", noShowTone: stat.noShowRate >= 0.15 ? "danger" : stat.noShowRate >= 0.08 ? "warning" : "success",
-      util: pctText(stat.utilisation), nextFree: next, week, weekLabel: `${shortDate(week)} to ${shortDate(addDays(week, 6))}`,
-      events: s.appts!.filter((a) => a.doctorId === open.id && a.date >= week && a.date <= addDays(week, 6) && a.status !== "cancelled").slice(0, 300)
+      util: pctText(stat.utilisation), nextFree: next, week,
+      // The calendar pages on its own; give it the weeks around this one.
+      events: s.appts!.filter((a) => a.doctorId === open.id && a.date >= addDays(week, -28) && a.date <= addDays(week, 62) && a.status !== "cancelled").slice(0, 600)
         .map((a) => ({ title: shortName(patientOf(s, a.patientId)!.name), date: a.date, start: a.time, end: clock(minutes(a.time) + a.minutes), note: kindLine(a), tone: STATUS_TONE[a.status] })),
       chart: { labels: stat.weekdays.map((d) => d.label), series: [{ name: "Visits", values: stat.weekdays.map((d) => d.total) }] },
-      upcoming: s.appts!.filter((a) => a.doctorId === open.id && live(a)).sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`)).slice(0, 25).map((a) => ({ when: `${shortDate(a.date)} ${spokenTime(a.time)}`, patient: shortName(patientOf(s, a.patientId)!.name), kind: a.kind, risk: riskOf(model, a) ? `${Math.round(riskOf(model, a)!.p * 100)}% may miss` : "-" })),
-    } : { title: "", summary: "", visits: 0, noShow: "", noShowTone: "neutral", util: "", nextFree: "", week, weekLabel: "", events: [], chart: { labels: [], series: [] }, upcoming: [] },
+      comingTitle: counted("Upcoming", coming.length),
+      upcoming: coming.slice(0, 100).map((a) => ({ when: `${shortDate(a.date)} ${spokenTime(a.time)}`, patient: shortName(patientOf(s, a.patientId)!.name), kind: a.kind, risk: riskOf(model, a) ? `${Math.round(riskOf(model, a)!.p * 100)}% may miss` : "-" })),
+    } : { title: "", summary: "", visits: 0, noShow: "", noShowTone: "neutral", util: "", nextFree: "", week, events: [], chart: { labels: [], series: [] }, comingTitle: "", upcoming: [] },
   };
   return { surface: "doctors", nodes: reachable(nodes), data: replaceAll(data) };
 }
 
-/** Results over a period: volume, attendance, how full the clinic ran, busiest hours and who carries the load. */
+/** Insights: filters and headline figures, then tabs for the summary, trends, patterns and each doctor. */
 function insightsSurface(s: State, nowDate: Date): Update {
   const ui = s.ui!, now0 = today(s, nowDate), days = Number(ui.insightDays);
   const r = report(s, addDays(now0, -(days - 1)), now0, now0, ui.insightDoctor);
-  const ahead = report(s, now0, addDays(now0, 13), now0, ui.insightDoctor);
   const model = riskModel(s);
   const out = weekOutlook(s, now0, nowDate, model);
   const resolved = r.completed + r.noShow;
@@ -1057,41 +1074,36 @@ function insightsSurface(s: State, nowDate: Date): Update {
     if (r.avgLead >= 10) notes.push(`Patients book about ${Math.round(r.avgLead)} days ahead. Long lead times raise the chance of a miss, so keep some same-week slots open.`);
     if (!notes.length) notes.push("Nothing stands out. Attendance and capacity look healthy for this period.");
   }
+  const chartBox = (id: string, title: string, chart: Node): Node[] => [{ id, type: "stack", props: { gap: "xs" }, children: [`${id}-t`, chart.id] }, { id: `${id}-t`, type: "text", props: { content: title, variant: "subheading" } }, chart];
   const nodes: Node[] = [
-    { id: "root", type: "stack", props: { gap: "lg" }, children: ["head", "bar", ...(s.doctors!.length ? ["stats", "notes", "trend-head", "trend", "mix", "docs-head", "docs", "fc-head", "fc-chart"] : ["empty"])] },
-    { id: "head", type: "stack", props: { gap: "xs" }, children: ["title", "subtitle"] },
-    { id: "title", type: "text", props: { content: "Insights", variant: "heading" } },
-    { id: "subtitle", type: "text", props: { content: "{/subtitle}", variant: "caption" } },
+    { id: "root", type: "stack", props: { gap: "md", density: "compact" }, children: ["subtitle", "bar", ...(s.doctors!.length ? ["stats", "tabs"] : ["empty"])] },
+    caption("subtitle", "{/subtitle}"),
     row("bar", ["period", "who", "export"]),
     { id: "period", type: "select", props: { label: "Period", bind: "/insightDays", options: PERIODS } },
     { id: "who", type: "select", props: { label: "Doctor", bind: "/insightDoctor", options: "{/doctorOptions}" } },
     btn("export", "Export report (CSV)", "file.save", "secondary", { name: "/report/name", text: "/report/csv" }),
     { id: "empty", type: "card", props: { title: "No data yet", body: "Add a doctor and book visits to see results here.", tone: "info" } },
-    { id: "stats", type: "grid", props: { columns: 6, gap: "sm" }, children: ["i-vis", "i-att", "i-miss", "i-util", "i-lead", "i-new"] },
+    { id: "stats", type: "grid", props: { columns: 6, minItemWidth: "sm", gap: "sm" }, children: ["i-vis", "i-att", "i-miss", "i-util", "i-lead", "i-new"] },
     { id: "i-vis", type: "stat", props: { label: "Visits completed", value: "{/k/completed}", tone: "success" } },
     { id: "i-att", type: "stat", props: { label: "Attendance", value: "{/k/attendance}" } },
     { id: "i-miss", type: "stat", props: { label: "No-show rate", value: "{/k/noShow}", tone: "{/k/noShowTone}" } },
     { id: "i-util", type: "stat", props: { label: "Slots used", value: "{/k/util}", tone: "info" } },
     { id: "i-lead", type: "stat", props: { label: "Booked ahead", value: "{/k/lead}" } },
     { id: "i-new", type: "stat", props: { label: "New patients", value: "{/k/newPatients}" } },
-    { id: "notes", type: "section", props: { title: "What the numbers say", description: "Rules over this clinic's own records, not medical advice." }, children: ["notes-list"] },
+    { id: "tabs", type: "tabs", props: {}, children: ["summary", "trends", "patterns", "by-doctor"] },
+    panel("summary", "Summary", ["notes-list"], "Rules over this clinic's own records, not medical advice."),
     { id: "notes-list", type: "list", props: { items: "{/notes}" } },
-    { id: "trend-head", type: "text", props: { content: "Visits over time", variant: "subheading" } },
-    { id: "trend", type: "chart", props: { kind: "stacked", labels: "{/trend/labels}", series: "{/trend/series}", height: "md" } },
-    { id: "mix", type: "grid", props: { columns: 3, gap: "md", minItemWidth: "md" }, children: ["m-hours", "m-days", "m-kinds"] },
-    { id: "m-hours", type: "stack", props: { gap: "xs" }, children: ["m-hours-t", "m-hours-c"] },
-    { id: "m-hours-t", type: "text", props: { content: "Busiest hours", variant: "subheading" } },
-    { id: "m-hours-c", type: "chart", props: { kind: "bar", labels: "{/hours/labels}", series: "{/hours/series}", height: "sm" } },
-    { id: "m-days", type: "stack", props: { gap: "xs" }, children: ["m-days-t", "m-days-c"] },
-    { id: "m-days-t", type: "text", props: { content: "No-show rate by weekday (%)", variant: "subheading" } },
-    { id: "m-days-c", type: "chart", props: { kind: "bar", labels: "{/weekdays/labels}", series: "{/weekdays/series}", height: "sm" } },
-    { id: "m-kinds", type: "stack", props: { gap: "xs" }, children: ["m-kinds-t", "m-kinds-c"] },
-    { id: "m-kinds-t", type: "text", props: { content: "Visit types", variant: "subheading" } },
-    { id: "m-kinds-c", type: "chart", props: { kind: "pie", labels: "{/kinds/labels}", series: "{/kinds/series}", height: "sm" } },
-    { id: "docs-head", type: "text", props: { content: "By doctor", variant: "subheading" } },
-    { id: "docs", type: "table", props: { columns: [{ key: "name", label: "Doctor" }, { key: "total", label: "Visits" }, { key: "completed", label: "Completed" }, { key: "noShow", label: "No-shows" }, { key: "cancelled", label: "Cancelled" }, { key: "util", label: "Slots used" }], rows: "{/doctorRows}" } },
-    { id: "fc-head", type: "text", props: { content: "Next 7 days: booked vs expected", variant: "subheading" } },
-    { id: "fc-chart", type: "chart", props: { kind: "bar", labels: "{/forecast/labels}", series: "{/forecast/series}", height: "sm" } },
+    panel("trends", "Trends", ["trend-grid"]),
+    { id: "trend-grid", type: "grid", props: { columns: 2, minItemWidth: "lg", gap: "md" }, children: ["trend", "fc"] },
+    ...chartBox("trend", "Visits over time", { id: "trend-c", type: "chart", props: { kind: "stacked", labels: "{/trend/labels}", series: "{/trend/series}", height: "sm" } }),
+    ...chartBox("fc", "Next 7 days: booked and expected", { id: "fc-c", type: "chart", props: { kind: "bar", labels: "{/forecast/labels}", series: "{/forecast/series}", height: "sm" } }),
+    panel("patterns", "Patterns", ["mix"]),
+    { id: "mix", type: "grid", props: { columns: 3, minItemWidth: "md", gap: "md" }, children: ["m-hours", "m-days", "m-kinds"] },
+    ...chartBox("m-hours", "Busiest hours", { id: "m-hours-c", type: "chart", props: { kind: "bar", labels: "{/hours/labels}", series: "{/hours/series}", height: "sm" } }),
+    ...chartBox("m-days", "No-show rate by weekday (%)", { id: "m-days-c", type: "chart", props: { kind: "bar", labels: "{/weekdays/labels}", series: "{/weekdays/series}", height: "sm" } }),
+    ...chartBox("m-kinds", "Visit types", { id: "m-kinds-c", type: "chart", props: { kind: "pie", labels: "{/kinds/labels}", series: "{/kinds/series}", height: "sm" } }),
+    panel("by-doctor", "By doctor", ["docs"]),
+    { id: "docs", type: "table", props: { columns: [{ key: "name", label: "Doctor" }, { key: "total", label: "Visits", align: "end" }, { key: "completed", label: "Completed", align: "end" }, { key: "noShow", label: "No-shows", align: "end" }, { key: "cancelled", label: "Cancelled", align: "end" }, { key: "util", label: "Slots used", align: "end" }], rows: "{/doctorRows}" } },
   ];
   const csv = [["Metric", "Value"], ["Period", `${r.from} to ${r.to}`], ["Doctor", ui.insightDoctor ? doctorOf(s, ui.insightDoctor)?.name ?? "" : "All"], ["Appointments", String(r.total)], ["Completed", String(r.completed)], ["No-shows", String(r.noShow)], ["Cancelled", String(r.cancelled)], ["No-show rate", pctText(r.noShowRate)], ["Slots used", pctText(r.utilisation)], ["Average days booked ahead", r.avgLead.toFixed(1)], ["New patients", String(r.newPatients)], [], ["Doctor", "Visits", "Completed", "No-shows", "Cancelled", "Slots used"], ...r.doctors.map((d) => [d.name, String(d.total), String(d.completed), String(d.noShow), String(d.cancelled), pctText(d.utilisation)])]
     .map((cols) => cols.map(csvCell).join(",")).join("\n") + "\n";
@@ -1112,7 +1124,6 @@ function insightsSurface(s: State, nowDate: Date): Update {
     forecast: { labels: out.map((d) => dayTag(d.date)), series: [{ name: "Booked", values: out.map((d) => d.booked) }, { name: "Expected", values: out.map((d) => d.expected) }] },
     report: { name: `clinic-report-${r.from}-to-${r.to}.csv`, csv },
   };
-  void ahead;
   return { surface: "insights", nodes: reachable(nodes), data: replaceAll(data) };
 }
 
