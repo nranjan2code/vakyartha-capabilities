@@ -6,7 +6,7 @@ compatibility: Works with text notes, meeting transcripts, audio transcription s
 metadata:
   category: writing
   author: Vakyartha
-  version: "1.0.0"
+  version: "1.1.0"
 allowed-tools: vak_render vak_update vak_submit use_skill
 ---
 
