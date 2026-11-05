@@ -5,8 +5,16 @@
 // The owner's machine is the source of truth. A passing tier on a clean tree is recorded
 // as a git note on the commit (refs/notes/ci), so a person, a later run or the GitHub
 // mirror can see which commits a machine verified, even when hosted minutes run out.
-import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+//
+// Local run output has one place: `.runs/` at the repository root (gitignored). A tier
+// writes `.runs/ci/<YYMMDD-HHMMSS>-<sha>[-dirty]/` with one log per step and summary.json;
+// a check script asks runDir() for its folder (inside the step's folder when the tier runs
+// it, else `.runs/<name>/<stamp>-<sha>/`) and writes its pictures and logs there. Nothing
+// worth reading afterwards goes to the OS temp folder or a personal scratch folder; only
+// throwaway fixtures do, and they are deleted. The newest KEEP runs of each name are kept;
+// `latest` links to the newest.
+import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 export type Step = { name: string; cmd: string[]; cwd?: string; needs?: string[]; minutes?: number };
@@ -18,7 +26,52 @@ export type Config = {
   // Tiers where a skipped step counts as a failure.
   strict?: string[];
 };
-type Result = { name: string; status: "pass" | "fail" | "skip"; ms: number; reason?: string };
+type Result = { name: string; status: "pass" | "fail" | "skip"; ms: number; reason?: string; log?: string };
+
+export const KEEP = 20;
+const safe = (name: string) => name.replace(/[^A-Za-z0-9._-]+/g, "-");
+
+/** A new folder `.runs/<name>/<YYMMDD-HHMMSS>-<sha>[-dirty]/` in `repo`; keeps the newest KEEP. */
+export function newRun(repo: string, name: string): string {
+  const base = path.join(repo, ".runs", safe(name));
+  const git = (...a: string[]) => { try { return execFileSync("git", ["-C", repo, ...a], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch { return ""; } };
+  const d = new Date(), two = (n: number) => String(n).padStart(2, "0");
+  const stamp = `${two(d.getFullYear() % 100)}${two(d.getMonth() + 1)}${two(d.getDate())}-${two(d.getHours())}${two(d.getMinutes())}${two(d.getSeconds())}`;
+  const sha = git("rev-parse", "--short=7", "HEAD") || "nogit";
+  let dir = path.join(base, `${stamp}-${sha}${git("status", "--porcelain") ? "-dirty" : ""}`);
+  for (let i = 2; existsSync(dir); i++) dir = path.join(base, `${stamp}-${sha}-${i}`);
+  mkdirSync(dir, { recursive: true });
+  const runs = readdirSync(base).filter(n => /^\d{6}-\d{6}-/.test(n)).sort();
+  for (const old of runs.slice(0, Math.max(0, runs.length - KEEP))) rmSync(path.join(base, old), { recursive: true, force: true });
+  try { unlinkSync(path.join(base, "latest")); } catch { /* none yet */ }
+  try { symlinkSync(path.basename(dir), path.join(base, "latest")); } catch { /* a link is a convenience */ }
+  return dir;
+}
+
+/**
+ * Where a check script writes what a person may want to read afterwards: pictures, logs,
+ * results. Under a tier it is that step's folder in the tier's run; run alone it is a new
+ * `.runs/<name>/...` folder. Print the path so a reader can find it.
+ */
+export function runDir(repo: string, name: string): string {
+  const inTier = process.env.VAK_RUN_DIR;
+  if (inTier) { mkdirSync(inTier, { recursive: true }); return inTier; }
+  return newRun(repo, name);
+}
+
+/** Runs a step, showing its output live and writing it to `log`. */
+function runStep(step: Step, cwd: string, log: string, env: NodeJS.ProcessEnv): Promise<{ code: number | null; reason?: string }> {
+  return new Promise(resolve => {
+    const file = createWriteStream(log);
+    const child = spawn(step.cmd[0]!, step.cmd.slice(1), { cwd, env, stdio: ["inherit", "pipe", "pipe"] });
+    let reason: string | undefined;
+    const timer = setTimeout(() => { reason = `timed out after ${step.minutes ?? 10} minutes`; child.kill("SIGTERM"); }, (step.minutes ?? 10) * 60_000);
+    child.stdout.on("data", (b: Buffer) => { process.stdout.write(b); file.write(b); });
+    child.stderr.on("data", (b: Buffer) => { process.stderr.write(b); file.write(b); });
+    child.on("error", e => { reason = e.message; });
+    child.on("close", (code, signal) => { clearTimeout(timer); file.end(() => resolve({ code, reason: reason ?? (signal ? `stopped by ${signal}` : undefined) })); });
+  });
+}
 
 const usage = `usage: node scripts/ci.ts <tier> [--keep-going] [--only <step>] [--list]
        node scripts/ci.ts status [tier]          receipt recorded for HEAD
@@ -78,6 +131,9 @@ export async function main(config: Config): Promise<void> {
     const strict = config.strict?.includes(tier) ?? false;
     const results: Result[] = [];
     const started = Date.now();
+    const out = newRun(repo, "ci");
+    const at = path.relative(repo, out);
+    console.log(`${tier}: output in ${at}`);
     for (const step of chosen) {
       let reason: string | undefined;
       for (const need of step.needs ?? []) {
@@ -88,9 +144,10 @@ export async function main(config: Config): Promise<void> {
       if (reason) { results.push({ name: step.name, status: "skip", ms: 0, reason }); console.log(`\n-- ${step.name}: skipped (${reason})`); continue; }
       console.log(`\n-- ${step.name}`);
       const t = Date.now();
-      const r = spawnSync(step.cmd[0]!, step.cmd.slice(1), { cwd: step.cwd ?? repo, stdio: "inherit", timeout: (step.minutes ?? 10) * 60_000 });
-      const status = r.status === 0 ? "pass" : "fail";
-      results.push({ name: step.name, status, ms: Date.now() - t, ...(r.error ? { reason: r.error.message } : r.signal ? { reason: `stopped by ${r.signal}` } : {}) });
+      const log = path.join(out, `${safe(step.name)}.log`);
+      const r = await runStep(step, step.cwd ?? repo, log, { ...process.env, VAK_RUN_DIR: path.join(out, safe(step.name)) });
+      const status = r.code === 0 && !r.reason ? "pass" : "fail";
+      results.push({ name: step.name, status, ms: Date.now() - t, log: path.basename(log), ...(r.reason ? { reason: r.reason } : {}) });
       if (status === "fail" && !flags.includes("--keep-going")) break;
     }
 
@@ -101,6 +158,11 @@ export async function main(config: Config): Promise<void> {
     console.log(`\n${tier}: ${passed ? "PASS" : "FAIL"} in ${seconds}s`);
     for (const r of results) console.log(`  ${r.status.padEnd(4)} ${r.name}${r.reason ? `  (${r.reason})` : ""}${r.ms ? `  ${Math.round(r.ms / 1000)}s` : ""}`);
     if (results.length < chosen.length) console.log(`  not run: ${chosen.slice(results.length).map(s => s.name).join(", ")}`);
+    const head = (() => { try { return git("rev-parse", "HEAD"); } catch { return ""; } })();
+    const dirty = (() => { try { return git("status", "--porcelain") !== ""; } catch { return true; } })();
+    writeFileSync(path.join(out, "summary.json"), `${JSON.stringify({ tier, only: only ?? null, commit: head, dirty, passed, started: new Date(started).toISOString(), seconds,
+      platform: `${process.platform}-${process.arch}`, node: process.version, results, notRun: chosen.slice(results.length).map(s => s.name) }, null, 2)}\n`);
+    console.log(`  logs: ${at}`);
 
     // A receipt attests a commit: only a whole tier, run on a clean tree, outside hosted CI.
     if (only || process.env.CI) return passed ? 0 : 1;

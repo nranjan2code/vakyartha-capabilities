@@ -3,7 +3,7 @@
 // of index.json and writes signatures/capabilities-<version>.sig for commit.
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { build } from "./catalog-build.ts";
@@ -17,6 +17,8 @@ await confirmVersion("Sign Vakyartha capabilities", version);
 const out = mkdtempSync(path.join(tmpdir(), "vak-sign-"));
 build(out);
 const index = readFileSync(path.join(out, "index.json"));
+// The build is throwaway: only its signature is kept.
+rmSync(out, { recursive: true, force: true });
 const seed = Buffer.from(execFileSync("security", ["find-generic-password", "-s", KEYCHAIN.service, "-a", KEYCHAIN.account, "-w"], { encoding: "utf8" }).trim(), "base64");
 const signature = signIndex(index, seed);
 seed.fill(0);
