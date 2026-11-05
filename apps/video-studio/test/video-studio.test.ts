@@ -194,3 +194,17 @@ test('an unavailable source fails with a clear message', async () => {
   const c: Context = { state: { source: 'markets' }, appRevision: 1, async callTool() { throw new Error('Unknown tool'); } };
   await assert.rejects(handleAction('', {}, c, 'import_markets'), /Market Terminal could not be read.*installed, turned on and allowed in Access/);
 });
+
+test('row templates travel only with the lists that use them', () => {
+  const at = '2026-11-04T10:00:00.000Z', show = { id: 'v1', title: 'Show 1', format: 'show', source: 'News Desk', savedAt: at, status: 'library', programme: sample } as const;
+  const states: State[] = [{}, { videos: [show] }, { videos: [show], playlists: [{ id: 'p1', name: 'Morning', items: [] }], playlist: 'p1' }, { videos: [show], playlists: [{ id: 'p1', name: 'Morning', items: ['v1'] }], playlist: 'p1', progress: { v1: { part: 0, done: false, at } }, history: [{ id: 'v1', at }] }];
+  for (const state of states) for (const u of views(state)) {
+    // A node is a row template when it, or a node it contains, reads a row field ({field}, not {/path}).
+    const byId = new Map(u.nodes.map(x => [x.id, x]));
+    const own = (x: (typeof u.nodes)[number]) => /\{[a-zA-Z]/.test(JSON.stringify(x.props ?? {}));
+    const used = new Set(u.nodes.flatMap(x => x.children && !Array.isArray(x.children) ? [(x.children as { template: string }).template] : []));
+    const inside = (id: string, seen = new Set<string>()): boolean => { if (used.has(id)) return true; if (seen.has(id)) return false; seen.add(id); return u.nodes.some(p => Array.isArray(p.children) && p.children.includes(id) && inside(p.id, seen)); };
+    for (const x of u.nodes) if (own(x)) assert.ok(inside(x.id), `${u.surface}: ${x.id} reads row fields outside a list (${JSON.stringify(state).slice(0, 80)})`);
+    assert.ok(byId.size === u.nodes.length);
+  }
+});
