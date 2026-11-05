@@ -6,7 +6,7 @@ export interface Programme { title: string; badge?: string; segments: Segment[];
 export interface Video { id: string; title: string; format: Format; source: string; savedAt: string; sourceCheckedAt?: string; status: 'draft' | 'library'; programme: Programme }
 export interface Progress { part: number; done: boolean; at: string }
 export interface Playlist { id: string; name: string; items: string[] }
-export interface State { videos?: Video[]; unreadable?: unknown[]; confirmUnreadable?: true; progress?: Record<string, Progress>; history?: { id: string; at: string }[]; playlists?: Playlist[]; playlist?: string; playlistName?: string; confirmPlaylist?: string; selected?: string; source?: string; format?: Format; edit?: { id: string; title: string; segment: number; heading: string; text: string }; topic?: string; notice?: string; confirmRemove?: string; seq?: number }
+export interface State { videos?: Video[]; unreadable?: unknown[]; confirmUnreadable?: true; progress?: Record<string, Progress>; history?: { id: string; at: string }[]; playlists?: Playlist[]; playlist?: string; later?: string[]; channel?: string; playlistName?: string; confirmPlaylist?: string; selected?: string; source?: string; format?: Format; edit?: { id: string; title: string; segment: number; heading: string; text: string }; topic?: string; notice?: string; confirmRemove?: string; seq?: number }
 export interface Context { state: State; appRevision?: number; callTool(name: string, args: Record<string, unknown>): Promise<unknown> }
 type Node = { id: string; type: string; props?: Record<string, unknown>; children?: string[] | { each: string; template: string } };
 type Update = { surface: string; nodes: Node[]; data: { op: 'replace'; path: '/'; value: Record<string, unknown> }[] };
@@ -81,7 +81,8 @@ function normalize(raw: State = {}): State {
   const history = (Array.isArray(raw.history) ? raw.history : []).filter(x => x && known.has(x.id)).slice(0, 50).map(x => ({ id: x.id, at: date(x.at) ?? new Date(0).toISOString() }));
   const playlists = (Array.isArray(raw.playlists) ? raw.playlists : []).slice(0, 20).flatMap(x => x && typeof x.id === 'string' && str(x.name, 60) ? [{ id: x.id.slice(0, 80), name: str(x.name, 60), items: [...new Set((Array.isArray(x.items) ? x.items : []).filter(i => known.has(i)))].slice(0, 50) }] : []);
   const playlist = playlists.some(x => x.id === raw.playlist) ? raw.playlist : playlists[0]?.id;
-  return { videos, progress, history, playlists, ...(playlist ? { playlist } : {}), playlistName: str(raw.playlistName, 60), ...(playlists.some(x => x.id === raw.confirmPlaylist) ? { confirmPlaylist: raw.confirmPlaylist } : {}), ...(unreadable.length ? { unreadable, ...(raw.confirmUnreadable === true ? { confirmUnreadable: true as const } : {}) } : {}), selected, source: SOURCE.has(String(raw.source)) ? raw.source : 'news', format: kind(raw.format), edit, topic: str(raw.topic, 160), notice: str(raw.notice, 300), confirmRemove: videos.some(v => v.id === raw.confirmRemove) ? raw.confirmRemove : undefined, seq: Number.isSafeInteger(raw.seq) && Number(raw.seq) >= 0 ? Number(raw.seq) : 0 };
+  const later = [...new Set((Array.isArray(raw.later) ? raw.later : []).filter(i => known.has(i)))].slice(0, 100);
+  return { videos, progress, history, playlists, later, channel: str(raw.channel, 120), ...(playlist ? { playlist } : {}), playlistName: str(raw.playlistName, 60), ...(playlists.some(x => x.id === raw.confirmPlaylist) ? { confirmPlaylist: raw.confirmPlaylist } : {}), ...(unreadable.length ? { unreadable, ...(raw.confirmUnreadable === true ? { confirmUnreadable: true as const } : {}) } : {}), selected, source: SOURCE.has(String(raw.source)) ? raw.source : 'news', format: kind(raw.format), edit, topic: str(raw.topic, 160), notice: str(raw.notice, 300), confirmRemove: videos.some(v => v.id === raw.confirmRemove) ? raw.confirmRemove : undefined, seq: Number.isSafeInteger(raw.seq) && Number(raw.seq) >= 0 ? Number(raw.seq) : 0 };
 }
 
 const val = (s: State) => {
@@ -91,7 +92,30 @@ const val = (s: State) => {
   return { unreadableCount: s.unreadable?.length ?? 0, library: metadata('library'), drafts: metadata('draft'), selected: selectedView, edit: e ?? { id: '', title: '', segment: 0, heading: '', text: '' }, source: s.source, sourceOptions: SOURCES.map(x => ({ label: x.name, value: x.id })), format: s.format, formatOptions: [{ label: 'Show', value: 'show' }, { label: 'Short', value: 'short' }], segmentOptions: active?.programme.segments.map((x, i) => ({ label: `${i + 1}. ${x.heading || 'Untitled scene'}`, value: String(i) })) ?? [], notice: s.notice ?? '', topic: s.topic ?? '', authorRequest: `Help me create a watchable ${s.format === 'short' ? 'short' : 'show'}${s.topic ? ` about ${s.topic}` : ''}. Read Video Studio's creator context, use only source apps and information I choose or that match the topic, and save a complete programme as an unreviewed draft for me to edit and review. Preserve source names and dates. Do not publish it or claim a video file was rendered.`, authorWorkflow: workflow };
 };
 // Spoken runtime is an estimate at about 150 words a minute; the selected voice sets the real length.
-const runtime = (p: Programme) => { const words = p.segments.reduce((sum, x) => sum + wordCount(x.text), 0), sec = Math.max(1, Math.round(words / 2.5)); return sec < 60 ? `About ${sec} s` : `About ${Math.round(sec / 60)} min`; };
+const seconds = (p: Programme) => Math.max(1, Math.round(p.segments.reduce((sum, x) => sum + wordCount(x.text), 0) / 2.5));
+const runtime = (p: Programme) => { const sec = seconds(p); return sec < 60 ? `About ${sec} s` : `About ${Math.round(sec / 60)} min`; };
+/** 74 → "1:14": the estimated length shown on a cover. */
+const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+const day = (v: string) => { const d = new Date(v); return Number.isFinite(d.getTime()) && d.getTime() > 0 ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Unknown date'; };
+const COVERS = [['#1d3b6e', '#e5484d'], ['#0f4c3a', '#f5b400'], ['#3b1d6e', '#38c6d4'], ['#5a2410', '#ff8a3d'], ['#123d57', '#9ad94f']];
+/**
+ * A cover for every video: its first picture, or else a title card drawn from
+ * its own words (title and source on a colour chosen by the source), so a
+ * programme without pictures never shows as an empty card.
+ */
+function cover(v: Video): string {
+  const picture = v.programme.segments.find(x => x.image)?.image;
+  if (picture) return picture;
+  const tall = v.format === 'short', w = tall ? 360 : 640, h = tall ? 640 : 360, width = tall ? 13 : 24, size = tall ? 38 : 40;
+  const [bg, accent] = COVERS[[...v.source].reduce((a, c) => a + c.charCodeAt(0), 0) % COVERS.length]!;
+  const esc = (t: string) => t.replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
+  const lines: string[] = [];
+  for (const word of v.title.split(' ')) { const last = lines.at(-1); if (last !== undefined && (last + ' ' + word).length <= width) lines[lines.length - 1] = `${last} ${word}`; else lines.push(word.slice(0, width)); }
+  const shown = lines.slice(0, 4), top = h / 2 - ((shown.length - 1) * size * 1.15) / 2;
+  const text = shown.map((l, i) => `<text x="32" y="${Math.round(top + i * size * 1.15)}" font-size="${size}">${esc(l)}${i === 3 && lines.length > 4 ? '…' : ''}</text>`).join('');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${bg}"/><stop offset="1" stop-color="#07090c"/></linearGradient></defs><rect width="${w}" height="${h}" fill="url(#g)"/><rect x="32" y="${Math.round(top - size - 14)}" width="56" height="6" rx="3" fill="${accent}"/><g fill="#fff" font-family="system-ui, sans-serif" font-weight="700">${text}</g><text x="32" y="${h - 28}" fill="#ffffffb3" font-family="system-ui, sans-serif" font-size="22">${esc(v.source)}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
 const n = (id: string, type: string, props: Record<string, unknown> = {}, children?: Node['children']): Node => ({ id, type, props, ...(children ? { children } : {}) });
 const btn = (id: string, label: string, action: string, payload: Record<string, unknown> = {}, style = 'secondary'): Node => n(id, 'button', { label, action, payload, style });
 const addSection = (target: Node[], id: string, title: string, description: string, children: Node[]) => target.push(n(id, 'section', { title, description }, children.map(x => x.id)), ...children);
@@ -99,41 +123,53 @@ const workflow = { title: 'Video Studio', stages: ['Plan', 'Create', 'Review'], 
 
 export function views(raw: State): Update[] {
   const s = normalize(raw), d = val(s), rows = (each: string, template: string) => ({ each, template });
-  const libraryNodes: Node[] = [], lib = s.videos!.filter(x => x.status === 'library'), pos = new Map(lib.map((x, i) => [x.id, i]));
-  const at = (id: string) => pos.get(id) ?? -1;
-  // The library plays as one queue: Watch on any card starts there and carries on to the next item.
-  const libraryQueue = lib.map(x => ({ id: x.id, programme: x.programme }));
-  const continueRows = lib.filter(x => s.progress![x.id] && !s.progress![x.id]!.done && s.progress![x.id]!.part > 0).sort((a, b) => s.progress![b.id]!.at.localeCompare(s.progress![a.id]!.at)).slice(0, 6)
-    .map(x => ({ id: x.id, title: x.title, index: at(x.id), part: s.progress![x.id]!.part, image: d.library[at(x.id)]?.image ?? '', label: `Stopped at scene ${s.progress![x.id]!.part + 1} of ${x.programme.segments.length} · ${when(s.progress![x.id]!.at)}` }));
-  const historyRows = s.history!.filter(h => at(h.id) >= 0).slice(0, 10).map(h => { const x = lib[at(h.id)]!; return { id: x.id, title: x.title, index: at(x.id), label: `${x.format === 'short' ? 'Short' : 'Show'} · watched ${when(h.at)}${s.progress![x.id]?.done ? ' · finished' : ''}` }; });
-  const watchAll = { queue: '{/libraryQueue}', progress: 'watch_progress' };
-  addSection(libraryNodes, 'library-intro', 'Video library', 'Your saved Vakyartha shows and shorts. Watch plays from that item and carries on to the next; swipe or use the up and down keys to move between them.', [n('library-count', 'text', { content: `${lib.length} saved` }), ...(lib.length ? [btn('library-play-all', 'Play all', 'voice.watch', { ...watchAll, index: 0 }, 'primary')] : [])]);
-  if (continueRows.length) {
-    addSection(libraryNodes, 'library-continue', 'Continue watching', 'Pick up where you stopped.', [n('continue-items', 'grid', { columns: 3, minItemWidth: 'sm' }, rows('/continueRows', 'continue-row'))]);
-    libraryNodes.push(n('continue-row', 'card', { title: '{title}', subtitle: '{label}', image: '{image}', imageLayout: 'thumbnail', titleLines: 2 }, ['continue-play']), btn('continue-play', 'Resume', 'voice.watch', { ...watchAll, index: '{index}', from: '{part}' }, 'primary'));
+  const lib = s.videos!.filter(x => x.status === 'library'), pos = new Map(lib.map((x, i) => [x.id, i]));
+  const at = (id: string) => pos.get(id) ?? -1, later = new Set(s.later);
+  const target = s.playlists!.find(x => x.id === s.playlist);
+  // One row shape for every video card: cover, length on the cover, title, then source and date.
+  const card = (x: Video, index: number) => ({ id: x.id, index, title: x.title, image: cover(x), length: clock(seconds(x.programme)), meta: `${x.source} · ${day(x.savedAt)}`, laterLabel: later.has(x.id) ? 'Remove from Watch later' : 'Watch later' });
+  const queue = (list: Video[]) => list.map(x => ({ id: x.id, programme: x.programme }));
+  const watch = (q: string, label: string, extra: Record<string, unknown> = {}) => ({ action: 'voice.watch', payload: { queue: q, index: '{index}', progress: 'watch_progress', ...extra }, actionLabel: label });
+  const videoCard = (id: string, q: string, kids: string[], extra: Record<string, unknown> = {}) => n(id, 'card', { title: '{title}', subtitle: '{meta}', image: '{image}', imageLabel: '{length}', titleLines: 2, ...watch(q, 'Watch'), ...extra }, kids);
+  const shortCard = (id: string, q: string) => n(id, 'card', { title: '{title}', subtitle: '{meta}', image: '{image}', imageAspect: 'tall', imageLabel: '{length}', titleLines: 2, ...watch(q, 'Watch short', { portrait: true }) });
+  const libraryQueue = queue(lib);
+  const resumeRows = lib.filter(x => s.progress![x.id] && !s.progress![x.id]!.done && s.progress![x.id]!.part > 0).sort((a, b) => s.progress![b.id]!.at.localeCompare(s.progress![a.id]!.at)).slice(0, 4)
+    .map(x => { const pr = s.progress![x.id]!, total = x.programme.segments.length; return { ...card(x, at(x.id)), part: pr.part, progress: pr.part / total, meta: `Scene ${pr.part + 1} of ${total} · ${x.source}` }; });
+  // Home: chips choose a source app; shows fill the grid and shorts get their own shelf.
+  const channels = [...new Set(lib.map(x => x.source))];
+  const channel = channels.includes(s.channel ?? '') ? s.channel! : 'all';
+  const inChannel = lib.filter(x => channel === 'all' || x.source === channel), shows = inChannel.filter(x => x.format === 'show'), shelf = inChannel.filter(x => x.format === 'short');
+  const libraryNodes: Node[] = [];
+  addSection(libraryNodes, 'library-intro', 'Home', lib.length ? `${lib.length} saved in your library. Choose a video to watch it; Watch carries on to the next. Swipe, scroll or use the up and down keys to move between them.` : 'Your library is empty. Import a programme or create one in Creator Studio.', lib.length ? [...(channels.length > 1 ? [n('library-channel', 'select', { label: 'Source', bind: '/channel', options: '{/channelOptions}' })] : []), btn('library-play-all', 'Play all', 'voice.watch', { queue: '{/homeQueue}', index: 0, progress: 'watch_progress' }, 'primary')] : [btn('library-create', 'Open Creator Studio', 'view.open', { surface: 'studio' }, 'primary')]);
+  if (resumeRows.length) {
+    addSection(libraryNodes, 'library-continue', 'Continue watching', '', [n('continue-items', 'grid', { columns: 4, minItemWidth: 'sm' }, rows('/continueRows', 'continue-row'))]);
+    libraryNodes.push(videoCard('continue-row', '{/libraryQueue}', [], { progress: '{progress}', ...watch('{/libraryQueue}', 'Resume', { from: '{part}' }) }));
   }
-  if (d.library.length) {
-    const target = s.playlists!.find(x => x.id === s.playlist);
-    addSection(libraryNodes, 'library-list', 'Saved videos', target ? `Add to playlist adds to ${target.name}; choose another in Playlists.` : 'Create a playlist in Playlists to collect videos.', [n('library-items', 'grid', { columns: 3, minItemWidth: 'sm', searchable: true, pageSize: 12 }, rows('/library', 'library-row'))]);
-    libraryNodes.push(n('library-row', 'card', { title: '{title}', subtitle: '{formatLabel} · {length} · {source} · {savedLabel}', image: '{image}', imageLayout: 'cover', titleLines: 2 }, ['library-watch', 'library-edit', ...(target ? ['library-collect'] : [])]), btn('library-watch', 'Watch', 'voice.watch', { ...watchAll, index: '{index}' }, 'primary'), btn('library-edit', 'Edit', 'open_video', { id: '{id}' }), ...(target ? [btn('library-collect', 'Add to playlist', 'add_to_playlist', { id: '{id}' })] : []));
+  if (shelf.length) {
+    addSection(libraryNodes, 'library-shorts', 'Shorts', '', [n('shelf-items', 'grid', { columns: 6, minItemWidth: 'sm', pageSize: 6 }, rows('/shelfRows', 'shelf-row'))]);
+    libraryNodes.push(shortCard('shelf-row', '{/shelfQueue}'));
   }
-  else libraryNodes.push(n('library-empty', 'text', { content: 'Your library is empty. Import a programme or create one in Creator Studio.' }));
-  if (historyRows.length) {
-    addSection(libraryNodes, 'library-history', 'Recently watched', 'The last ten videos you watched.', [n('history-items', 'grid', { columns: 1, pageSize: 10 }, rows('/historyRows', 'history-row')), btn('history-clear', 'Clear history', 'clear_history')]);
-    libraryNodes.push(n('history-row', 'card', { title: '{title}', subtitle: '{label}' }, ['history-play']), btn('history-play', 'Watch again', 'voice.watch', { ...watchAll, index: '{index}' }));
+  if (shows.length) {
+    addSection(libraryNodes, 'library-list', channel === 'all' ? 'Shows' : channel, target ? `Add to playlist adds to ${target.name}.` : '', [n('library-items', 'grid', { columns: 4, minItemWidth: 'sm', searchable: true, pageSize: 12 }, rows('/homeRows', 'library-row'))]);
+    libraryNodes.push(videoCard('library-row', '{/homeQueue}', ['library-later', 'library-edit', ...(target ? ['library-collect'] : [])]), btn('library-later', '{laterLabel}', 'toggle_later', { id: '{id}' }, 'link'), btn('library-edit', 'Edit', 'open_video', { id: '{id}' }, 'link'), ...(target ? [btn('library-collect', 'Add to playlist', 'add_to_playlist', { id: '{id}' }, 'link')] : []));
   }
   if (s.notice) libraryNodes.push(n('library-notice', 'text', { content: s.notice, variant: 'caption' }));
-  // Shorts: the library's shorts as a tall vertical feed.
+  // Shorts: every short as a tall card; Watch plays them as a vertical feed.
   const shorts = lib.filter(x => x.format === 'short'), shortsNodes: Node[] = [];
-  const shortRows = shorts.map((x, i) => ({ id: x.id, index: i, title: x.title, image: d.library[at(x.id)]?.image ?? '', label: `${runtime(x.programme)} · ${x.source}` }));
-  const feed = { queue: '{/shortsQueue}', portrait: true, progress: 'watch_progress' };
-  addSection(shortsNodes, 'shorts-intro', 'Shorts', 'Short programmes in a tall frame, one after another. Swipe, scroll or use the up and down keys for the next one.', shorts.length ? [btn('shorts-play', 'Play shorts', 'voice.watch', { ...feed, index: 0 }, 'primary')] : [n('shorts-empty', 'text', { content: 'No shorts in your library yet. Make a short from any scene in Creator Studio, then add it to your library.' }), btn('shorts-create', 'Open Creator Studio', 'view.open', { surface: 'studio' })]);
+  addSection(shortsNodes, 'shorts-intro', 'Shorts', shorts.length ? `${shorts.length} ${shorts.length === 1 ? 'short' : 'shorts'} in a tall frame, one after another. Swipe, scroll or use the up and down keys for the next one.` : 'No shorts in your library yet. Make a short from any scene in Creator Studio, then add it to your library.', shorts.length ? [btn('shorts-play', 'Play shorts', 'voice.watch', { queue: '{/shortsQueue}', portrait: true, index: 0, progress: 'watch_progress' }, 'primary')] : [btn('shorts-create', 'Open Creator Studio', 'view.open', { surface: 'studio' })]);
   if (shorts.length) {
-    addSection(shortsNodes, 'shorts-list', 'All shorts', `${shorts.length} ${shorts.length === 1 ? 'short' : 'shorts'}`, [n('shorts-items', 'grid', { columns: 4, minItemWidth: 'sm', searchable: true, pageSize: 16 }, rows('/shortRows', 'short-row'))]);
-    shortsNodes.push(n('short-row', 'card', { title: '{title}', subtitle: '{label}', image: '{image}', imageLayout: 'cover', titleLines: 2 }, ['short-play']), btn('short-play', 'Watch', 'voice.watch', { ...feed, index: '{index}' }, 'primary'));
+    shortsNodes.push(n('shorts-items', 'grid', { columns: 6, minItemWidth: 'sm', searchable: true, pageSize: 18 }, rows('/shortRows', 'short-row')), shortCard('short-row', '{/shortsQueue}'));
   }
-  // Playlists: named running orders over library items.
-  const listNodes: Node[] = [], chosen = s.playlists!.find(x => x.id === s.playlist);
+  // You: what you watched, what you saved for later, and your playlists.
+  const listNodes: Node[] = [], chosen = target;
+  const historyRows = s.history!.filter(h => at(h.id) >= 0).slice(0, 12).map(h => { const x = lib[at(h.id)]!, pr = s.progress![x.id]; return { ...card(x, at(x.id)), progress: pr?.done ? 1 : (pr?.part ?? 0) / x.programme.segments.length, meta: `${x.source} · watched ${day(h.at)}` }; });
+  const laterList = s.later!.flatMap(id => lib[at(id)] ? [lib[at(id)]!] : []), laterRows = laterList.map(card);
+  if (historyRows.length) {
+    addSection(listNodes, 'you-history', 'History', '', [n('history-items', 'grid', { columns: 4, minItemWidth: 'sm', pageSize: 8 }, rows('/historyRows', 'history-row')), btn('history-clear', 'Clear history', 'clear_history')]);
+    listNodes.push(videoCard('history-row', '{/libraryQueue}', [], { progress: '{progress}', ...watch('{/libraryQueue}', 'Watch again') }));
+  }
+  addSection(listNodes, 'you-later', 'Watch later', laterRows.length ? `${laterRows.length} saved for later` : 'Use Watch later on any video on Home to save it here.', laterRows.length ? [btn('later-play', 'Play all', 'voice.watch', { queue: '{/laterQueue}', index: 0, progress: 'watch_progress' }, 'primary'), n('later-items', 'grid', { columns: 4, minItemWidth: 'sm', pageSize: 8 }, rows('/laterRows', 'later-row'))] : []);
+  if (laterRows.length) listNodes.push(videoCard('later-row', '{/laterQueue}', ['later-remove']), btn('later-remove', 'Remove', 'toggle_later', { id: '{id}' }, 'link'));
   const listItems = (chosen?.items ?? []).flatMap((id, i) => { const x = lib[at(id)]; return x ? [{ id, index: i, title: x.title, label: `${x.format === 'short' ? 'Short' : 'Show'} · ${runtime(x.programme)} · ${x.source}` }] : []; });
   addSection(listNodes, 'playlists-intro', 'Playlists', 'Collect library videos into running orders and play them straight through.', [n('playlist-name', 'input', { label: 'New playlist', bind: '/playlistName', placeholder: 'Name, for example Morning briefing' }), btn('playlist-create', 'Create playlist', 'create_playlist', {}, 'primary'), ...(s.playlists!.length ? [n('playlist-pick', 'select', { label: 'Playlist', bind: '/playlist', options: '{/playlistOptions}', presentation: 'dropdown' })] : [])]);
   if (chosen) {
@@ -163,16 +199,16 @@ export function views(raw: State): Update[] {
   }
   if (s.notice) studioNodes.push(n('studio-notice', 'text', { content: s.notice }));
   const root = (list: Node[], ids: string[]) => list.unshift(n('root', 'stack', { direction: 'vertical', gap: 'md' }, list.filter(x => ids.includes(x.id)).map(x => x.id)));
-  root(libraryNodes, ['library-intro', 'library-continue', 'library-list', 'library-empty', 'library-history', 'library-notice']);
-  root(shortsNodes, ['shorts-intro', 'shorts-list']);
-  root(listNodes, ['playlists-intro', 'playlist-detail', 'playlists-notice']);
+  root(libraryNodes, ['library-intro', 'library-continue', 'library-shorts', 'library-list', 'library-notice']);
+  root(shortsNodes, ['shorts-intro', 'shorts-items']);
+  root(listNodes, ['you-history', 'you-later', 'playlists-intro', 'playlist-detail', 'playlists-notice']);
   studioNodes.unshift(n('root', 'stack', { direction: 'vertical', gap: 'md' }, studioNodes.filter(x => ['creator-intro', 'unreadable', 'drafts-list', 'production-workspace', 'studio-notice'].includes(x.id)).map(x => x.id)));
-  // Each view carries only the data it shows: programmes appear once per view, as the queue it plays.
+  // Each view carries only the data it shows; programmes travel as the queues that play them.
   const notice = d.notice, { library: _library, ...studioData } = d;
   return [
-    { surface: 'library', nodes: libraryNodes, data: [{ op: 'replace', path: '/', value: { library: d.library, libraryQueue, continueRows, historyRows, notice } }] },
-    { surface: 'shorts', nodes: shortsNodes, data: [{ op: 'replace', path: '/', value: { shortRows, shortsQueue: shorts.map(x => ({ id: x.id, programme: x.programme })) } }] },
-    { surface: 'playlists', nodes: listNodes, data: [{ op: 'replace', path: '/', value: { playlist: s.playlist ?? '', playlistName: s.playlistName ?? '', playlistOptions: s.playlists!.map(x => ({ label: `${x.name} (${x.items.length})`, value: x.id })), listItems, playlistQueue: listItems.map(x => ({ id: x.id, programme: lib[at(x.id)]!.programme })), notice } }] },
+    { surface: 'library', nodes: libraryNodes, data: [{ op: 'replace', path: '/', value: { channel, channelOptions: [{ label: 'All', value: 'all' }, ...channels.map(x => ({ label: x, value: x }))], homeRows: shows.map(card), homeQueue: queue(shows), shelfRows: shelf.map(card), shelfQueue: queue(shelf), continueRows: resumeRows, libraryQueue, notice } }] },
+    { surface: 'shorts', nodes: shortsNodes, data: [{ op: 'replace', path: '/', value: { shortRows: shorts.map(card), shortsQueue: queue(shorts) } }] },
+    { surface: 'playlists', nodes: listNodes, data: [{ op: 'replace', path: '/', value: { historyRows, libraryQueue, laterRows, laterQueue: queue(laterList), playlist: s.playlist ?? '', playlistName: s.playlistName ?? '', playlistOptions: s.playlists!.map(x => ({ label: `${x.name} (${x.items.length})`, value: x.id })), listItems, playlistQueue: listItems.map(x => ({ id: x.id, programme: lib[at(x.id)]!.programme })), notice } }] },
     { surface: 'studio', nodes: studioNodes, data: [{ op: 'replace', path: '/', value: studioData }] },
   ];
 }
@@ -211,6 +247,7 @@ export async function handleAction(controlId: string, value: unknown, c: Context
     else if (controlId === '/format') s.format = kind(value);
     else if (controlId === '/topic') s.topic = str(value, 160);
     else if (controlId === '/playlistName') s.playlistName = str(value, 60);
+    else if (controlId === '/channel') s.channel = value === 'all' ? '' : str(value, 120);
     else if (controlId === '/playlist') { if (!s.playlists!.some(x => x.id === value)) throw new Error('Choose a playlist'); s.playlist = String(value); s.confirmPlaylist = undefined; }
     else if (controlId === '/edit/title') {
       const v = selected(s); if (!s.edit || s.edit.id !== v.id) throw new Error('Open a show in Creator Studio first');
@@ -267,6 +304,11 @@ export async function handleAction(controlId: string, value: unknown, c: Context
     s.progress![v.id] = { part: p.done === true ? 0 : part, done: p.done === true, at };
     s.history = [{ id: v.id, at }, ...s.history!.filter(x => x.id !== v.id)].slice(0, 50);
     s.notice = '';
+  } else if (action === 'toggle_later') {
+    const v = selected(s, p.id); if (v.status !== 'library') throw new Error('Add the video to your library first');
+    const saved = s.later!.includes(v.id);
+    s.later = saved ? s.later!.filter(x => x !== v.id) : [v.id, ...s.later!].slice(0, 100);
+    s.notice = saved ? `Removed ${v.title} from Watch later.` : `Saved ${v.title} to Watch later.`;
   } else if (action === 'clear_history') { s.history = []; s.progress = {}; s.notice = 'Watch history cleared.'; }
   else if (action === 'create_playlist') {
     const name = str(s.playlistName, 60); if (!name) throw new Error('Name the playlist first');
@@ -310,6 +352,6 @@ export async function handleQuery(name: string, _params: unknown, c: Context) {
   return { expectedRevision: c.appRevision ?? null, selectedSource: SOURCE.get(String(s.source))?.name ?? 'News Desk', topic: s.topic ?? '', savedCount: s.videos!.length, recent: s.videos!.slice(0, 20).map(v => ({ title: v.title, format: v.format, source: v.source, status: v.status })), schema: { programme: { title: 'text', segments: [{ text: 'spoken plain text', delivery: 'opening|headline|story|aside|closing', kicker: 'section', heading: 'scene title', source: 'actual contributing app or publication', at: 'source timestamp when available', image: 'optional actual https image' }] }, format: 'show or short; short should have one or two concise scenes' }, limits: '80 scenes per show; shorts have at most two scenes and 120 spoken words; 100 local videos; 8 MB total app content; each spoken scene up to 4000 characters' };
 }
 
-const TITLES: Record<string, string> = { library: 'Video library', shorts: 'Shorts', playlists: 'Playlists', studio: 'Creator Studio' };
+const TITLES: Record<string, string> = { library: 'Home', shorts: 'Shorts', playlists: 'You', studio: 'Creator Studio' };
 export function surfaceFile() { return views({}).map(u => ({ id: u.surface, title: TITLES[u.surface]!, nodes: u.nodes, data: u.data[0]!.value })); }
 export async function renderApp(context: Context) { return { updates: views(normalize(context.state)) }; }

@@ -1,7 +1,7 @@
 [
   {
     "id": "library",
-    "title": "Video library",
+    "title": "Home",
     "nodes": [
       {
         "id": "root",
@@ -11,41 +11,47 @@
           "gap": "md"
         },
         "children": [
-          "library-intro",
-          "library-empty"
+          "library-intro"
         ]
       },
       {
         "id": "library-intro",
         "type": "section",
         "props": {
-          "title": "Video library",
-          "description": "Your saved Vakyartha shows and shorts. Watch plays from that item and carries on to the next; swipe or use the up and down keys to move between them."
+          "title": "Home",
+          "description": "Your library is empty. Import a programme or create one in Creator Studio."
         },
         "children": [
-          "library-count"
+          "library-create"
         ]
       },
       {
-        "id": "library-count",
-        "type": "text",
+        "id": "library-create",
+        "type": "button",
         "props": {
-          "content": "0 saved"
-        }
-      },
-      {
-        "id": "library-empty",
-        "type": "text",
-        "props": {
-          "content": "Your library is empty. Import a programme or create one in Creator Studio."
+          "label": "Open Creator Studio",
+          "action": "view.open",
+          "payload": {
+            "surface": "studio"
+          },
+          "style": "primary"
         }
       }
     ],
     "data": {
-      "library": [],
-      "libraryQueue": [],
+      "channel": "all",
+      "channelOptions": [
+        {
+          "label": "All",
+          "value": "all"
+        }
+      ],
+      "homeRows": [],
+      "homeQueue": [],
+      "shelfRows": [],
+      "shelfQueue": [],
       "continueRows": [],
-      "historyRows": [],
+      "libraryQueue": [],
       "notice": ""
     }
   },
@@ -69,19 +75,11 @@
         "type": "section",
         "props": {
           "title": "Shorts",
-          "description": "Short programmes in a tall frame, one after another. Swipe, scroll or use the up and down keys for the next one."
+          "description": "No shorts in your library yet. Make a short from any scene in Creator Studio, then add it to your library."
         },
         "children": [
-          "shorts-empty",
           "shorts-create"
         ]
-      },
-      {
-        "id": "shorts-empty",
-        "type": "text",
-        "props": {
-          "content": "No shorts in your library yet. Make a short from any scene in Creator Studio, then add it to your library."
-        }
       },
       {
         "id": "shorts-create",
@@ -103,7 +101,7 @@
   },
   {
     "id": "playlists",
-    "title": "Playlists",
+    "title": "You",
     "nodes": [
       {
         "id": "root",
@@ -113,8 +111,18 @@
           "gap": "md"
         },
         "children": [
+          "you-later",
           "playlists-intro"
         ]
+      },
+      {
+        "id": "you-later",
+        "type": "section",
+        "props": {
+          "title": "Watch later",
+          "description": "Use Watch later on any video on Home to save it here."
+        },
+        "children": []
       },
       {
         "id": "playlists-intro",
@@ -149,6 +157,10 @@
       }
     ],
     "data": {
+      "historyRows": [],
+      "libraryQueue": [],
+      "laterRows": [],
+      "laterQueue": [],
       "playlist": "",
       "playlistName": "",
       "playlistOptions": [],
