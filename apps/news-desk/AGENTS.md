@@ -4,6 +4,7 @@ Read Building a Vakyartha app (Vakyartha's app-building guide, in the Vakyartha 
 
 ## Invariants
 
+- Presentation uses only public Projection components and props (for example `stat.icon`, hero `stat`, `rangebar`, scrolling `stack`, background-image cards). A missing visual capability is added to Projection for every app, never drawn by this package.
 1. `context.state` is the only owner: `feeds[]` (with `enabled` and `weight`), `newFeed`, `opml`, `filters`, `articles[]` (with `firstSeen`), `saved[]`, `topics[]`, `topicDraft`, `topic`, `story`, `images`, `channel`, `reads` (bounded reading signals), `lastSeenAt`, `health{}`, `receipts[]`, `problem`, `checkedAt`. Every run starts with `normalize()`, which accepts untrusted or older state and drops malformed records.
 2. `view(state, now)` is pure and derives all seven surfaces from the same ranked stories. Records render through repeaters; regions are emitted only when they apply; empty and failed states say what to do.
 3. Ranking stays explainable and reader-owned: weights, half-life, section levels, mutes and retention live in `tuning` and are shown on Preferences; every score part remains a named reason shown in compact caption text on each story preview. Grouping never merges reports' links or times, and never claims two reports are the same event beyond "grouped by shared headline words".

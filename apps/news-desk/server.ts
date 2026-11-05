@@ -470,8 +470,9 @@ function storyCard(c: Ctx, st: Story) {
     saveLabel: saved ? 'Saved' : 'Save',
   };
 }
-const storyNodes = (prefix: string): Node[] => [
-  { id: `${prefix}-card`, type: 'card', props: { title: '{title}', image: '{image}', imageLayout: 'thumbnail', titleLines: 2, badge: '{badge}', tone: '{tone}' }, children: [`${prefix}-why`, `${prefix}-actions`] },
+// Lead stories fill their card with the photo; the rest keep a side thumbnail for scanning.
+const storyNodes = (prefix: string, imageLayout: 'thumbnail' | 'background' = 'thumbnail'): Node[] => [
+  { id: `${prefix}-card`, type: 'card', props: { title: '{title}', image: '{image}', imageLayout, titleLines: imageLayout === 'background' ? 3 : 2, badge: '{badge}', tone: '{tone}' }, children: [`${prefix}-why`, `${prefix}-actions`] },
   { id: `${prefix}-why`, type: 'text', props: { content: '{byline}', variant: 'caption' } },
   { id: `${prefix}-actions`, type: 'stack', props: { direction: 'horizontal', gap: 'sm', wrap: true }, children: [`${prefix}-open`, `${prefix}-save`] },
   { id: `${prefix}-open`, type: 'button', props: { label: '{coverageLabel}', action: 'open_story', payload: { id: '{id}' }, style: 'secondary' } },
@@ -525,7 +526,7 @@ function topSurface(c: Ctx): Update {
     ...(has ? [
       { id: 'top-seen', type: 'button', props: { label: 'Mark all seen', action: 'mark_seen', style: 'link' } },
       ...sectionLinks('top-sections'),
-      { id: 'lead-grid', type: 'grid', props: { columns: 2, minItemWidth: 'lg', gap: 'sm' }, children: { each: '/lead', template: 'lead-card' } } as Node, ...storyNodes('lead'),
+      { id: 'lead-grid', type: 'grid', props: { columns: 2, minItemWidth: 'lg', gap: 'sm' }, children: { each: '/lead', template: 'lead-card' } } as Node, ...storyNodes('lead', 'background'),
       { id: 'top-lower', type: more.length || forYou.length ? 'split' : 'stack', props: { ...(more.length || forYou.length ? { ratio: '2:1' } : {}), gap: 'md' }, children: [...(more.length || forYou.length ? ['top-feed'] : []), 'digest-section'] },
       ...(more.length || forYou.length ? [{ id: 'top-feed', type: 'stack', props: { gap: 'md' }, children: [...(more.length ? ['more-section'] : []), ...(forYou.length ? ['for-you'] : [])] }] : []),
       ...(more.length ? [
@@ -583,7 +584,7 @@ function sectionsSurface(c: Ctx): Update {
     ...(filtered ? [{ id: 'f-clear', type: 'button', props: { label: 'Reset filters', action: 'clear_filters', style: 'link' } }] : []),
     ...(list.length ? [
       { id: 'sec-leads', type: 'section', props: { title: '{/line}' }, children: ['sec-lead-grid'] },
-      { id: 'sec-lead-grid', type: 'grid', props: { columns: 3, minItemWidth: 'md', gap: 'sm' }, children: { each: '/leads', template: 'secl-card' } } as Node, ...storyNodes('secl'),
+      { id: 'sec-lead-grid', type: 'grid', props: { columns: 3, minItemWidth: 'md', gap: 'sm' }, children: { each: '/leads', template: 'secl-card' } } as Node, ...storyNodes('secl', 'background'),
       ...(rest.length ? [
         { id: 'sec-more', type: 'section', props: { title: '{/moreTitle}' }, children: ['sec-grid'] },
         { id: 'sec-grid', type: 'grid', props: { columns: 3, minItemWidth: 'md', gap: 'sm', searchable: true, pageSize: 12 }, children: { each: '/stories', template: 'sec-card' } } as Node, ...storyNodes('sec'),

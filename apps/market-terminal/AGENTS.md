@@ -4,6 +4,7 @@ Read Building a Vakyartha app (Vakyartha's app-building guide, in the Vakyartha 
 
 ## Invariants
 
+- Presentation uses only public Projection components and props (for example `stat.icon`, hero `stat`, `rangebar`, scrolling `stack`, background-image cards). A missing visual capability is added to Projection for every app, never drawn by this package.
 1. Two owners only: DuckDB `prices` for daily stock OHLCV, `context.state` for everything else (see ARCHITECTURE.md). Every run starts with `normalize()`, which accepts untrusted or older state.
 2. `view(state, analysis, now)` in `views.ts` is pure and derives all eight surfaces. Records go in surface data and render through repeaters or record-bound charts and tables. A region is emitted only when it has data; empty, offline and partial states say what to do.
 3. Source values are validated in `source.ts` (identity, finite positive prices, OHLC consistency, integral volume, real unique dates, rounding-consistent published percentages, bounded lists) before storage. A failed read records a receipt and keeps earlier observations; it never becomes zero or fresh. A row that fails its own check is dropped and counted, not repaired; aggregate reads retain bounded first-failure diagnostics in their receipt. Arithmetic mismatches retain the exchange timestamp and report the source inputs, implied value and permitted rounding range; never weaken the check or substitute a calculated return.

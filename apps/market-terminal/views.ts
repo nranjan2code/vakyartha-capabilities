@@ -188,7 +188,7 @@ function overview(s: State, now: number, analysis: Analysis): Update {
     ...(fired.length ? [{ id: 'ov-fired', type: 'alert', props: { title: 'Alerts triggered on this refresh', body: '{/fired}', tone: 'info' } }] : []),
     ...(any ? [
       ...(headline.length ? [
-        { id: 'ov-tape', type: 'grid', props: { columns: 6, minItemWidth: 'sm', gap: 'sm' }, children: { each: '/tape', template: 'ov-tick' } } as Node,
+        { id: 'ov-tape', type: 'stack', props: { direction: 'horizontal', scroll: true, gap: 'sm' }, children: { each: '/tape', template: 'ov-tick' } } as Node,
         { id: 'ov-tick', type: 'stat', props: { label: '{label}', value: '{level}', delta: '{change}', trend: '{trend}' } },
       ] : []),
       { id: 'ov-main', type: m || p.rows.length ? 'split' : 'stack', props: { ...(m || p.rows.length ? { ratio: '2:1' } : {}), gap: 'md' }, children: ['ov-tabs', ...(m || p.rows.length ? ['ov-right'] : [])] },
@@ -399,12 +399,12 @@ function instrument(s: State, a: Analysis): Update {
     ] : []),
     ...(s.problem ? [problemNode('in-problem')] : []),
     ...(q ? [
-      { id: 'in-quote', type: 'stack', props: { gap: 'sm' }, children: ['in-quote-stats', 'q-range', 'q-basis', 'in-actions-bar'] },
-      { id: 'in-quote-stats', type: 'grid', props: { columns: 4, minItemWidth: 'sm', gap: 'sm' }, children: ['q-last', 'q-prev', 'q-open', 'q-volume'] },
-      { id: 'q-last', type: 'stat', props: { label: '{/quote/title}', value: '{/quote/last}', delta: '{/quote/change}', trend: '{/quote/trend}' } },
+      { id: 'in-quote', type: 'stack', props: { gap: 'sm' }, children: ['q-last', 'q-range', 'in-quote-stats', 'q-basis', 'in-actions-bar'] },
+      { id: 'in-quote-stats', type: 'grid', props: { columns: 3, minItemWidth: 'sm', gap: 'sm' }, children: ['q-prev', 'q-open', 'q-volume'] },
+      { id: 'q-last', type: 'stat', props: { label: '{/quote/title}', value: '{/quote/last}', delta: '{/quote/change}', trend: '{/quote/trend}', size: 'hero' } },
       { id: 'q-prev', type: 'stat', props: { label: 'Previous close', value: '{/quote/previous}' } },
       { id: 'q-open', type: 'stat', props: { label: 'Open', value: '{/quote/open}' } },
-      { id: 'q-range', type: 'text', props: { content: 'Day range · {/quote/range}', variant: 'caption' } },
+      { id: 'q-range', type: 'rangebar', props: { label: 'Day range', low: '{/quote/low}', high: '{/quote/high}', min: '{/quote/low}', max: '{/quote/high}', marker: '{/quote/lastN}', lowLabel: '{/quote/lowText}', highLabel: '{/quote/highText}' } },
       { id: 'q-volume', type: 'stat', props: { label: 'Volume', value: '{/quote/volume}' } },
       { id: 'q-basis', type: 'text', props: { content: '{/quote/asOf}', variant: 'caption' } },
     ] : []),
@@ -422,7 +422,7 @@ function instrument(s: State, a: Analysis): Update {
       { id: 'in-context', type: 'grid', props: { columns: 3, minItemWidth: 'sm', gap: 'md' }, children: [...(r.range ? ['in-52'] : []), ...(r.versus ? ['in-vs'] : []), ...(r.volume ? ['in-volume'] : [])] },
       ...(r.range ? [
         { id: 'in-52', type: 'section', props: { title: '52-week range', description: '{/range/note}' }, children: ['in-52-gauge'] },
-        { id: 'in-52-gauge', type: 'progress', props: { label: '{/range/label}', value: '{/range/position}', max: 100, kind: 'bar', tone: '{/range/tone}' } },
+        { id: 'in-52-gauge', type: 'rangebar', props: { label: '52 weeks', low: '{/range/low}', high: '{/range/high}', min: '{/range/low}', max: '{/range/high}', marker: '{/range/close}', lowLabel: '{/range/lowText}', highLabel: '{/range/highText}' } },
       ] : []),
       ...(r.versus ? [
         { id: 'in-vs', type: 'section', props: { title: '{/vs/title}', description: '{/vs/note}' }, children: ['in-vs-chart', 'in-vs-stats'] },
@@ -470,7 +470,7 @@ function instrument(s: State, a: Analysis): Update {
   const data = {
     symbolDraft: s.symbolDraft, months: s.months, benchmark: s.benchmark,
     ...(s.problem ? { problem: s.problem } : {}),
-    ...(q ? { quote: { title: `${symbol} · last`, last: inr(q.last), change: pct(q.changePct), trend: trend(q.changePct), previous: inr(q.previous), open: q.open != null ? inr(q.open) : '—', range: `${inr(q.low)} – ${inr(q.high)}`, volume: count(q.volume), asOf: `NSE · ${q.basis === 'live' ? 'Last trade' : 'Close'} · ${q.asOf} · delayed` } } : {}),
+    ...(q ? { quote: { title: `${symbol} · last`, last: inr(q.last), change: pct(q.changePct), trend: trend(q.changePct), previous: inr(q.previous), open: q.open != null ? inr(q.open) : '—', range: `${inr(q.low)} – ${inr(q.high)}`, low: q.low, high: q.high, lastN: q.last, lowText: inr(q.low), highText: inr(q.high), volume: count(q.volume), asOf: `NSE · ${q.basis === 'live' ? 'Last trade' : 'Close'} · ${q.asOf} · delayed` } } : {}),
     ...(has ? {
       ohlcTitle: `${symbol} · daily OHLC (INR)`, historyWindow: s.historyFor![symbol] ?? `${first!.date} – ${last!.date}`,
       history: a.rows, returns: a.rows.filter((x) => x.returnPct !== null).map((x) => ({ date: x.date, returnPct: Number(x.returnPct!.toFixed(3)) })),
@@ -478,7 +478,7 @@ function instrument(s: State, a: Analysis): Update {
       interpretation: `${pct(a.priceReturn)} unadjusted close-to-close from ${first!.date} to ${last!.date} over ${a.sessions} sessions; dividends excluded.`,
       stats: { priceReturn: pct(a.priceReturn), returnTrend: trend(a.priceReturn ?? 0), volatility: a.sessions >= 3 && a.volatility != null ? `${a.volatility.toFixed(2)}%` : 'Needs 3 sessions', maxDrawdown: pct(a.maxDrawdown), sessions: `${a.sessions} · ${count(a.averageVolume)}` },
     } : {}),
-    ...(rg ? { range: { position: rg.position, label: `${inr(rg.low)} (${rg.lowDate}) → ${inr(rg.high)} (${rg.highDate})`, note: `Close ${inr(rg.close)} sits ${rg.position.toFixed(0)}% of the way from the 52-week low to the high: ${pct(rg.fromHigh)} from the high, ${pct(rg.fromLow)} above the low. Unadjusted closes.`, tone: rg.position >= 80 ? 'success' : rg.position <= 20 ? 'danger' : 'info' } } : {}),
+    ...(rg ? { range: { position: rg.position, label: `${inr(rg.low)} (${rg.lowDate}) → ${inr(rg.high)} (${rg.highDate})`, low: rg.low, high: rg.high, close: rg.close, lowText: inr(rg.low), highText: inr(rg.high), note: `Close ${inr(rg.close)} sits ${rg.position.toFixed(0)}% of the way from the 52-week low to the high: ${pct(rg.fromHigh)} from the high, ${pct(rg.fromLow)} above the low. Unadjusted closes.`, tone: rg.position >= 80 ? 'success' : rg.position <= 20 ? 'danger' : 'info' } } : {}),
     ...(v ? { vs: { title: `Against ${v.index}`, note: `${v.from} – ${v.to}, ${v.observations} shared sessions. Beta and correlation use daily changes; not annualised.`, bars: [{ label: symbol, returnPct: v.stockReturn }, { label: v.index, returnPct: v.indexReturn }], out: `${v.outperformance >= 0 ? '+' : ''}${v.outperformance.toFixed(2)} pts`, outTrend: trend(v.outperformance), beta: v.beta.toFixed(2), corr: v.correlation.toFixed(2) } } : {}),
     ...(vol ? { volume: { note: `Last ${vol.days} sessions.`, average: count(vol.average), last: pct(vol.lastVsAverage), trend: trend(vol.lastVsAverage), max: count(vol.max), spikes: String(vol.spikes) } } : {}),
     ...(r.actions?.length ? { actions: r.actions.slice(0, 12).map((x) => ({ title: x.purpose, date: x.exDate, note: x.type.replace(/_/g, ' ').toLowerCase() })) } : {}),

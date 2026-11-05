@@ -2,6 +2,7 @@
 
 ## Invariants
 
+- Presentation uses only public Projection components and props (for example `stat.icon`, hero `stat`, `rangebar`, scrolling `stack`, background-image cards). A missing visual capability is added to Projection for every app, never drawn by this package.
 - `context.state` is the only data owner: clinic, doctors, leave, patients, appointments and a small `ui` block. `normalize()` runs first on every action and drops anything malformed or pointing at a missing record.
 - Free slots are derived by `freeSlots()` from hours, break, leave, the clinic clock and held appointments (booked, checked in, completed). Never store slots. Overlap is by interval, so a changed visit length cannot create a double booking.
 - Booking, reopening, doctor retirement and leave re-check against the records at the moment of the action; the on-screen slot list is advisory only.
