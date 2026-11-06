@@ -177,6 +177,30 @@ export async function main(config: Config): Promise<void> {
     return passed ? 0 : 1;
   }
 
+  // Receipts recorded on another clone (a submodule checkout, a second machine) are merged
+  // before pushing, so publishing never fails on a diverged notes ref. A commit noted on both
+  // sides keeps every tier, the newer run winning per tier.
+  function publish(): number {
+    const theirs = "refs/notes/ci-origin";
+    try { execFileSync("git", ["-C", repo, "fetch", "-q", "origin", `+refs/notes/ci:${theirs}`], { stdio: "ignore" }); } catch { /* origin has no receipts yet */ }
+    if (spawnSync("git", ["-C", repo, "rev-parse", "-q", "--verify", theirs], { stdio: "ignore" }).status === 0) {
+      const noted = (ref: string) => new Set(git("notes", "--ref", ref, "list").split("\n").filter(Boolean).map(l => l.split(" ")[1]!));
+      const mine = noted("ci");
+      for (const sha of noted(theirs)) {
+        if (!mine.has(sha)) continue;
+        let other: ReturnType<typeof receipts> = {};
+        try { other = JSON.parse(git("notes", "--ref", theirs, "show", sha)); } catch { continue; }
+        const own = receipts(sha), merged = { ...other };
+        for (const [tier, r] of Object.entries(own)) if (!merged[tier] || (r.at ?? "") >= (merged[tier]!.at ?? "")) merged[tier] = r;
+        if (JSON.stringify(merged) === JSON.stringify(own)) continue;
+        const note = `{\n${Object.entries(merged).map(([k, v]) => ` ${JSON.stringify(k)}: ${JSON.stringify(v)}`).join(",\n")}\n}`;
+        git("notes", "--ref", "ci", "add", "-f", "-m", note, sha);
+      }
+      git("notes", "--ref", "ci", "merge", "-q", "-s", "ours", theirs);
+    }
+    return spawnSync("git", ["-C", repo, "push", "origin", "refs/notes/ci"], { stdio: "inherit" }).status ?? 1;
+  }
+
   const [command = "quick", ...flags] = process.argv.slice(2);
   let code = 0;
   if (command === "help" || command === "--help") console.log(`${usage}\ntiers: ${Object.keys(config.tiers).join(", ")}`);
@@ -193,7 +217,7 @@ export async function main(config: Config): Promise<void> {
     const msg = pass ? `${tier} passed on ${r.platform} at ${r.at}` : `no passing ${tier} receipt for ${sha.slice(0, 12)}: run node scripts/ci.ts ${tier} on a machine, then publish`;
     console.log(process.env.GITHUB_ACTIONS && !pass ? `::warning::${msg}` : msg);
     code = flags.includes("--require") && !pass ? 1 : 0;
-  } else if (command === "publish") execFileSync("git", ["-C", repo, "push", "origin", "refs/notes/ci"], { stdio: "inherit" });
+  } else if (command === "publish") code = publish();
   else if (command === "hooks") { git("config", "core.hooksPath", ".githooks"); console.log("git hooks: .githooks (pre-commit secret scan, pre-push quick tier)"); }
   else code = await run(command, flags);
   process.exitCode = code;
