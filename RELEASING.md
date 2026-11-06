@@ -14,7 +14,7 @@ CI signs, tags or changes a version.
    A newly added app or skill uses `0.0.0` only as a draft sentinel. It appears in
    `--list` even though the previous signed tag has no matching path; the owner
    must type its first released version in this step.
-3. `node scripts/ci.ts full` again on the versioned tree.
+3. `node scripts/ci.ts full` again on the versioned tree, push `main`, and run Vakyartha's ahead check on this commit (its CI guide, Development ahead of release). This catalog has no TypeScript or host of its own: the ahead check is where its apps are typechecked and tested against Vakyartha. Sign only after it passes.
 4. **Owner:** `node scripts/sign.ts`, type the version again, and approve the
    Keychain prompt. It writes `signatures/capabilities-X.Y.Z.sig`.
 5. `node scripts/ci.ts release`: everything in `full` plus the signature against this exact build. Commit the version and signature, push `main`. Tag immediately (step 6): a signed version that is not tagged goes stale as soon as `main` changes.

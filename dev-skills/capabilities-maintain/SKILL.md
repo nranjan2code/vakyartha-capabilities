@@ -31,6 +31,8 @@ node scripts/ci.ts full      # + npm publication ages; passes on main between re
 node scripts/ci.ts release   # + the signature matches this exact build; only after signing
 ```
 
+App tests that need nothing outside the app live in `apps/<id>/test/` and run here; tests that need Vakyartha's host (surfaces, sandbox, registry) live in Vakyartha. Vakyartha's ahead check runs both against this repository's `main`, with type checking, before a development build or a release.
+
 `main` is always ahead of the last release. `full` never checks a signature, so it passes between releases; `release` checks the signature and runs only on the signed tree before tagging.
 
 ## 3. Release (owner)

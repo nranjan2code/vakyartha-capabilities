@@ -1,6 +1,12 @@
 # Changelog
 
-## 1.0.0 (unreleased)
+## 1.0.1 (unreleased)
+
+- Video Studio 1.0.1: typechecks under strict TypeScript (its saved-source check accepts any stored value), and its 17 tests now run in CI.
+- CI runs every test an app ships in `apps/<id>/test/`, and Vakyartha's ahead check typechecks and tests the catalog's apps before each release is signed.
+- Release tooling handles a missing `signatures/` folder after a version reset.
+
+## 1.0.0 (2026-11-06)
 
 The first release of the Vakyartha catalog: 13 apps, 29 skills and 17 declarative integrations, each at 1.0.0, for Vakyartha 1.0.0 up to (not including) 2.0.0. Earlier catalog releases were withdrawn before they were relied on; this release restarts the version line.
 
