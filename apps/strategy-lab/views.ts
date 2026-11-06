@@ -27,6 +27,21 @@ const replaceAll = (value: Record<string, unknown>) => [{ op: 'replace' as const
 const templateLabel = (t: string) => TEMPLATES.find((x) => x.value === t)?.label ?? t;
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
+/** One surface update: duplicate ids dropped and only nodes reachable from `root` kept, so a view
+ * emits the alternative it shows (a table or its empty note) and never a node nothing renders. */
+function surface(name: string, nodes: Node[], data: ReturnType<typeof replaceAll>): Update {
+  const byId = new Map<string, Node>();
+  for (const n of nodes) if (!byId.has(n.id)) byId.set(n.id, n);
+  const kept = new Set<string>(), queue = ['root'];
+  while (queue.length) {
+    const id = queue.shift()!, n = byId.get(id);
+    if (!n || kept.has(id)) continue;
+    kept.add(id);
+    const c = n.children;
+    if (Array.isArray(c)) queue.push(...c); else if (c) queue.push(c.template);
+  }
+  return { surface: name, nodes: [...byId.values()].filter((n) => kept.has(n.id)), data };
+}
 /** Sub-views as tabs: only the chosen panel renders. Empty panels are left out. */
 function tabbed(id: string, panels: [string, string[]][], active?: string): Node[] {
   const live = panels.filter(([, children]) => children.length);
@@ -118,7 +133,7 @@ function lab(s: State, on: string): Update {
   ];
   void on;
   const names = s.strategies!.filter((st) => s.results![st.id]?.curve.dates.length).map((st) => st.name);
-  return { surface: 'lab', nodes, data: replaceAll({ ...noticeData(s), rows, growthDates: g.map((x) => String(x.date)), growth: names.map((name) => ({ name, values: g.map((x) => Number(x[name])) })), orders, spoken: { brief: spoken(s) } }) };
+  return surface('lab', nodes, replaceAll({ ...noticeData(s), rows, growthDates: g.map((x) => String(x.date)), growth: names.map((name) => ({ name, values: g.map((x) => Number(x[name])) })), orders, spoken: { brief: spoken(s) } }));
 }
 
 // --- Strategies ----------------------------------------------------------------------
@@ -181,7 +196,7 @@ function strategies(s: State): Update {
       ] : []),
     ] : [caption('pick', 'Choose a strategy, or start a new one from a template.')]),
   ];
-  return { surface: 'strategies', nodes, data: replaceAll({ ...noticeData(s), cards, ...(d ? { draft: d } : {}) }) };
+  return surface('strategies', nodes, replaceAll({ ...noticeData(s), cards, ...(d ? { draft: d } : {}) }));
 }
 
 // --- Backtest ------------------------------------------------------------------------
@@ -195,7 +210,7 @@ function results(s: State, chart?: Chart): Update {
   if (!st) head.push(btn('new', 'New strategy', 'new_strategy', undefined, 'primary'));
   if (!st || !r) {
     const nodes: Node[] = [{ id: 'root', type: 'stack', props: { density: 'compact', gap: 'md' }, children: ['cap', ...notice(s).map((n) => n.id), 'head', 'none'] }, caption('cap', st ? `${st.name} · not tested yet` : 'No strategy yet.'), ...notice(s), ...head, { id: 'none', type: 'alert', props: { title: 'Not tested yet', body: 'Run the backtest to see equity, drawdowns, returns by year and month, every trade, and each stock on a chart with its entries and exits.', tone: 'info' } }];
-    return { surface: 'results', nodes, data: replaceAll({ ...noticeData(s), strategyPick: st?.id ?? '' }) };
+    return surface('results', nodes, replaceAll({ ...noticeData(s), strategyPick: st?.id ?? '' }));
   }
   const m = r.metrics, capital = m.capital;
   // Five years of sessions exceed a record view, so long series travel as label and value arrays.
@@ -274,7 +289,7 @@ function results(s: State, chart?: Chart): Update {
       'This is a historical simulation, not a forecast or advice. Past results do not promise future ones.',
     ] } },
   ];
-  return { surface: 'results', nodes, data: replaceAll({ ...noticeData(s), strategyPick: st.id, chartSymbol: chart?.symbol ?? s.ui!.chartSymbol ?? '', curveDates, equity, fall, years, months, trades, bySymbol, open, pending, ...(chart?.bars.length ? { barDates: chart.bars.map((b) => b.date), bars: (['open', 'high', 'low', 'close'] as const).map((k) => ({ name: k, values: chart.bars.map((b) => r2(b[k])) })), markers } : {}) }) };
+  return surface('results', nodes, replaceAll({ ...noticeData(s), strategyPick: st.id, chartSymbol: chart?.symbol ?? s.ui!.chartSymbol ?? '', curveDates, equity, fall, years, months, trades, bySymbol, open, pending, ...(chart?.bars.length ? { barDates: chart.bars.map((b) => b.date), bars: (['open', 'high', 'low', 'close'] as const).map((k) => ({ name: k, values: chart.bars.map((b) => r2(b[k])) })), markers } : {}) }));
 }
 
 // --- Paper trading ---------------------------------------------------------------------
@@ -290,7 +305,7 @@ function paper(s: State): Update {
   ];
   if (!s.paper!.length) {
     nodes.push({ id: 'empty', type: 'alert', props: { title: 'No paper account yet', body: 'Start one from any strategy to see how it does on sessions it has never seen.', tone: 'info' } }, bar('start-bar', ['start-go']), btn('start-go', 'Choose a strategy', 'view.open', { surface: 'strategies' }, 'primary'));
-    return { surface: 'paper', nodes, data: replaceAll(noticeData(s)) };
+    return surface('paper', nodes, replaceAll(noticeData(s)));
   }
   const eq = p ? p.equity.at(-1)?.equity ?? p.capital : 0;
   const positions = p ? p.book.positions.map((x) => ({ symbol: x.symbol, qty: x.qty, entry: x.entryDate, entryPrice: r2(x.entryPrice), cost: Math.round(x.qty * x.entryPrice + x.cost) })) : [];
@@ -332,7 +347,7 @@ function paper(s: State): Update {
     caption('d-fills-none', 'No fills yet: the first orders fill at the next session’s open.'),
     ...(curveDates.length > 1 ? [{ id: 'd-curve', type: 'chart', props: { kind: 'line', xScale: 'time', height: 'md', maxWidth: 'full', yLabel: '₹', guides: [{ value: p.capital, label: 'Starting capital' }], labels: '{/curveDates}', series: '{/curve}' } }] : [caption('d-curve-none', 'The equity line starts after two sessions.')]),
   );
-  return { surface: 'paper', nodes: nodes.filter((n, i, all) => all.findIndex((x) => x.id === n.id) === i), data: replaceAll({ ...noticeData(s), cards, positions, pending, fills, curveDates, curve }) };
+  return surface('paper', nodes, replaceAll({ ...noticeData(s), cards, positions, pending, fills, curveDates, curve }));
 }
 
 // --- Data ----------------------------------------------------------------------------
@@ -374,7 +389,7 @@ function data(s: State, on: string): Update {
     { id: 'rc-table', type: 'table', props: { searchable: true, pageSize: 20, columns: [{ key: 'subject', label: 'Subject' }, { key: 'tool', label: 'Read' }, { key: 'fetched', label: 'Fetched' }, { key: 'source', label: 'Source period' }, { key: 'rows', label: 'Rows', align: 'end' }, { key: 'status', label: 'Status' }], rows: { records: '{/receipts}', fields: ['subject', 'tool', 'fetched', 'source', 'rows', 'status'] } } },
     caption('rc-none', 'No reads yet. Press Sync now, or turn on Background operation.'),
   ];
-  return { surface: 'data', nodes, data: replaceAll({ ...noticeData(s), addDraft: s.addDraft ?? '', benchmark: s.benchmark, stocks, actions: acts, receipts }) };
+  return surface('data', nodes, replaceAll({ ...noticeData(s), addDraft: s.addDraft ?? '', benchmark: s.benchmark, stocks, actions: acts, receipts }));
 }
 
 export function view(s: State, on: string, chart?: Chart): Update[] {

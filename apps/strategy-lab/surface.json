@@ -170,74 +170,6 @@
           "body": "History is still saving. The first backtests can run once a few stocks are complete; Data shows progress.",
           "tone": "info"
         }
-      },
-      {
-        "id": "cmp-table",
-        "type": "table",
-        "props": {
-          "sortable": true,
-          "columns": [
-            {
-              "key": "name",
-              "label": "Strategy"
-            },
-            {
-              "key": "type",
-              "label": "Type"
-            },
-            {
-              "key": "cagr",
-              "label": "A year %",
-              "align": "end"
-            },
-            {
-              "key": "excess",
-              "label": "vs Nifty 50 %",
-              "align": "end"
-            },
-            {
-              "key": "drawdown",
-              "label": "Worst fall %",
-              "align": "end"
-            },
-            {
-              "key": "sharpe",
-              "label": "Sharpe",
-              "align": "end"
-            },
-            {
-              "key": "trades",
-              "label": "Trades",
-              "align": "end"
-            },
-            {
-              "key": "win",
-              "label": "Win %",
-              "align": "end"
-            }
-          ],
-          "rows": {
-            "records": "{/rows}",
-            "fields": [
-              "name",
-              "type",
-              "cagr",
-              "excess",
-              "drawdown",
-              "sharpe",
-              "trades",
-              "win"
-            ]
-          }
-        }
-      },
-      {
-        "id": "cmp-note",
-        "type": "text",
-        "props": {
-          "content": "A year: compound annual growth. Worst fall: the largest drop from a peak. Sharpe uses daily returns with no risk-free rate. Each strategy runs over its own start date to the latest saved session.",
-          "variant": "caption"
-        }
       }
     ]
   },
@@ -1266,107 +1198,11 @@
         }
       },
       {
-        "id": "st-none",
-        "type": "text",
-        "props": {
-          "content": "No stocks yet. Add NSE symbols above.",
-          "variant": "caption"
-        }
-      },
-      {
-        "id": "ca-table",
-        "type": "table",
-        "props": {
-          "sortable": true,
-          "searchable": true,
-          "pageSize": 20,
-          "columns": [
-            {
-              "key": "symbol",
-              "label": "Stock"
-            },
-            {
-              "key": "date",
-              "label": "Ex-date"
-            },
-            {
-              "key": "kind",
-              "label": "Type"
-            },
-            {
-              "key": "purpose",
-              "label": "Purpose"
-            },
-            {
-              "key": "factor",
-              "label": "Price factor",
-              "align": "end"
-            }
-          ],
-          "rows": {
-            "records": "{/actions}",
-            "fields": [
-              "symbol",
-              "date",
-              "kind",
-              "purpose",
-              "factor"
-            ]
-          }
-        }
-      },
-      {
         "id": "ca-none",
         "type": "text",
         "props": {
           "content": "No corporate actions saved yet; they are checked weekly once a stock’s history is complete.",
           "variant": "caption"
-        }
-      },
-      {
-        "id": "rc-table",
-        "type": "table",
-        "props": {
-          "searchable": true,
-          "pageSize": 20,
-          "columns": [
-            {
-              "key": "subject",
-              "label": "Subject"
-            },
-            {
-              "key": "tool",
-              "label": "Read"
-            },
-            {
-              "key": "fetched",
-              "label": "Fetched"
-            },
-            {
-              "key": "source",
-              "label": "Source period"
-            },
-            {
-              "key": "rows",
-              "label": "Rows",
-              "align": "end"
-            },
-            {
-              "key": "status",
-              "label": "Status"
-            }
-          ],
-          "rows": {
-            "records": "{/receipts}",
-            "fields": [
-              "subject",
-              "tool",
-              "fetched",
-              "source",
-              "rows",
-              "status"
-            ]
-          }
         }
       },
       {
