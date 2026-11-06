@@ -12,7 +12,7 @@ Read Building a Vakyartha app (Vakyartha's app-building guide, in the Vakyartha 
 
 ## Change method
 
-Change `server.ts`; run `node scripts/app-surfaces.ts`; bump `version`; update these four documents; run `node --test test/reference-apps.test.ts test/app-registry.test.ts`. With network and the sandbox helper, `node scripts/reference-apps-check.ts --live` checks live commits independently and keyboard triage in WebKit.
+Change `server.ts`; run `node scripts/app-surfaces.ts`; leave `version` alone (the owner types the new version at the next release; `node scripts/version.ts --list` shows the app); update these four documents; run `node --test test/reference-apps.test.ts test/app-registry.test.ts`. With network and the sandbox helper, `node scripts/reference-apps-check.ts --live` checks live commits independently and keyboard triage in WebKit.
 
 ## Hosted operation
 

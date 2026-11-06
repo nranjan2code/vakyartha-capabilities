@@ -12,7 +12,7 @@ Read Building a Vakyartha app (Vakyartha's app-building guide, in the Vakyartha 
 
 ## Change method
 
-Change `server.ts`, then regenerate `surface.json` as `view({})` (the test fails otherwise), bump `version` in app.json, update these four documents, and run `node --test test/reference-apps.test.ts test/app-registry.test.ts` (the second runs it in the real sandbox).
+Change `server.ts`, then regenerate `surface.json` as `view({})` (the test fails otherwise), leave `version` alone (the owner types the new version at the next release; `node scripts/version.ts --list` shows the app), update these four documents, and run `node --test test/reference-apps.test.ts test/app-registry.test.ts` (the second runs it in the real sandbox).
 
 ## Shared Access and package review
 

@@ -18,7 +18,7 @@ Read Building a Vakyartha app (Vakyartha's app-building guide, in the Vakyartha 
 
 ## Change method
 
-Change `server.ts`, `rank.ts` or `feed.ts`; run `node scripts/app-surfaces.ts`; bump `version`; update these four documents; run `node --test test/reference-apps.test.ts test/app-registry.test.ts test/app-mcp-integration.test.ts`. Run `node scripts/news-desk-check.ts` for all six views and every source/coverage sub-tab at 1440/1100/620/375 px, including actual sandbox actions and local browsing. For visual review replay a retained publisher snapshot with `--state <file>`. Check ranking changes against real feeds (several hundred current articles) and look at the grouped stories, not only the tests. With network and the sandbox helper, `node scripts/reference-apps-check.ts --live` checks live feeds and the views in WebKit.
+Change `server.ts`, `rank.ts` or `feed.ts`; run `node scripts/app-surfaces.ts`; leave `version` alone (the owner types the new version at the next release; `node scripts/version.ts --list` shows the app); update these four documents; run `node --test test/reference-apps.test.ts test/app-registry.test.ts test/app-mcp-integration.test.ts`. Run `node scripts/news-desk-check.ts` for all six views and every source/coverage sub-tab at 1440/1100/620/375 px, including actual sandbox actions and local browsing. For visual review replay a retained publisher snapshot with `--state <file>`. Check ranking changes against real feeds (several hundred current articles) and look at the grouped stories, not only the tests. With network and the sandbox helper, `node scripts/reference-apps-check.ts --live` checks live feeds and the views in WebKit.
 
 ## Hosted operation
 

@@ -18,7 +18,7 @@ Read Building a Vakyartha app (Vakyartha's app-building guide, in the Vakyartha 
 
 ## Change method
 
-Change `server.ts`, `views.ts`, `source.ts` or `analytics.ts`; run `node scripts/app-surfaces.ts`; bump `version` in app.json; update these four documents; run `node --test test/reference-apps.test.ts test/market-terminal.test.ts test/app-registry.test.ts`. Check a new tool's parser against a real response before relying on it. With network and the sandbox helper, `node scripts/market-terminal-check.ts --live` checks live NSE values independently and the views in WebKit. A chart or layout gap belongs in Projection, never in `framework/`.
+Change `server.ts`, `views.ts`, `source.ts` or `analytics.ts`; run `node scripts/app-surfaces.ts`; leave `version` alone (the owner types the new version at the next release; `node scripts/version.ts --list` shows the app); update these four documents; run `node --test test/reference-apps.test.ts test/market-terminal.test.ts test/app-registry.test.ts`. Check a new tool's parser against a real response before relying on it. With network and the sandbox helper, `node scripts/market-terminal-check.ts --live` checks live NSE values independently and the views in WebKit. A chart or layout gap belongs in Projection, never in `framework/`.
 
 Numeric input edits arrive as numbers: preserve finite numeric drafts through serialization before validation. Never coerce objects or missing prices to numbers. Test the numeric Shares event through the real host, including failed validation and correction. Unpriced portfolios keep holdings and invested cost but display unavailable value/gains and omit empty charts.
 

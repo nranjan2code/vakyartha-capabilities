@@ -26,8 +26,8 @@
 1. Edit `server.ts`; keep node ids stable and emit only nodes that apply now.
 2. Each action returns only the surfaces it affects (`touched`).
 3. Run `node scripts/app-surfaces.ts`, then `node --test test/clinic-desk.test.ts`.
-4. Bump `version` in `app.json` for every shipped change, and keep these four documents in step with the manifest and handlers.
+4. Leave `version` in `app.json` alone: the owner types the new version at the next release (`node scripts/version.ts --list` shows this app). Keep these four documents in step with the manifest and handlers.
 
-## Host engine
+## Runtime
 
 This app runs in the sandbox (`runtime.engine: "node26"`) like every other app, with no tools, no database and no network. Keep it that way. Anything that needs an integration or a model belongs in the shared assistant or an integration app. Shared host contract: Access, Background operation, Settings and the shared assistant apply as for every app; there is no app permission store.

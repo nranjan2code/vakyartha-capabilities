@@ -17,7 +17,7 @@ Read Building a Vakyartha app (Vakyartha's app-building guide, in the Vakyartha 
 When editing this app:
 1. Update `server.ts` and test backend logic.
 2. Run `node scripts/app-surfaces.ts` to regenerate `surface.json` from `surfaceFile()`.
-3. Bump `version` in `app.json`.
+3. Leave `version` in `app.json` alone: the owner types the new version at the next release (`node scripts/version.ts --list` shows this app).
 4. Keep `README.md`, `AGENTS.md`, `SKILLS.md`, and `ARCHITECTURE.md` synchronized.
 5. Run `node --test test/reference-apps.test.ts test/wish-radar.test.ts`.
 
