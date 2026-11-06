@@ -16,6 +16,8 @@ const price = (n: number) => `₹${num(n)}`;
 /** Lakh and crore for headline figures. */
 const compact = (n: number) => { const a = Math.abs(n), sign = n < 0 ? '−' : ''; return a >= 1e7 ? `${sign}₹${num(a / 1e7)} Cr` : a >= 1e5 ? `${sign}₹${num(a / 1e5)} L` : inr(n); };
 const pct = (n: number | null | undefined, digits = 1) => (n == null || !Number.isFinite(n) ? '—' : `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n).toFixed(digits)}%`);
+/** A rate or share, never signed: win rate, volatility, time invested. */
+const rate = (n: number | null | undefined) => (n == null || !Number.isFinite(n) ? '—' : `${n.toFixed(1)}%`);
 const ratio = (n: number | null | undefined) => (n == null || !Number.isFinite(n) ? '—' : n.toFixed(2));
 const tone = (n: number | null | undefined) => (n == null ? 'neutral' : n > 0 ? 'success' : n < 0 ? 'danger' : 'neutral');
 const plural = (n: number, word: string) => `${n.toLocaleString('en-IN')} ${word}${n === 1 ? '' : 's'}`;
@@ -100,7 +102,7 @@ function lab(s: State, on: string): Update {
     { id: 'k-best', type: 'stat', props: { label: best ? `Best a year · ${best.name}` : 'Best a year', value: best ? pct(best.cagr) : '—', tone: tone(best?.cagr) } },
     { id: 'k-tested', type: 'stat', props: { label: 'Strategies tested', value: `${tested.length} of ${rows.length}` } },
     { id: 'k-paper', type: 'stat', props: { label: s.paper!.length ? `Paper equity · ${plural(s.paper!.length, 'account')}` : 'Paper equity', value: s.paper!.length ? compact(paperEquity) : '—', ...(s.paper!.length ? { delta: pct((paperEquity / paperCapital - 1) * 100), trend: paperEquity >= paperCapital ? 'up' : 'down' } : {}) } },
-    { id: 'k-data', type: 'stat', props: { label: 'Stocks with full history', value: `${pr.done} of ${pr.total}`, tone: pr.ready ? 'success' : 'info' } },
+    { id: 'k-data', type: 'stat', props: { label: pr.failed.length ? `Stocks with full history · ${pr.failed.length} to check in Data` : 'Stocks with full history', value: `${pr.done - pr.failed.length} of ${pr.total}`, tone: pr.failed.length ? 'warning' : pr.ready ? 'success' : 'info' } },
     ...(tested.length ? tabbed('compare', [
       ['Compared', ['cmp-table', 'cmp-note']],
       ['Growth of 100', g.length ? ['cmp-chart'] : []],
@@ -239,10 +241,10 @@ function results(s: State, chart?: Chart): Update {
     { id: 'p-more', type: 'table', props: { columns: [{ key: 'k', label: 'Measure' }, { key: 'v', label: 'Strategy', align: 'end' }, { key: 'b', label: s.benchmark, align: 'end' }],
       rows: [
         ['Total return', pct(m.totalPct), pct(m.benchmarkTotalPct)], ['A year (compound)', pct(m.cagrPct), pct(m.benchmarkCagrPct)], ['Worst fall', pct(m.maxDrawdownPct), pct(m.benchmarkMaxDrawdownPct)],
-        ['Longest time under a peak', `${plural(m.longestDrawdownDays, 'session')}`, '—'], ['Volatility a year', pct(m.volatilityPct), '—'], ['Sortino', ratio(m.sortino), '—'], ['Calmar', ratio(m.calmar), '—'],
-        ['Trades', String(m.trades), '—'], ['Winning trades', pct(m.winRatePct), '—'], ['Average win', pct(m.avgWinPct), '—'], ['Average loss', pct(m.avgLossPct), '—'],
+        ['Longest time under a peak', `${plural(m.longestDrawdownDays, 'session')}`, '—'], ['Volatility a year', rate(m.volatilityPct), '—'], ['Sortino', ratio(m.sortino), '—'], ['Calmar', ratio(m.calmar), '—'],
+        ['Trades', String(m.trades), '—'], ['Winning trades', rate(m.winRatePct), '—'], ['Average win', pct(m.avgWinPct), '—'], ['Average loss', pct(m.avgLossPct), '—'],
         ['Profit factor', ratio(m.profitFactor), '—'], ['Average result a trade', m.expectancy == null ? '—' : inr(m.expectancy), '—'], ['Average holding', m.avgHoldDays == null ? '—' : `${m.avgHoldDays.toFixed(0)} days`, '—'],
-        ['Time invested', pct(m.exposurePct).replace('+', ''), '—'], ['Costs and slippage paid', inr(m.costs + 0), '—'], ...(m.skipped ? [['Entries skipped for cash', String(m.skipped), '—']] : []),
+        ['Time invested', rate(m.exposurePct), '—'], ['Costs and slippage paid', inr(m.costs + 0), '—'], ...(m.skipped ? [['Entries skipped for cash', String(m.skipped), '—']] : []),
       ] } },
     { id: 'p-equity', type: 'chart', props: { kind: 'line', title: 'Equity', xScale: 'time', height: 'lg', maxWidth: 'full', yLabel: '₹', guides: [{ value: capital, label: 'Starting capital' }], labels: '{/curveDates}', series: '{/equity}' } },
     { id: 'p-dd', type: 'chart', props: { kind: 'area', title: 'Fall from peak', xScale: 'time', height: 'sm', maxWidth: 'full', yLabel: '%', labels: '{/curveDates}', series: '{/fall}' } },
