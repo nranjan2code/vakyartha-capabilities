@@ -7,7 +7,7 @@ metadata:
   requires: "skill:interactive-ui integration:open-meteo"
   category: live-data
   author: Vakyartha
-  version: "1.1.0"
+  version: "1.0.0"
   loads-with: "interactive-ui"
   requires-read: "true"
   requires-canvas: "true"

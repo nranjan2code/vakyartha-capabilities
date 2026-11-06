@@ -1,6 +1,6 @@
 {
   "id": "market-terminal",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "name": "NSE Market Terminal",
   "description": "Daily NSE workspace: live indices, breadth and India VIX, movers, a 30-symbol watchlist, portfolio P&L, price alerts, instrument research with benchmark comparison, and an index explorer, all from governed NSE reads with source receipts.",
   "author": "Vakyartha",

@@ -1,6 +1,6 @@
 {
   "id": "strategy-lab",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "channel": "dev",
   "name": "NSE Strategy Lab",
   "description": "Rule-based NSE strategies tested on up to five years of saved daily history, adjusted for splits and bonuses, with costs, equity against a benchmark, every trade on a chart, and paper accounts that run strategies forward on new sessions. Simulation only; no orders reach a broker.",

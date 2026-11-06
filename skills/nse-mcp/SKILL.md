@@ -7,7 +7,7 @@ metadata:
   requires: "skill:interactive-ui integration:nse|integration:nse-cmmkt"
   category: live-data
   author: Vakyartha
-  version: "1.1.0"
+  version: "1.0.0"
   loads-with: "interactive-ui"
 allowed-tools: read_skill_file use_skill vak_render vak_update vak_submit
 ---

@@ -7,7 +7,7 @@ metadata:
   requires: "skill:interactive-ui"
   category: everyday
   author: Vakyartha
-  version: "1.1.0"
+  version: "1.0.0"
   loads-with: "interactive-ui"
 allowed-tools: vak_render vak_update vak_submit use_skill
 ---

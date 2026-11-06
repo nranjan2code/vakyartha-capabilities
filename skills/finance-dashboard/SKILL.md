@@ -9,7 +9,7 @@ metadata:
   requires-canvas: "true"
   category: reports
   author: Vakyartha
-  version: "1.1.0"
+  version: "1.0.0"
 allowed-tools: vak_render vak_update vak_submit use_skill
 ---
 

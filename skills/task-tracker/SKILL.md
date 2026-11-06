@@ -6,7 +6,7 @@ compatibility: Works with text checklists, markdown tables, and interactive task
 metadata:
   category: everyday
   author: Vakyartha
-  version: "1.1.0"
+  version: "1.0.0"
 allowed-tools: vak_render vak_update vak_submit use_skill
 ---
 
