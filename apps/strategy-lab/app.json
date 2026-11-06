@@ -58,7 +58,7 @@
         "optional": false
       },
       "nse__get_bulk_quote": {
-        "reason": "Add the latest session for up to fifty stocks in one read each day.",
+        "reason": "Add the latest session for every stock in the universe in one read each day.",
         "optional": false
       },
       "nse__get_corporate_actions": {

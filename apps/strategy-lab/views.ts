@@ -50,13 +50,13 @@ function metricRows(s: State) {
 }
 /** Every tested strategy as growth of 100 on a shared date axis. */
 function growth(s: State) {
-  const tested = s.strategies!.filter((st) => s.results![st.id]?.curve.length);
+  const tested = s.strategies!.filter((st) => s.results![st.id]?.curve.dates.length);
   if (!tested.length) return [];
   const byDate = new Map<string, Record<string, number | string>>();
   const step = (n: number) => Math.max(1, Math.ceil(n / 400));
   for (const st of tested) {
-    const c = s.results![st.id]!.curve, k = step(c.length), base = c[0]!.equity;
-    c.forEach((p, i) => { if (i % k && i !== c.length - 1) return; const row = byDate.get(p.date) ?? { date: p.date }; row[st.name] = r2(p.equity / base * 100); byDate.set(p.date, row); });
+    const c = s.results![st.id]!.curve, n = c.dates.length, k = step(n), base = c.equity[0]!;
+    c.dates.forEach((date, i) => { if (i % k && i !== n - 1) return; const row = byDate.get(date) ?? { date }; row[st.name] = r2(c.equity[i]! / base * 100); byDate.set(date, row); });
   }
   // A strategy without a point on a date carries its last value, so every series has the same length.
   const rows = [...byDate.values()].sort((a, b) => String(a.date).localeCompare(String(b.date)));
@@ -115,7 +115,7 @@ function lab(s: State, on: string): Update {
     ] : []),
   ];
   void on;
-  const names = s.strategies!.filter((st) => s.results![st.id]?.curve.length).map((st) => st.name);
+  const names = s.strategies!.filter((st) => s.results![st.id]?.curve.dates.length).map((st) => st.name);
   return { surface: 'lab', nodes, data: replaceAll({ ...noticeData(s), rows, growthDates: g.map((x) => String(x.date)), growth: names.map((name) => ({ name, values: g.map((x) => Number(x[name])) })), orders, spoken: { brief: spoken(s) } }) };
 }
 
@@ -197,10 +197,10 @@ function results(s: State, chart?: Chart): Update {
   }
   const m = r.metrics, capital = m.capital;
   // Five years of sessions exceed a record view, so long series travel as label and value arrays.
-  const hasBench = r.curve.length > 0 && r.curve.every((p) => p.benchmark != null);
-  const curveDates = r.curve.map((p) => p.date);
-  const equity = [{ name: 'Strategy', values: r.curve.map((p) => Math.round(p.equity)) }, ...(hasBench ? [{ name: s.benchmark!, values: r.curve.map((p) => Math.round(p.benchmark!)) }] : [])];
-  const fall = [{ name: 'Fall from peak', values: r.curve.map((p) => r2(p.drawdown)) }];
+  const c = r.curve, hasBench = c.dates.length > 0 && c.benchmark.every((v) => v != null);
+  const curveDates = c.dates;
+  const equity = [{ name: 'Strategy', values: c.equity }, ...(hasBench ? [{ name: s.benchmark!, values: c.benchmark as number[] }] : [])];
+  const fall = [{ name: 'Fall from peak', values: c.drawdown }];
   const years = r.yearly.map((y) => ({ year: y.year, Strategy: r2(y.strategy), ...(y.benchmark != null ? { [s.benchmark!]: r2(y.benchmark) } : {}) }));
   // Months as records with one field per year: a month outside the test is a gap, not a zero.
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -348,7 +348,7 @@ function data(s: State, on: string): Update {
   const pctDone = pr.total ? Math.round(pr.done / pr.total * 100) : 0;
   const nodes: Node[] = [
     { id: 'root', type: 'stack', props: { density: 'compact', gap: 'md' }, children: ['cap', ...notice(s).map((n) => n.id), 'prog', 'controls', 'tabs'] },
-    caption('cap', `Daily NSE history saved on this computer: up to five years per stock (from ${day(windowStart(on))}), then each new session. ${s.universe!.length} of ${MAX_UNIVERSE} stocks · benchmark ${bench ? `${day(bench.first)} – ${day(bench.last)}` : 'not saved yet'}.`),
+    caption('cap', `Daily NSE history saved on this computer: up to five years per stock (from ${day(windowStart(on))}), then each new session. ${s.universe!.length} of ${MAX_UNIVERSE} stocks · benchmark ${bench ? `${day(bench.first)} – ${day(bench.last)}` : 'not saved yet'} · storage ${((s.storage ?? 0) / 1048576).toFixed(1)} of 2 MiB.`),
     ...notice(s),
     { id: 'prog', type: 'progress', props: { label: pr.ready ? 'History complete' : `History saving in the background · ${pr.done} of ${pr.total} stocks`, value: pctDone, show: 'value' } },
     { id: 'controls', type: 'stack', props: { direction: 'horizontal', gap: 'sm', wrap: true, align: 'end' }, children: ['add', 'add-go', 'bench', 'sync'] },
@@ -366,7 +366,7 @@ function data(s: State, on: string): Update {
     { id: 'st-actions', type: 'stack', props: { direction: 'horizontal', gap: 'sm' }, children: ['st-retry', 'st-remove'] },
     { id: 'st-retry', type: 'button', props: { label: 'Sync again', action: 'retry_symbol', payload: { symbol: '{symbol}' }, style: 'link' } },
     { id: 'st-remove', type: 'button', props: { label: '{confirm}', action: 'remove_symbol', payload: { symbol: '{symbol}' }, style: 'link' } },
-    caption('st-note', 'The scheduled sync runs every two minutes while Background operation is on; Sync now runs one step. Each step reads at most fifteen chunks, so the first full history of ten stocks takes about twenty minutes.'),
+    caption('st-note', 'The scheduled sync runs every two minutes while Background operation is on; Sync now runs one step. Each step reads at most fifteen chunks, so the first full history of ten stocks takes about twenty minutes. Five years of 15 stocks use about 1.5 MiB of the app’s 2 MiB storage.'),
     caption('st-none', 'No stocks yet. Add NSE symbols above.'),
     { id: 'ca-table', type: 'table', props: { sortable: true, searchable: true, pageSize: 20, columns: [{ key: 'symbol', label: 'Stock' }, { key: 'date', label: 'Ex-date' }, { key: 'kind', label: 'Type' }, { key: 'purpose', label: 'Purpose' }, { key: 'factor', label: 'Price factor', align: 'end' }], rows: { records: '{/actions}', fields: ['symbol', 'date', 'kind', 'purpose', 'factor'] } } },
     caption('ca-none', 'No corporate actions saved yet; they are checked weekly once a stock’s history is complete.'),

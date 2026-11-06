@@ -2,14 +2,17 @@
 // history and run forward on paper. State owns strategies, results, paper books
 // and sync progress; DuckDB owns every saved session and corporate action.
 import { adjust, backtest, monthly, newBook, prepare, step, equityOf, yearly, DEFAULT_PARAMS, LIMITS, TEMPLATES, type Action, type Bar, type Book, type Metrics, type Order, type Params, type Point, type Position, type Result, type Rules, type Series, type Template, type Trade } from './engine.ts';
-import { actions, bulk, coverage, decode, forget, indexChunk, initialize, loadActions, loadBars, NseError, saveActions, saveBars, stockChunk, type Database } from './source.ts';
+import { actions, bulk, coverage, decode, forget, indexChunk, initialize, loadActions, loadBars, NseError, saveActions, saveBars, stockChunk, storageUsed, STORAGE_GUARD, type Database } from './source.ts';
 import { view, TITLES } from './views.ts';
 
 export { view, TITLES };
 
 export interface Strategy { id: string; name: string; rules: Rules; symbols: string[]; capital: number; from: string; created: string; updated: string }
 export interface Draft { forId: string; name: string; template: Template; symbols: string; capital: number | string; from: string; maxPositions: number | string; stopPct: number | string; targetPct: number | string; costBps: number | string; slippageBps: number | string; params: Record<keyof Params, number | string> }
-export interface Stored { ranAt: string; dataTo: string; universe: number; left: string[]; metrics: Metrics; curve: Point[]; trades: Trade[]; open: Result['open']; pending: Order[]; yearly: ReturnType<typeof yearly>; monthly: ReturnType<typeof monthly> }
+/** A saved equity curve as parallel arrays, about half the size of point records. */
+export interface Curve { dates: string[]; equity: number[]; benchmark: (number | null)[]; drawdown: number[] }
+export const curveOf = (points: Point[]): Curve => ({ dates: points.map((p) => p.date), equity: points.map((p) => Math.round(p.equity)), benchmark: points.map((p) => (p.benchmark == null ? null : Math.round(p.benchmark))), drawdown: points.map((p) => Math.round(p.drawdown * 100) / 100) });
+export interface Stored { ranAt: string; dataTo: string; universe: number; left: string[]; metrics: Metrics; curve: Curve; trades: Trade[]; open: Result['open']; pending: Order[]; yearly: ReturnType<typeof yearly>; monthly: ReturnType<typeof monthly> }
 export interface Paper { id: string; strategyId: string; name: string; startedAt: string; capital: number; book: Book; equity: { date: string; equity: number }[]; lastDate: string; status: 'running' | 'paused'; applied: string[] }
 export interface Sync { next: string | null; until: string; done: boolean; error?: string; actionsAt?: string; actionsError?: string }
 export interface Receipt { subject: string; tool: string; fetchedAt: string; sourceAt: string; rows: number; status: string }
@@ -19,7 +22,7 @@ export interface State {
   universe?: string[]; benchmark?: string; sync?: Record<string, Sync>; bench?: Sync & { checkedAt?: string };
   covered?: Record<string, Covered>; actionList?: Record<string, Action[]>;
   strategies?: Strategy[]; results?: Record<string, Stored>; paper?: Paper[]; draft?: Draft;
-  addDraft?: string; ui?: Ui; receipts?: Receipt[]; problem?: string; syncedAt?: string; note?: string;
+  addDraft?: string; storage?: number; ui?: Ui; receipts?: Receipt[]; problem?: string; syncedAt?: string; note?: string;
 }
 export interface Context {
   state: State; database: Database; callTool(name: string, args: Record<string, unknown>): Promise<unknown>;
@@ -28,7 +31,7 @@ export interface Context {
 
 export const DEFAULT_UNIVERSE = ['RELIANCE', 'HDFCBANK', 'ICICIBANK', 'INFY', 'TCS', 'BHARTIARTL', 'ITC', 'LT', 'SBIN', 'HINDUNILVR'];
 export const BENCHMARKS = ['Nifty 50', 'Nifty 500', 'Nifty Next 50', 'Nifty Bank', 'Nifty Midcap 100'];
-export const MAX_UNIVERSE = 50, MAX_STRATEGIES = 12, MAX_PAPER = 6, MAX_TRADES = 400;
+export const MAX_UNIVERSE = 15, MAX_STRATEGIES = 12, MAX_PAPER = 6, MAX_TRADES = 400;
 /** NSE's history window: five years back from the present. Earlier chunks answer "not found". */
 export const WINDOW_YEARS = 5;
 const SYMBOL = /^[A-Z0-9][A-Z0-9&.-]{0,24}$/;
@@ -85,7 +88,7 @@ export function normalize(s: State): State {
   const list = (Array.isArray(s.strategies) ? s.strategies : null);
   s.strategies = list ? list.map(strategyOf).filter((x): x is Strategy => !!x).slice(0, MAX_STRATEGIES) : EXAMPLES.map((e, i) => ({ ...e, id: `example-${i + 1}`, created: '', updated: '' }));
   const ids = new Set(s.strategies.map((x) => x.id));
-  s.results = Object.fromEntries(Object.entries(obj(s.results) ?? {}).filter(([k, v]) => ids.has(k) && obj(v)?.metrics)) as Record<string, Stored>;
+  s.results = Object.fromEntries(Object.entries(obj(s.results) ?? {}).filter(([k, v]) => ids.has(k) && obj(v)?.metrics && Array.isArray(obj(obj(v)!.curve)?.dates))) as Record<string, Stored>;
   s.paper = (Array.isArray(s.paper) ? s.paper : []).filter((p) => obj(p)?.book && ids.has(String((p as Paper).strategyId))).slice(0, MAX_PAPER) as Paper[];
   const u = obj(s.ui) ?? {};
   const strategy = ids.has(str(u.strategy)) ? str(u.strategy) : s.strategies[0]?.id ?? '';
@@ -95,6 +98,7 @@ export function normalize(s: State): State {
   // A draft belongs to the strategy it was opened from; another strategy starts from its saved rules.
   s.draft = selected ? (d && d.forId === selected.id ? { ...draftOf(selected), ...(d as unknown as Draft), forId: selected.id, params: { ...draftOf(selected).params, ...(obj(d.params) ?? {}) } as Draft['params'] } : draftOf(selected)) : undefined;
   s.addDraft = str(s.addDraft, 400);
+  s.storage = finite(s.storage) ? s.storage : 0;
   s.receipts = (Array.isArray(s.receipts) ? s.receipts : []).slice(0, 80);
   s.problem = s.problem ? str(s.problem, 500) : undefined;
   return s;
@@ -145,6 +149,7 @@ async function chunk(ctx: Context, key: string, entry: Sync): Promise<string | u
 }
 
 async function refreshCoverage(ctx: Context) {
+  ctx.state.storage = await storageUsed(ctx.database);
   const cov = await coverage(ctx.database);
   ctx.state.covered = Object.fromEntries([...cov.entries()].map(([k, c]) => [k, { first: c.first, last: c.last, sessions: c.sessions }]));
 }
@@ -247,7 +252,7 @@ export async function runBacktest(ctx: Context, st: Strategy) {
   const s = ctx.state, { series, calendar: days, benchmark, left } = await seriesFor(ctx, st);
   if (!series.size || !days.length) throw new Error('No saved history yet for this strategy’s stocks. Let the sync finish in Data, then run again.');
   const r = backtest(st.rules, st.capital, series, days, benchmark, st.from);
-  s.results![st.id] = { ranAt: nowIso(ctx), dataTo: days.at(-1)!, universe: series.size, left, metrics: r.metrics, curve: r.curve, trades: r.trades.slice(-MAX_TRADES), open: r.open, pending: r.pending, yearly: yearly(r.curve), monthly: monthly(r.curve) };
+  s.results![st.id] = { ranAt: nowIso(ctx), dataTo: days.at(-1)!, universe: series.size, left, metrics: r.metrics, curve: curveOf(r.curve), trades: r.trades.slice(-MAX_TRADES), open: r.open, pending: r.pending, yearly: yearly(r.curve), monthly: monthly(r.curve) };
 }
 
 /** Advance every running paper book through each complete new session. */
@@ -345,6 +350,7 @@ export async function handleAction(controlId: string, value: unknown, ctx: Conte
       const add = symbols(s.addDraft).filter((x) => !s.universe!.includes(x));
       if (!add.length) throw new Error('Type one or more NSE symbols to add, separated by commas.');
       if (s.universe!.length + add.length > MAX_UNIVERSE) throw new Error(`The universe holds up to ${MAX_UNIVERSE} stocks; remove some before adding ${add.length}.`);
+      if ((s.storage ?? 0) > STORAGE_GUARD) throw new Error('Saved history is close to the app\u2019s 2 MiB storage limit; remove a stock before adding more.');
       s.universe!.push(...add); for (const x of add) s.sync![x] = { next: 'today', until: '', done: false };
       s.addDraft = ''; s.note = `${add.join(', ')} added; history syncs in the background.`;
       return render(ctx);

@@ -15,7 +15,7 @@ Design rule-based strategies for NSE stocks, test them on up to five years of da
 | **Strategies** | Strategy cards beside the open strategy's editor. New from a template (Moving-average crossover, Channel breakout, RSI mean reversion, Momentum rotation, Buy and hold). Tabs: Rules (rule and its windows), Stocks and capital (stocks or the whole universe, capital, start date, maximum positions), Costs and risk (stop loss, profit target, costs and slippage per side). Save and run backtest, Save, Start paper trading, Duplicate, Delete (asks first). |
 | **Backtest** | The chosen strategy's run. Performance: final equity, a year, worst fall, Sharpe, a full measure table against the benchmark, the equity line with the benchmark and starting capital, and the fall from peak. Returns: calendar-year bars and a month-by-year heatmap shaded by sign. Trades: every completed trade (search, sort, pages) and results by stock. Chart: any stock's adjusted daily candles with this strategy's entries and exits marked, zoomable over five years. Positions and orders: what was open at the end and the orders for the next session. Method: every assumption. |
 | **Paper trading** | Paper accounts beside the open one: equity, cash, closed trades; Pause, Resume, Strategy rules, Stop and delete (asks first); tabs for positions, next orders, fills and the equity line. |
-| **Data** | History progress; add stocks (up to 50), choose the benchmark, Sync now; stock cards with saved range, sessions and status (Sync again, Remove with history after a confirmation); corporate actions with their factors; the source receipts of the last 80 reads. |
+| **Data** | History progress; add stocks (up to 15), choose the benchmark, Sync now; stock cards with saved range, sessions and status (Sync again, Remove with history after a confirmation); corporate actions with their factors; the source receipts of the last 80 reads. |
 
 ## How results are computed
 
@@ -28,9 +28,9 @@ Design rule-based strategies for NSE stocks, test them on up to five years of da
 ## Data and schedule
 
 - History: NSE serves five years of end-of-day EQ sessions. The first sync saves them in three-month chunks, four stocks at a time; ten stocks take about twenty minutes of two-minute steps. Afterwards each new session arrives in one bulk read; a gap of more than one session refills from today back to the last saved session. Corporate actions are checked weekly per stock.
-- Sessions live in the app's DuckDB (about 1,300 rows a stock); strategies, results, paper accounts, progress and receipts live in app state. Removing a stock deletes its saved history after a confirmation.
+- Sessions live in the app’s DuckDB in whole paise (about 1,300 rows a stock; five years of 15 stocks use about 1.5 MiB of the host’s 2 MiB database limit, shown in Data; adding stops at 1.75 MiB); strategies, results, paper accounts, progress and receipts live in app state. Removing a stock deletes its saved history after a confirmation.
 - The schedule runs every two minutes while Background operation is on and Vakyartha is awake; each step makes at most fifteen reads in about twenty seconds. A failed read keeps every saved session, shows a notice and is retried on the next step.
 
 ## Limits
 
-No intraday data, short selling, leverage, derivatives, dividends added back, taxes or broker connection. Paper accounts trade only on saved end-of-day sessions. Up to 50 stocks, 12 strategies and 6 paper accounts.
+No intraday data, short selling, leverage, derivatives, dividends added back, taxes or broker connection. Paper accounts trade only on saved end-of-day sessions. Up to 15 stocks, 12 strategies and 6 paper accounts.

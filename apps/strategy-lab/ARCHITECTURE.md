@@ -20,7 +20,7 @@
 
 ## Boundaries
 
-Brokered tools only, no network listener, no broker or credentials. Each run makes at most fifteen reads, stays inside the 30-second deadline and the query bound of 10,000 rows (about 1,300 per stock per query). State is bounded: 50 stocks, 12 strategies, 6 paper accounts, 400 trades and fills per book, 80 receipts.
+Brokered tools only, no network listener, no broker or credentials. Each run makes at most fifteen reads, stays inside the 30-second deadline and the query bound of 10,000 rows (about 1,300 per stock per query). Storage is bounded by the host’s 2 MiB database snapshot: 15 stocks of five-year history use about 1.5 MiB (measured with a checkpoint after every command), Data shows the use and adding stops at 1.75 MiB. State is bounded: 15 stocks, 12 strategies, 6 paper accounts, 400 trades and fills per book, 80 receipts.
 
 ## Extension points
 
