@@ -329,6 +329,8 @@ export const PARAM_LABELS: Record<keyof Params, string> = { fast: 'Fast average 
 
 export async function handleAction(controlId: string, value: unknown, ctx: Context, action?: string) {
   const s = normalize(ctx.state); await initialize(ctx.database);
+  // A confirmation belongs to the action that set it; the next action clears it.
+  if (action) s.note = undefined;
   const payload = obj(value) ?? {};
   if (!action) {
     // Field edits: drafts and pickers save as typed; buttons validate and apply them.

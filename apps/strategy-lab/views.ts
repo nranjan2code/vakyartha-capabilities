@@ -108,7 +108,7 @@ function lab(s: State, on: string): Update {
     { id: 'cmp-table', type: 'table', props: { sortable: true, columns: [{ key: 'name', label: 'Strategy' }, { key: 'type', label: 'Type' }, { key: 'cagr', label: 'A year %', align: 'end' }, { key: 'excess', label: `vs ${s.benchmark} %`, align: 'end' }, { key: 'drawdown', label: 'Worst fall %', align: 'end' }, { key: 'sharpe', label: 'Sharpe', align: 'end' }, { key: 'trades', label: 'Trades', align: 'end' }, { key: 'win', label: 'Win %', align: 'end' }],
       rows: { records: '{/rows}', fields: ['name', 'type', 'cagr', 'excess', 'drawdown', 'sharpe', 'trades', 'win'] } } },
     caption('cmp-note', 'A year: compound annual growth. Worst fall: the largest drop from a peak. Sharpe uses daily returns with no risk-free rate. Each strategy runs over its own start date to the latest saved session.'),
-    ...(g.length ? [{ id: 'cmp-chart', type: 'chart', props: { kind: 'line', xScale: 'time', height: 'lg', yLabel: 'Growth of 100', labels: '{/growthDates}', series: '{/growth}' } }] : []),
+    ...(g.length ? [{ id: 'cmp-chart', type: 'chart', props: { kind: 'line', xScale: 'time', height: 'lg', maxWidth: 'full', yLabel: 'Growth of 100', labels: '{/growthDates}', series: '{/growth}' } }] : []),
     ...(orders.length ? [
       { id: 'orders', type: 'section', props: { title: `Next-session paper orders · ${orders.length}` }, children: ['orders-table'] },
       { id: 'orders-table', type: 'table', props: { columns: [{ key: 'account', label: 'Account' }, { key: 'side', label: 'Side' }, { key: 'symbol', label: 'Stock' }, { key: 'reason', label: 'Signal' }, { key: 'signal', label: 'Signal close' }], rows: { records: '{/orders}', fields: ['account', 'side', 'symbol', 'reason', 'signal'] } } },
@@ -220,10 +220,9 @@ function results(s: State, chart?: Chart): Update {
   const stat = (id: string, label: string, value: string, t?: string, delta?: string): Node => ({ id, type: 'stat', props: { label, value, ...(t ? { tone: t } : {}), ...(delta ? { delta, trend: delta.startsWith('−') ? 'down' : 'up' } : {}) } });
   const excess = m.cagrPct != null && m.benchmarkCagrPct != null ? m.cagrPct - m.benchmarkCagrPct : null;
   const nodes: Node[] = [
-    { id: 'root', type: 'stack', props: { density: 'compact', gap: 'md' }, children: ['cap', ...notice(s).map((n) => n.id), 'head', ...(r.left.length ? ['left'] : []), 'tabs'] },
-    caption('cap', `${st.name} · ${templateLabel(st.rules.template)} · ${plural(r.universe, 'stock')} · ${day(m.start)} to ${day(m.end)} (${m.years.toFixed(1)} years) · run ${ist(r.ranAt)}`),
+    { id: 'root', type: 'stack', props: { density: 'compact', gap: 'md' }, children: ['cap', ...notice(s).map((n) => n.id), 'head', 'tabs'] },
+    caption('cap', `${st.name} · ${templateLabel(st.rules.template)} · ${plural(r.universe, 'stock')}${r.left.length ? ` (left out without complete history: ${r.left.join(', ')})` : ''} · ${day(m.start)} to ${day(m.end)} (${m.years.toFixed(1)} years) · run ${ist(r.ranAt)}`),
     ...notice(s), ...head,
-    ...(r.left.length ? [{ id: 'left', type: 'alert', props: { title: 'Some stocks were left out', body: `${r.left.join(', ')} had no complete history at the run, so the test used the other ${r.universe}. Run again once Data shows them complete.`, tone: 'warning' } }] : []),
     ...tabbed('tabs', [
       ['Performance', ['p-kpis', 'p-more', 'p-equity', 'p-dd']],
       ['Returns', ['y-chart', ...(months.length ? ['m-chart'] : []), 'y-table']],
@@ -245,10 +244,10 @@ function results(s: State, chart?: Chart): Update {
         ['Profit factor', ratio(m.profitFactor), '—'], ['Average result a trade', m.expectancy == null ? '—' : inr(m.expectancy), '—'], ['Average holding', m.avgHoldDays == null ? '—' : `${m.avgHoldDays.toFixed(0)} days`, '—'],
         ['Time invested', pct(m.exposurePct).replace('+', ''), '—'], ['Costs and slippage paid', inr(m.costs + 0), '—'], ...(m.skipped ? [['Entries skipped for cash', String(m.skipped), '—']] : []),
       ] } },
-    { id: 'p-equity', type: 'chart', props: { kind: 'line', title: 'Equity', xScale: 'time', height: 'lg', yLabel: '₹', guides: [{ value: capital, label: 'Starting capital' }], labels: '{/curveDates}', series: '{/equity}' } },
-    { id: 'p-dd', type: 'chart', props: { kind: 'area', title: 'Fall from peak', xScale: 'time', height: 'sm', yLabel: '%', labels: '{/curveDates}', series: '{/fall}' } },
-    { id: 'y-chart', type: 'chart', props: { kind: 'bar', title: 'Return by calendar year', yLabel: '%', series: { records: '{/years}', label: 'year', fields: years.some((y) => s.benchmark! in y) ? ['Strategy', s.benchmark] : ['Strategy'] } } },
-    ...(months.length ? [{ id: 'm-chart', type: 'chart', props: { kind: 'heatmap', title: 'Return by month (%)', colorBy: 'sign', series: { records: '{/months}', label: 'month', fields: r.monthly.map((x) => x.year) } } }] : []),
+    { id: 'p-equity', type: 'chart', props: { kind: 'line', title: 'Equity', xScale: 'time', height: 'lg', maxWidth: 'full', yLabel: '₹', guides: [{ value: capital, label: 'Starting capital' }], labels: '{/curveDates}', series: '{/equity}' } },
+    { id: 'p-dd', type: 'chart', props: { kind: 'area', title: 'Fall from peak', xScale: 'time', height: 'sm', maxWidth: 'full', yLabel: '%', labels: '{/curveDates}', series: '{/fall}' } },
+    { id: 'y-chart', type: 'chart', props: { kind: 'bar', title: 'Return by calendar year', maxWidth: 'lg', yLabel: '%', series: { records: '{/years}', label: 'year', fields: years.some((y) => s.benchmark! in y) ? ['Strategy', s.benchmark] : ['Strategy'] } } },
+    ...(months.length ? [{ id: 'm-chart', type: 'chart', props: { kind: 'heatmap', title: 'Return by month (%)', maxWidth: 'lg', colorBy: 'sign', series: { records: '{/months}', label: 'month', fields: r.monthly.map((x) => x.year) } } }] : []),
     caption('y-table', 'The first and last years cover only the part of the year inside the test.'),
     { id: 't-table', type: 'table', props: { sortable: true, searchable: true, pageSize: 25, columns: [{ key: 'symbol', label: 'Stock' }, { key: 'entry', label: 'Entry' }, { key: 'entryPrice', label: 'Entry ₹', align: 'end' }, { key: 'exit', label: 'Exit' }, { key: 'exitPrice', label: 'Exit ₹', align: 'end' }, { key: 'qty', label: 'Shares', align: 'end' }, { key: 'pnl', label: 'Result ₹', align: 'end' }, { key: 'pnlPct', label: 'Result %', align: 'end' }, { key: 'days', label: 'Days', align: 'end' }, { key: 'reason', label: 'Exit reason' }],
       rows: { records: '{/trades}', fields: ['symbol', 'entry', 'entryPrice', 'exit', 'exitPrice', 'qty', 'pnl', 'pnlPct', 'days', 'reason'] } } },
@@ -258,7 +257,7 @@ function results(s: State, chart?: Chart): Update {
     { id: 'c-pick', type: 'select', props: { label: 'Stock', bind: '/chartSymbol', presentation: 'dropdown', maxWidth: 'sm', options: pool.map((x) => ({ label: x, value: x })) } },
     btn('c-open', 'Show', 'chart_symbol', { symbol: '/chartSymbol' }),
     ...(chart?.bars.length ? [
-      { id: 'c-chart', type: 'chart', props: { kind: 'candlestick', title: `${chart.symbol} · adjusted daily prices with this strategy's trades`, xScale: 'time', height: 'lg', yLabel: '₹', markers: '{/markers}', labels: '{/barDates}', series: '{/bars}' } },
+      { id: 'c-chart', type: 'chart', props: { kind: 'candlestick', title: `${chart.symbol} · adjusted daily prices with this strategy's trades`, xScale: 'time', height: 'lg', maxWidth: 'full', yLabel: '₹', markers: '{/markers}', labels: '{/barDates}', series: '{/bars}' } },
       caption('c-note', 'Up triangles are entries at the open; down triangles are exits, green for a gain and red for a loss. Pinch, ⌘-scroll or the buttons zoom; drag pans; arrows step through sessions.'),
     ] : [caption('c-none', 'This stock has no saved sessions inside the test period.')]),
     ...(open.length ? [{ id: 'o-open', type: 'table', props: { title: 'Open at the end', columns: [{ key: 'symbol', label: 'Stock' }, { key: 'qty', label: 'Shares', align: 'end' }, { key: 'entry', label: 'Entry' }, { key: 'entryPrice', label: 'Entry ₹', align: 'end' }, { key: 'last', label: 'Last close ₹', align: 'end' }, { key: 'pnl', label: 'Open result ₹', align: 'end' }, { key: 'pnlPct', label: '%', align: 'end' }], rows: { records: '{/open}', fields: ['symbol', 'qty', 'entry', 'entryPrice', 'last', 'pnl', 'pnlPct'] } } }] : []),
@@ -329,7 +328,7 @@ function paper(s: State): Update {
     caption('d-pend-none', 'No order waits for the next session.'),
     { id: 'd-fills', type: 'table', props: { sortable: true, searchable: true, pageSize: 25, columns: [{ key: 'date', label: 'Session' }, { key: 'side', label: 'Side' }, { key: 'symbol', label: 'Stock' }, { key: 'qty', label: 'Shares', align: 'end' }, { key: 'price', label: 'Price ₹', align: 'end' }, { key: 'costs', label: 'Costs ₹', align: 'end' }, { key: 'reason', label: 'Reason' }], rows: { records: '{/fills}', fields: ['date', 'side', 'symbol', 'qty', 'price', 'costs', 'reason'] } } },
     caption('d-fills-none', 'No fills yet: the first orders fill at the next session’s open.'),
-    ...(curveDates.length > 1 ? [{ id: 'd-curve', type: 'chart', props: { kind: 'line', xScale: 'time', height: 'md', yLabel: '₹', guides: [{ value: p.capital, label: 'Starting capital' }], labels: '{/curveDates}', series: '{/curve}' } }] : [caption('d-curve-none', 'The equity line starts after two sessions.')]),
+    ...(curveDates.length > 1 ? [{ id: 'd-curve', type: 'chart', props: { kind: 'line', xScale: 'time', height: 'md', maxWidth: 'full', yLabel: '₹', guides: [{ value: p.capital, label: 'Starting capital' }], labels: '{/curveDates}', series: '{/curve}' } }] : [caption('d-curve-none', 'The equity line starts after two sessions.')]),
   );
   return { surface: 'paper', nodes: nodes.filter((n, i, all) => all.findIndex((x) => x.id === n.id) === i), data: replaceAll({ ...noticeData(s), cards, positions, pending, fills, curveDates, curve }) };
 }
