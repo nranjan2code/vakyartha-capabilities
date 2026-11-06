@@ -17,7 +17,7 @@ export const SOURCES = [
   { id: 'weather', name: 'Weather Desk', tool: 'app-weather-desk__get_weather_briefing', args: {} },
   { id: 'wishes', name: 'Wish Radar', tool: 'app-wish-radar__get_broadcast_script', args: { format: 'programme' } },
 ] as const;
-const SOURCE = new Map(SOURCES.map(x => [x.id, x]));
+const SOURCE = new Map<string, (typeof SOURCES)[number]>(SOURCES.map(x => [x.id, x]));
 const str = (v: unknown, max: number) => typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : '';
 const date = (v: unknown) => typeof v === 'string' && Number.isFinite(Date.parse(v)) ? v : undefined;
 // Untrusted source text loses HTML tags and bare links at import. Saved text is only bounded, so a

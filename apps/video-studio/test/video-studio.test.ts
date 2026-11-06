@@ -2,9 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { handleAction, handleQuery, programme, renderApp, surfaceFile, views, type Context, type State } from '../server.ts';
+import { handleAction, handleQuery, programme, renderApp, surfaceFile, views, type Context, type Programme, type Segment, type State } from '../server.ts';
 
-const sample = { title: 'A source show', segments: [{ text: 'A source-backed sentence.', delivery: 'story', heading: 'The story', kicker: 'News', source: 'Publisher', at: '2026-11-04T10:00:00.000Z' }] };
+const scene: Segment = { text: 'A source-backed sentence.', delivery: 'story', heading: 'The story', kicker: 'News', source: 'Publisher', at: '2026-11-04T10:00:00.000Z' };
+const sample: Programme = { title: 'A source show', segments: [scene] };
 function context(state: State = {}, source: unknown = { programme: sample }, appRevision = 3): Context {
   return { state, appRevision, async callTool(name) { assert.equal(name, 'app-news-desk__get_bulletin'); return source; } };
 }
@@ -12,7 +13,7 @@ function context(state: State = {}, source: unknown = { programme: sample }, app
 test('validates actual source programme and rejects missing scenes', () => {
   assert.equal(programme(sample, 'Fallback').segments.length, 1);
   assert.throws(() => programme({ title: 'Empty', segments: [] }, 'Fallback'), /no saved programme/);
-  assert.throws(() => programme({ segments: Array.from({ length: 81 }, () => sample.segments[0]) }, 'Fallback'), /more than 80 scenes/);
+  assert.throws(() => programme({ segments: Array.from({ length: 81 }, () => scene) }, 'Fallback'), /more than 80 scenes/);
 });
 
 test('imports one selected source as a local review draft and keeps its freshness time', async () => {
@@ -69,7 +70,7 @@ test('initial surface and retained state render every view', () => {
   assert.equal(studio.nodes.some(x => x.id === 'scene-items' && x.type === 'grid'), true);
 });
 
-const two = { title: 'Two scenes', segments: [{ ...sample.segments[0], heading: 'First' }, { ...sample.segments[0], heading: 'Second', text: 'Second words.' }] };
+const two: Programme = { title: 'Two scenes', segments: [{ ...scene, heading: 'First' }, { ...scene, heading: 'Second', text: 'Second words.' }] };
 const saved = (status: 'draft' | 'library' = 'draft', extra: Record<string, unknown> = {}) => ({ id: 'v1', title: 'Show', format: 'show' as const, source: 'News Desk', savedAt: '2026-11-04T10:00:00.000Z', status, programme: structuredClone(two), ...extra });
 
 test('a person\'s own words survive reloads, while imported text loses only tags and links', async () => {
