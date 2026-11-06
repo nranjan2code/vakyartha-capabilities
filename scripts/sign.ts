@@ -2,7 +2,7 @@
 // key from the macOS Keychain (the Keychain asks the owner), signs the exact bytes
 // of index.json and writes signatures/capabilities-<version>.sig for commit.
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -23,5 +23,6 @@ const seed = Buffer.from(execFileSync("security", ["find-generic-password", "-s"
 const signature = signIndex(index, seed);
 seed.fill(0);
 if (!verifyIndex(index, signature, readPublicKey())) throw new Error("The Keychain key does not match keys/catalog.pub; nothing was written.");
+mkdirSync(path.dirname(signatureFile(version)), { recursive: true });
 writeFileSync(signatureFile(version), `${signature}\n`);
 console.log(`Signed capabilities ${version}. Commit signatures/capabilities-${version}.sig, then tag capabilities-v${version}.`);

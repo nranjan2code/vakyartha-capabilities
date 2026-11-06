@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { generateKeyPairSync } from "node:crypto";
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -38,7 +38,9 @@ test("a signature covers the exact index bytes and nothing else", () => {
 test("versions and signatures are never set without a person at a terminal", () => {
   const manifest = readManifest();
   const versions = readItems().map(({ id, version }) => ({ id, version }));
-  const signatures = readdirSync("signatures").sort();
+  // A fresh clone after a version reset has no signatures folder: git keeps no empty folder.
+  const signed = () => existsSync("signatures") ? readdirSync("signatures").sort() : [];
+  const signatures = signed();
   for (const args of [["scripts/version.ts", "9.9.9"], ["scripts/sign.ts", "9.9.9"], ["scripts/version.ts", "--reset", "9.9.9"]]) {
     const r = spawnSync(process.execPath, args, { input: "9.9.9\n", encoding: "utf8", env: { ...process.env, CI: "" } });
     assert.notEqual(r.status, 0, args.join(" "));
@@ -46,7 +48,7 @@ test("versions and signatures are never set without a person at a terminal", () 
   }
   assert.deepEqual(readManifest(), manifest);
   assert.deepEqual(readItems().map(({ id, version }) => ({ id, version })), versions);
-  assert.deepEqual(readdirSync("signatures").sort(), signatures);
+  assert.deepEqual(signed(), signatures);
 });
 
 test("development-only items stay out of releases, and release items never use them", async () => {

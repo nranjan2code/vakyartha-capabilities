@@ -4,7 +4,7 @@
 //   node scripts/version.ts --reset 1.0.0   (once, before any release is public: every app and skill
 //                                            and the catalog to one version, withdrawn signatures removed)
 // Item versions live in each item (SKILL.md metadata.version, app.json version).
-import { readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { ROOT, readItems, readManifest, releaseItems } from "./catalog.ts";
 import { execFileSync } from "node:child_process";
@@ -73,7 +73,7 @@ if (process.argv[2] === "--reset") {
     setItemVersion(file, item.kind, version);
     if (item.version !== version) console.log(`${item.kind} ${item.id}: ${item.version} -> ${version}`);
   }
-  for (const sig of readdirSync(path.join(ROOT, "signatures"))) if (sig.endsWith(".sig")) { rmSync(path.join(ROOT, "signatures", sig)); console.log(`removed signatures/${sig}`); }
+  for (const sig of existsSync(path.join(ROOT, "signatures")) ? readdirSync(path.join(ROOT, "signatures")) : []) if (sig.endsWith(".sig")) { rmSync(path.join(ROOT, "signatures", sig)); console.log(`removed signatures/${sig}`); }
   writeManifest(version);
   process.exit(0);
 }
