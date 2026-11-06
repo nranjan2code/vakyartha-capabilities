@@ -1,0 +1,1382 @@
+[
+  {
+    "id": "lab",
+    "title": "Overview",
+    "data": {
+      "rows": [
+        {
+          "id": "example-1",
+          "name": "Trend: 20/50 crossover",
+          "type": "Moving-average crossover",
+          "cagr": null,
+          "total": null,
+          "drawdown": null,
+          "sharpe": null,
+          "trades": null,
+          "win": null,
+          "excess": null
+        },
+        {
+          "id": "example-2",
+          "name": "Momentum leaders",
+          "type": "Momentum rotation",
+          "cagr": null,
+          "total": null,
+          "drawdown": null,
+          "sharpe": null,
+          "trades": null,
+          "win": null,
+          "excess": null
+        },
+        {
+          "id": "example-3",
+          "name": "Equal-weight hold",
+          "type": "Buy and hold",
+          "cagr": null,
+          "total": null,
+          "drawdown": null,
+          "sharpe": null,
+          "trades": null,
+          "win": null,
+          "excess": null
+        }
+      ],
+      "growthDates": [],
+      "growth": [],
+      "orders": [],
+      "spoken": {
+        "brief": "Strategy Lab is still saving history: 0 of 10 stocks are complete. These are simulations on delayed end-of-day NSE data, not advice or a forecast."
+      }
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "density": "compact",
+          "gap": "md"
+        },
+        "children": [
+          "cap",
+          "actions",
+          "kpis",
+          "empty"
+        ]
+      },
+      {
+        "id": "cap",
+        "type": "text",
+        "props": {
+          "content": "Saving history · 0 of 10 stocks · benchmark Nifty 50 · last sync never",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "actions",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true,
+          "align": "center"
+        },
+        "children": [
+          "act-run",
+          "act-new",
+          "act-sync"
+        ]
+      },
+      {
+        "id": "act-run",
+        "type": "button",
+        "props": {
+          "label": "Run all backtests",
+          "action": "run_all",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "act-new",
+        "type": "button",
+        "props": {
+          "label": "New strategy",
+          "action": "new_strategy",
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "act-sync",
+        "type": "button",
+        "props": {
+          "label": "Sync now",
+          "action": "sync",
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "kpis",
+        "type": "grid",
+        "props": {
+          "columns": 4,
+          "minItemWidth": "sm",
+          "gap": "sm"
+        },
+        "children": [
+          "k-best",
+          "k-tested",
+          "k-paper",
+          "k-data"
+        ]
+      },
+      {
+        "id": "k-best",
+        "type": "stat",
+        "props": {
+          "label": "Best a year",
+          "value": "—",
+          "tone": "neutral"
+        }
+      },
+      {
+        "id": "k-tested",
+        "type": "stat",
+        "props": {
+          "label": "Strategies tested",
+          "value": "0 of 3"
+        }
+      },
+      {
+        "id": "k-paper",
+        "type": "stat",
+        "props": {
+          "label": "Paper equity",
+          "value": "—"
+        }
+      },
+      {
+        "id": "k-data",
+        "type": "stat",
+        "props": {
+          "label": "Stocks with full history",
+          "value": "0 of 10",
+          "tone": "info"
+        }
+      },
+      {
+        "id": "empty",
+        "type": "alert",
+        "props": {
+          "title": "No results yet",
+          "body": "History is still saving. The first backtests can run once a few stocks are complete; Data shows progress.",
+          "tone": "info"
+        }
+      },
+      {
+        "id": "cmp-table",
+        "type": "table",
+        "props": {
+          "sortable": true,
+          "columns": [
+            {
+              "key": "name",
+              "label": "Strategy"
+            },
+            {
+              "key": "type",
+              "label": "Type"
+            },
+            {
+              "key": "cagr",
+              "label": "A year %",
+              "align": "end"
+            },
+            {
+              "key": "excess",
+              "label": "vs Nifty 50 %",
+              "align": "end"
+            },
+            {
+              "key": "drawdown",
+              "label": "Worst fall %",
+              "align": "end"
+            },
+            {
+              "key": "sharpe",
+              "label": "Sharpe",
+              "align": "end"
+            },
+            {
+              "key": "trades",
+              "label": "Trades",
+              "align": "end"
+            },
+            {
+              "key": "win",
+              "label": "Win %",
+              "align": "end"
+            }
+          ],
+          "rows": {
+            "records": "{/rows}",
+            "fields": [
+              "name",
+              "type",
+              "cagr",
+              "excess",
+              "drawdown",
+              "sharpe",
+              "trades",
+              "win"
+            ]
+          }
+        }
+      },
+      {
+        "id": "cmp-note",
+        "type": "text",
+        "props": {
+          "content": "A year: compound annual growth. Worst fall: the largest drop from a peak. Sharpe uses daily returns with no risk-free rate. Each strategy runs over its own start date to the latest saved session.",
+          "variant": "caption"
+        }
+      }
+    ]
+  },
+  {
+    "id": "strategies",
+    "title": "Strategies",
+    "data": {
+      "cards": [
+        {
+          "id": "example-1",
+          "title": "Trend: 20/50 crossover",
+          "subtitle": "Moving-average crossover · all 10 stocks",
+          "body": "Not tested yet",
+          "badge": "Open",
+          "tone": "info"
+        },
+        {
+          "id": "example-2",
+          "title": "Momentum leaders",
+          "subtitle": "Momentum rotation · all 10 stocks",
+          "body": "Not tested yet",
+          "badge": "",
+          "tone": "neutral"
+        },
+        {
+          "id": "example-3",
+          "title": "Equal-weight hold",
+          "subtitle": "Buy and hold · all 10 stocks",
+          "body": "Not tested yet",
+          "badge": "",
+          "tone": "neutral"
+        }
+      ],
+      "draft": {
+        "forId": "example-1",
+        "name": "Trend: 20/50 crossover",
+        "template": "ma_cross",
+        "symbols": "",
+        "capital": 1000000,
+        "from": "",
+        "maxPositions": 5,
+        "stopPct": 8,
+        "targetPct": 0,
+        "costBps": 12,
+        "slippageBps": 5,
+        "params": {
+          "fast": 20,
+          "slow": 50,
+          "entryDays": 55,
+          "exitDays": 20,
+          "rsiDays": 14,
+          "rsiBuy": 30,
+          "rsiSell": 55,
+          "lookback": 120,
+          "top": 5,
+          "rebalanceDays": 21
+        }
+      }
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "density": "compact",
+          "gap": "md"
+        },
+        "children": [
+          "cap",
+          "new-bar",
+          "split"
+        ]
+      },
+      {
+        "id": "cap",
+        "type": "text",
+        "props": {
+          "content": "3 strategies · rules run on each session's close and fill at the next open, so no rule sees the future",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "new-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true,
+          "align": "center"
+        },
+        "children": [
+          "new-label",
+          "new-ma_cross",
+          "new-breakout",
+          "new-rsi_revert",
+          "new-momentum",
+          "new-buy_hold"
+        ]
+      },
+      {
+        "id": "new-label",
+        "type": "text",
+        "props": {
+          "content": "New from",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "new-ma_cross",
+        "type": "button",
+        "props": {
+          "label": "Moving-average crossover",
+          "action": "new_strategy",
+          "payload": {
+            "template": "ma_cross"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "new-breakout",
+        "type": "button",
+        "props": {
+          "label": "Channel breakout",
+          "action": "new_strategy",
+          "payload": {
+            "template": "breakout"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "new-rsi_revert",
+        "type": "button",
+        "props": {
+          "label": "RSI mean reversion",
+          "action": "new_strategy",
+          "payload": {
+            "template": "rsi_revert"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "new-momentum",
+        "type": "button",
+        "props": {
+          "label": "Momentum rotation",
+          "action": "new_strategy",
+          "payload": {
+            "template": "momentum"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "new-buy_hold",
+        "type": "button",
+        "props": {
+          "label": "Buy and hold",
+          "action": "new_strategy",
+          "payload": {
+            "template": "buy_hold"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "split",
+        "type": "split",
+        "props": {
+          "ratio": "1:2"
+        },
+        "children": [
+          "list",
+          "editor"
+        ]
+      },
+      {
+        "id": "list",
+        "type": "grid",
+        "props": {
+          "columns": 1,
+          "gap": "sm"
+        },
+        "children": {
+          "each": "/cards",
+          "template": "card"
+        }
+      },
+      {
+        "id": "card",
+        "type": "card",
+        "props": {
+          "title": "{title}",
+          "subtitle": "{subtitle}",
+          "body": "{body}",
+          "badge": "{badge}",
+          "tone": "{tone}",
+          "layout": "row",
+          "action": "open_strategy",
+          "payload": {
+            "id": "{id}"
+          }
+        }
+      },
+      {
+        "id": "editor",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "ed-head",
+          "ed-name",
+          "ed-tabs",
+          "ed-actions"
+        ]
+      },
+      {
+        "id": "ed-head",
+        "type": "text",
+        "props": {
+          "content": "Not tested yet",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "ed-name",
+        "type": "input",
+        "props": {
+          "label": "Name",
+          "bind": "/draft/name"
+        }
+      },
+      {
+        "id": "ed-tabs",
+        "type": "tabs",
+        "props": {},
+        "children": [
+          "ed-tabs-rules",
+          "ed-tabs-stocks-and-capital",
+          "ed-tabs-costs-and-risk"
+        ]
+      },
+      {
+        "id": "ed-tabs-rules",
+        "type": "section",
+        "props": {
+          "title": "Rules"
+        },
+        "children": [
+          "ed-template",
+          "ed-summary",
+          "ed-params"
+        ]
+      },
+      {
+        "id": "ed-tabs-stocks-and-capital",
+        "type": "section",
+        "props": {
+          "title": "Stocks and capital"
+        },
+        "children": [
+          "ed-symbols",
+          "ed-money"
+        ]
+      },
+      {
+        "id": "ed-tabs-costs-and-risk",
+        "type": "section",
+        "props": {
+          "title": "Costs and risk"
+        },
+        "children": [
+          "ed-risk",
+          "ed-cost-note"
+        ]
+      },
+      {
+        "id": "ed-template",
+        "type": "select",
+        "props": {
+          "label": "Rule",
+          "bind": "/draft/template",
+          "presentation": "dropdown",
+          "options": [
+            {
+              "label": "Moving-average crossover",
+              "value": "ma_cross"
+            },
+            {
+              "label": "Channel breakout",
+              "value": "breakout"
+            },
+            {
+              "label": "RSI mean reversion",
+              "value": "rsi_revert"
+            },
+            {
+              "label": "Momentum rotation",
+              "value": "momentum"
+            },
+            {
+              "label": "Buy and hold",
+              "value": "buy_hold"
+            }
+          ]
+        }
+      },
+      {
+        "id": "ed-summary",
+        "type": "text",
+        "props": {
+          "content": "Buy when the fast average of closes crosses above the slow one; sell when it crosses back below.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "ed-params",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true
+        },
+        "children": [
+          "f-fast",
+          "f-slow"
+        ]
+      },
+      {
+        "id": "f-fast",
+        "type": "input",
+        "props": {
+          "kind": "number",
+          "label": "Fast average (sessions)",
+          "bind": "/draft/params/fast",
+          "min": 2,
+          "max": 200,
+          "step": 1,
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "f-slow",
+        "type": "input",
+        "props": {
+          "kind": "number",
+          "label": "Slow average (sessions)",
+          "bind": "/draft/params/slow",
+          "min": 3,
+          "max": 400,
+          "step": 1,
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "ed-symbols",
+        "type": "input",
+        "props": {
+          "label": "Stocks · blank for all 10 in Data",
+          "bind": "/draft/symbols",
+          "placeholder": "RELIANCE, TCS, INFY"
+        }
+      },
+      {
+        "id": "ed-money",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true
+        },
+        "children": [
+          "ed-capital",
+          "ed-from",
+          "ed-maxpos"
+        ]
+      },
+      {
+        "id": "ed-capital",
+        "type": "input",
+        "props": {
+          "kind": "number",
+          "label": "Capital (₹)",
+          "bind": "/draft/capital",
+          "min": 10000,
+          "step": 10000,
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "ed-from",
+        "type": "date",
+        "props": {
+          "label": "Start · blank for all history",
+          "bind": "/draft/from",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "ed-maxpos",
+        "type": "input",
+        "props": {
+          "kind": "number",
+          "label": "Maximum positions",
+          "bind": "/draft/maxPositions",
+          "min": 1,
+          "max": 50,
+          "step": 1,
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "ed-risk",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true
+        },
+        "children": [
+          "ed-stop",
+          "ed-target",
+          "ed-cost",
+          "ed-slip"
+        ]
+      },
+      {
+        "id": "ed-stop",
+        "type": "input",
+        "props": {
+          "kind": "number",
+          "label": "Stop loss % · 0 for none",
+          "bind": "/draft/stopPct",
+          "min": 0,
+          "max": 50,
+          "step": 0.5,
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "ed-target",
+        "type": "input",
+        "props": {
+          "kind": "number",
+          "label": "Profit target % · 0 for none",
+          "bind": "/draft/targetPct",
+          "min": 0,
+          "max": 500,
+          "step": 0.5,
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "ed-cost",
+        "type": "input",
+        "props": {
+          "kind": "number",
+          "label": "Costs per side (basis points)",
+          "bind": "/draft/costBps",
+          "min": 0,
+          "max": 200,
+          "step": 1,
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "ed-slip",
+        "type": "input",
+        "props": {
+          "kind": "number",
+          "label": "Slippage per side (basis points)",
+          "bind": "/draft/slippageBps",
+          "min": 0,
+          "max": 200,
+          "step": 1,
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "ed-cost-note",
+        "type": "text",
+        "props": {
+          "content": "Costs cover securities transaction tax, exchange and regulator charges, stamp duty and brokerage as one rate per side; 12 basis points is 0.12%. Positions are equal slices of equity; a stop or target inside a session fills at its level, or at the open when the price gaps through it.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "ed-actions",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true,
+          "align": "center"
+        },
+        "children": [
+          "ed-run",
+          "ed-save",
+          "ed-paper",
+          "ed-dup",
+          "ed-del"
+        ]
+      },
+      {
+        "id": "ed-run",
+        "type": "button",
+        "props": {
+          "label": "Save and run backtest",
+          "action": "run_backtest",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "ed-save",
+        "type": "button",
+        "props": {
+          "label": "Save",
+          "action": "save_strategy",
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "ed-paper",
+        "type": "button",
+        "props": {
+          "label": "Start paper trading",
+          "action": "start_paper",
+          "payload": {
+            "id": "example-1"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "ed-dup",
+        "type": "button",
+        "props": {
+          "label": "Duplicate",
+          "action": "duplicate_strategy",
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "ed-del",
+        "type": "button",
+        "props": {
+          "label": "Delete",
+          "action": "delete_strategy",
+          "style": "link"
+        }
+      }
+    ]
+  },
+  {
+    "id": "results",
+    "title": "Backtest",
+    "data": {
+      "strategyPick": "example-1"
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "density": "compact",
+          "gap": "md"
+        },
+        "children": [
+          "cap",
+          "head",
+          "none"
+        ]
+      },
+      {
+        "id": "cap",
+        "type": "text",
+        "props": {
+          "content": "Trend: 20/50 crossover · not tested yet",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "head",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true,
+          "align": "center"
+        },
+        "children": [
+          "pick",
+          "run",
+          "edit"
+        ]
+      },
+      {
+        "id": "pick",
+        "type": "select",
+        "props": {
+          "label": "Strategy",
+          "bind": "/strategyPick",
+          "presentation": "dropdown",
+          "maxWidth": "sm",
+          "options": [
+            {
+              "label": "Trend: 20/50 crossover",
+              "value": "example-1"
+            },
+            {
+              "label": "Momentum leaders",
+              "value": "example-2"
+            },
+            {
+              "label": "Equal-weight hold",
+              "value": "example-3"
+            }
+          ]
+        }
+      },
+      {
+        "id": "run",
+        "type": "button",
+        "props": {
+          "label": "Run backtest",
+          "action": "run_backtest",
+          "payload": {
+            "id": "example-1"
+          },
+          "style": "primary"
+        }
+      },
+      {
+        "id": "edit",
+        "type": "button",
+        "props": {
+          "label": "Edit rules",
+          "action": "open_strategy",
+          "payload": {
+            "id": "example-1"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "none",
+        "type": "alert",
+        "props": {
+          "title": "Not tested yet",
+          "body": "Run the backtest to see equity, drawdowns, returns by year and month, every trade, and each stock on a chart with its entries and exits.",
+          "tone": "info"
+        }
+      }
+    ]
+  },
+  {
+    "id": "paper",
+    "title": "Paper trading",
+    "data": {},
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "density": "compact",
+          "gap": "md"
+        },
+        "children": [
+          "cap",
+          "empty",
+          "start-bar"
+        ]
+      },
+      {
+        "id": "cap",
+        "type": "text",
+        "props": {
+          "content": "Paper accounts run a strategy forward from the day they start: each new session’s close decides the next open’s orders. Nothing reaches a broker.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "empty",
+        "type": "alert",
+        "props": {
+          "title": "No paper account yet",
+          "body": "Start one from any strategy to see how it does on sessions it has never seen.",
+          "tone": "info"
+        }
+      },
+      {
+        "id": "start-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true,
+          "align": "center"
+        },
+        "children": [
+          "start-go"
+        ]
+      },
+      {
+        "id": "start-go",
+        "type": "button",
+        "props": {
+          "label": "Choose a strategy",
+          "action": "view.open",
+          "payload": {
+            "surface": "strategies"
+          },
+          "style": "primary"
+        }
+      }
+    ]
+  },
+  {
+    "id": "data",
+    "title": "Data",
+    "data": {
+      "addDraft": "",
+      "benchmark": "Nifty 50",
+      "stocks": [
+        {
+          "symbol": "RELIANCE",
+          "title": "RELIANCE",
+          "subtitle": "No sessions saved yet",
+          "body": "Corporate actions not checked yet",
+          "badge": "Waiting",
+          "tone": "info",
+          "confirm": "Remove"
+        },
+        {
+          "symbol": "HDFCBANK",
+          "title": "HDFCBANK",
+          "subtitle": "No sessions saved yet",
+          "body": "Corporate actions not checked yet",
+          "badge": "Waiting",
+          "tone": "info",
+          "confirm": "Remove"
+        },
+        {
+          "symbol": "ICICIBANK",
+          "title": "ICICIBANK",
+          "subtitle": "No sessions saved yet",
+          "body": "Corporate actions not checked yet",
+          "badge": "Waiting",
+          "tone": "info",
+          "confirm": "Remove"
+        },
+        {
+          "symbol": "INFY",
+          "title": "INFY",
+          "subtitle": "No sessions saved yet",
+          "body": "Corporate actions not checked yet",
+          "badge": "Waiting",
+          "tone": "info",
+          "confirm": "Remove"
+        },
+        {
+          "symbol": "TCS",
+          "title": "TCS",
+          "subtitle": "No sessions saved yet",
+          "body": "Corporate actions not checked yet",
+          "badge": "Waiting",
+          "tone": "info",
+          "confirm": "Remove"
+        },
+        {
+          "symbol": "BHARTIARTL",
+          "title": "BHARTIARTL",
+          "subtitle": "No sessions saved yet",
+          "body": "Corporate actions not checked yet",
+          "badge": "Waiting",
+          "tone": "info",
+          "confirm": "Remove"
+        },
+        {
+          "symbol": "ITC",
+          "title": "ITC",
+          "subtitle": "No sessions saved yet",
+          "body": "Corporate actions not checked yet",
+          "badge": "Waiting",
+          "tone": "info",
+          "confirm": "Remove"
+        },
+        {
+          "symbol": "LT",
+          "title": "LT",
+          "subtitle": "No sessions saved yet",
+          "body": "Corporate actions not checked yet",
+          "badge": "Waiting",
+          "tone": "info",
+          "confirm": "Remove"
+        },
+        {
+          "symbol": "SBIN",
+          "title": "SBIN",
+          "subtitle": "No sessions saved yet",
+          "body": "Corporate actions not checked yet",
+          "badge": "Waiting",
+          "tone": "info",
+          "confirm": "Remove"
+        },
+        {
+          "symbol": "HINDUNILVR",
+          "title": "HINDUNILVR",
+          "subtitle": "No sessions saved yet",
+          "body": "Corporate actions not checked yet",
+          "badge": "Waiting",
+          "tone": "info",
+          "confirm": "Remove"
+        }
+      ],
+      "actions": [],
+      "receipts": []
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "density": "compact",
+          "gap": "md"
+        },
+        "children": [
+          "cap",
+          "prog",
+          "controls",
+          "tabs"
+        ]
+      },
+      {
+        "id": "cap",
+        "type": "text",
+        "props": {
+          "content": "Daily NSE history saved on this computer: up to five years per stock (from 2 Nov 2021), then each new session. 10 of 50 stocks · benchmark not saved yet.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "prog",
+        "type": "progress",
+        "props": {
+          "label": "History saving in the background · 0 of 10 stocks",
+          "value": 0,
+          "show": "value"
+        }
+      },
+      {
+        "id": "controls",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true,
+          "align": "end"
+        },
+        "children": [
+          "add",
+          "add-go",
+          "bench",
+          "sync"
+        ]
+      },
+      {
+        "id": "add",
+        "type": "input",
+        "props": {
+          "label": "Add stocks",
+          "bind": "/addDraft",
+          "placeholder": "TATAMOTORS, MARUTI"
+        }
+      },
+      {
+        "id": "add-go",
+        "type": "button",
+        "props": {
+          "label": "Add",
+          "action": "add_symbols",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "bench",
+        "type": "select",
+        "props": {
+          "label": "Benchmark and calendar",
+          "bind": "/benchmark",
+          "presentation": "dropdown",
+          "maxWidth": "sm",
+          "options": [
+            "Nifty 50",
+            "Nifty 500",
+            "Nifty Next 50",
+            "Nifty Bank",
+            "Nifty Midcap 100"
+          ]
+        }
+      },
+      {
+        "id": "sync",
+        "type": "button",
+        "props": {
+          "label": "Sync now",
+          "action": "sync",
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "tabs",
+        "type": "tabs",
+        "props": {},
+        "children": [
+          "tabs-stocks-10",
+          "tabs-corporate-actions-0",
+          "tabs-sources-0"
+        ]
+      },
+      {
+        "id": "tabs-stocks-10",
+        "type": "section",
+        "props": {
+          "title": "Stocks · 10"
+        },
+        "children": [
+          "st-grid",
+          "st-note"
+        ]
+      },
+      {
+        "id": "tabs-corporate-actions-0",
+        "type": "section",
+        "props": {
+          "title": "Corporate actions · 0"
+        },
+        "children": [
+          "ca-none"
+        ]
+      },
+      {
+        "id": "tabs-sources-0",
+        "type": "section",
+        "props": {
+          "title": "Sources · 0"
+        },
+        "children": [
+          "rc-none"
+        ]
+      },
+      {
+        "id": "st-grid",
+        "type": "grid",
+        "props": {
+          "columns": 3,
+          "minItemWidth": "sm",
+          "gap": "sm",
+          "searchable": false,
+          "pageSize": 24
+        },
+        "children": {
+          "each": "/stocks",
+          "template": "st-card"
+        }
+      },
+      {
+        "id": "st-card",
+        "type": "card",
+        "props": {
+          "title": "{title}",
+          "subtitle": "{subtitle}",
+          "body": "{body}",
+          "badge": "{badge}",
+          "tone": "{tone}"
+        },
+        "children": [
+          "st-actions"
+        ]
+      },
+      {
+        "id": "st-actions",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm"
+        },
+        "children": [
+          "st-retry",
+          "st-remove"
+        ]
+      },
+      {
+        "id": "st-retry",
+        "type": "button",
+        "props": {
+          "label": "Sync again",
+          "action": "retry_symbol",
+          "payload": {
+            "symbol": "{symbol}"
+          },
+          "style": "link"
+        }
+      },
+      {
+        "id": "st-remove",
+        "type": "button",
+        "props": {
+          "label": "{confirm}",
+          "action": "remove_symbol",
+          "payload": {
+            "symbol": "{symbol}"
+          },
+          "style": "link"
+        }
+      },
+      {
+        "id": "st-note",
+        "type": "text",
+        "props": {
+          "content": "The scheduled sync runs every two minutes while Background operation is on; Sync now runs one step. Each step reads at most fifteen chunks, so the first full history of ten stocks takes about twenty minutes.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "st-none",
+        "type": "text",
+        "props": {
+          "content": "No stocks yet. Add NSE symbols above.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "ca-table",
+        "type": "table",
+        "props": {
+          "sortable": true,
+          "searchable": true,
+          "pageSize": 20,
+          "columns": [
+            {
+              "key": "symbol",
+              "label": "Stock"
+            },
+            {
+              "key": "date",
+              "label": "Ex-date"
+            },
+            {
+              "key": "kind",
+              "label": "Type"
+            },
+            {
+              "key": "purpose",
+              "label": "Purpose"
+            },
+            {
+              "key": "factor",
+              "label": "Price factor",
+              "align": "end"
+            }
+          ],
+          "rows": {
+            "records": "{/actions}",
+            "fields": [
+              "symbol",
+              "date",
+              "kind",
+              "purpose",
+              "factor"
+            ]
+          }
+        }
+      },
+      {
+        "id": "ca-none",
+        "type": "text",
+        "props": {
+          "content": "No corporate actions saved yet; they are checked weekly once a stock’s history is complete.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "rc-table",
+        "type": "table",
+        "props": {
+          "searchable": true,
+          "pageSize": 20,
+          "columns": [
+            {
+              "key": "subject",
+              "label": "Subject"
+            },
+            {
+              "key": "tool",
+              "label": "Read"
+            },
+            {
+              "key": "fetched",
+              "label": "Fetched"
+            },
+            {
+              "key": "source",
+              "label": "Source period"
+            },
+            {
+              "key": "rows",
+              "label": "Rows",
+              "align": "end"
+            },
+            {
+              "key": "status",
+              "label": "Status"
+            }
+          ],
+          "rows": {
+            "records": "{/receipts}",
+            "fields": [
+              "subject",
+              "tool",
+              "fetched",
+              "source",
+              "rows",
+              "status"
+            ]
+          }
+        }
+      },
+      {
+        "id": "rc-none",
+        "type": "text",
+        "props": {
+          "content": "No reads yet. Press Sync now, or turn on Background operation.",
+          "variant": "caption"
+        }
+      }
+    ]
+  }
+]

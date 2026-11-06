@@ -1,0 +1,130 @@
+{
+  "id": "strategy-lab",
+  "version": "0.0.0",
+  "channel": "dev",
+  "name": "NSE Strategy Lab",
+  "description": "Rule-based NSE strategies tested on up to five years of saved daily history, adjusted for splits and bonuses, with costs, equity against a benchmark, every trade on a chart, and paper accounts that run strategies forward on new sessions. Simulation only; no orders reach a broker.",
+  "author": "Vakyartha",
+  "category": "finance",
+  "icon": "chart",
+  "brand": "#0f766e",
+  "entrypoints": {
+    "backend": "server.ts",
+    "surface": "surface.json",
+    "render": "renderApp"
+  },
+  "runtime": {
+    "engine": "node26",
+    "memoryLimitMb": 256,
+    "cpuTimeLimitSec": 30,
+    "maxStorageMb": 48
+  },
+  "entitlements": {
+    "network": {
+      "mode": "brokered",
+      "allowedDomains": []
+    },
+    "mcpTools": [
+      "nse__get_stock_history",
+      "nse__get_index_history",
+      "nse__get_bulk_quote",
+      "nse__get_corporate_actions"
+    ],
+    "storage": {
+      "sqlite": false,
+      "duckdb": true
+    },
+    "toolActions": {
+      "sync": [
+        "nse__get_stock_history",
+        "nse__get_index_history",
+        "nse__get_bulk_quote",
+        "nse__get_corporate_actions"
+      ],
+      "retry_symbol": [
+        "nse__get_stock_history",
+        "nse__get_index_history",
+        "nse__get_bulk_quote",
+        "nse__get_corporate_actions"
+      ]
+    },
+    "toolPurposes": {
+      "nse__get_stock_history": {
+        "reason": "Save up to five years of each chosen stock’s daily sessions, and fill gaps after missed days.",
+        "optional": false
+      },
+      "nse__get_index_history": {
+        "reason": "Save the benchmark index, which is the trading calendar and the comparison for every backtest.",
+        "optional": false
+      },
+      "nse__get_bulk_quote": {
+        "reason": "Add the latest session for up to fifty stocks in one read each day.",
+        "optional": false
+      },
+      "nse__get_corporate_actions": {
+        "reason": "Read splits and bonuses with NSE’s price factor, so earlier prices are adjusted.",
+        "optional": false
+      }
+    }
+  },
+  "triggers": [
+    {
+      "id": "startup-sync",
+      "kind": "startup",
+      "action": "sync",
+      "maxDurationSec": 30
+    },
+    {
+      "id": "history-sync",
+      "kind": "cron",
+      "expression": "*/2 * * * *",
+      "action": "sync",
+      "maxDurationSec": 30
+    }
+  ],
+  "voice": {
+    "listen": {
+      "surface": "lab",
+      "path": "/spoken/brief",
+      "label": "Listen to the strategy brief"
+    }
+  },
+  "exports": {
+    "tools": [
+      {
+        "name": "get_strategy_results",
+        "title": "Strategy results",
+        "description": "Saved backtest results of the user's NSE strategies: return, compound annual growth, worst fall, Sharpe, trades and win rate against the benchmark, with the data period. Historical simulation, not advice.",
+        "readOnly": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "strategy": {
+              "type": "string",
+              "description": "Optional strategy name or id; omitted returns every strategy."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "get_paper_accounts",
+        "title": "Paper accounts",
+        "description": "The user's paper trading accounts: equity, cash, open positions, next-session orders and closed trades. Simulated; no broker.",
+        "readOnly": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      }
+    ],
+    "skills": [
+      {
+        "name": "strategy-lab-reader",
+        "description": "Read and explain the user's Strategy Lab backtests and paper accounts",
+        "path": "skills/strategy-lab-reader/SKILL.md"
+      }
+    ]
+  }
+}
