@@ -1,7 +1,8 @@
 // The catalog's local CI steps. The runner, receipts, hooks and secret scan are in
 // ci-core.ts (shared with Vakyartha and Projection). Run `node scripts/ci.ts help`. Tiers:
 //   quick    before every push (the pre-push hook runs it): secrets, public boundary, docs links, every rule, tests, site build
-//   full     before signing a release: quick + npm publication ages + signature of the signed release
+//   full     before merging to main and before signing: quick + npm publication ages
+//   release  after signing, before tagging: full + the signature matches this exact build
 //   mirror   what GitHub's runner checks (.github/workflows/check.yml); the repository is public,
 //            so hosted minutes are free, but the same steps run here without GitHub
 import path from "node:path";
@@ -20,11 +21,9 @@ const quick: Step[] = [
   { name: "tests", cmd: [node, "--test", "tests/"] },
   { name: "site", cmd: script("catalog-build.ts", "site") },
 ];
-const full: Step[] = [
-  ...quick,
-  { name: "check:online", cmd: script("check.ts", "--online") },
-  { name: "verify", cmd: script("verify.ts") },
-];
+const full: Step[] = [...quick, { name: "check:online", cmd: script("check.ts", "--online") }];
+// Main is ahead of its last release between releases, so only the release tier checks a signature.
+const release: Step[] = [...full, { name: "verify", cmd: script("verify.ts") }];
 const mirror: Step[] = [...quick, { name: "check:online", cmd: script("check.ts", "--online") }];
 
-await main({ repo, tiers: { quick, full, mirror }, needs: {} });
+await main({ repo, tiers: { quick, full, release, mirror }, needs: {} });

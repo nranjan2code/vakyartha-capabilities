@@ -39,10 +39,10 @@ test("versions and signatures are never set without a person at a terminal", () 
   const manifest = readManifest();
   const versions = readItems().map(({ id, version }) => ({ id, version }));
   const signatures = readdirSync("signatures").sort();
-  for (const script of ["scripts/version.ts", "scripts/sign.ts"]) {
-    const r = spawnSync(process.execPath, [script, "9.9.9"], { input: "9.9.9\n", encoding: "utf8", env: { ...process.env, CI: "" } });
-    assert.notEqual(r.status, 0, script);
-    assert.match(r.stderr, /interactive terminal|already signed|not signed/, script);
+  for (const args of [["scripts/version.ts", "9.9.9"], ["scripts/sign.ts", "9.9.9"], ["scripts/version.ts", "--reset", "9.9.9"]]) {
+    const r = spawnSync(process.execPath, args, { input: "9.9.9\n", encoding: "utf8", env: { ...process.env, CI: "" } });
+    assert.notEqual(r.status, 0, args.join(" "));
+    assert.match(r.stderr, /interactive terminal|already signed|not signed|Release tags still exist/, args.join(" "));
   }
   assert.deepEqual(readManifest(), manifest);
   assert.deepEqual(readItems().map(({ id, version }) => ({ id, version })), versions);

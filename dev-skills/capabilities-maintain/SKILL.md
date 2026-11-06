@@ -27,14 +27,15 @@ Rules: [AGENTS.md](../../AGENTS.md). Relationships: [DEPENDENCIES.md](../../DEPE
 
 ```bash
 node scripts/ci.ts quick     # secrets, public boundary, docs, every rule, tests, site build
-node scripts/ci.ts full      # + npm publication ages and the signed release signature
+node scripts/ci.ts full      # + npm publication ages; passes on main between releases
+node scripts/ci.ts release   # + the signature matches this exact build; only after signing
 ```
 
-`full` fails the signature step after any change to a released item until the next release is signed; that is expected between releases.
+`main` is always ahead of the last release. `full` never checks a signature, so it passes between releases; `release` checks the signature and runs only on the signed tree before tagging.
 
 ## 3. Release (owner)
 
-Follow [RELEASING.md](../../RELEASING.md) exactly: version (typed twice), `full`, sign (typed, Keychain prompt), commit and push, tag `capabilities-vX.Y.Z` and push it. The Release workflow publishes the GitHub release and the site.
+Follow [RELEASING.md](../../RELEASING.md) exactly: version (typed twice), `full`, sign (typed, Keychain prompt), `release`, commit and push, tag `capabilities-vX.Y.Z` and push it. The Release workflow publishes the GitHub release and the site.
 
 ## 4. Deliver to Vakyartha
 

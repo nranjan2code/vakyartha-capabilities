@@ -45,7 +45,8 @@ node scripts/verify.ts          # rebuilds the catalog and checks it against the
 ```bash
 node scripts/ci.ts hooks        # once per clone: secret scan before commit, quick tier before push
 node scripts/ci.ts quick        # secrets, public boundary, docs, every rule, tests, site build
-node scripts/ci.ts full         # + npm publication ages and the signature of the signed release
+node scripts/ci.ts full         # + npm publication ages (before merging and before signing)
+node scripts/ci.ts release      # + the signature matches this exact build (after signing, before tagging)
 ```
 
 Checks run on the owner's machine first; the GitHub workflow mirrors them. This repository is public, and a check refuses any link to a private repository or local path.
