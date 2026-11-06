@@ -105,7 +105,9 @@ export async function main(config: Config): Promise<void> {
   function secrets(staged: boolean): number {
     const allowFile = path.join(repo, ".secret-scan-allow");
     const allowed = new Set(existsSync(allowFile) ? readFileSync(allowFile, "utf8").split("\n").map(l => l.replace(/#.*/, "").trim()).filter(Boolean) : []);
-    const files = (staged ? git("diff", "--cached", "--name-only", "--diff-filter=ACMR") : git("ls-files")).split("\n").filter(f => f && !allowed.has(f));
+    // A staged submodule pin (mode 160000) is a commit id, not a file: there is nothing to read.
+    const stagedFiles = () => git("diff", "--cached", "--raw", "--diff-filter=ACMR").split("\n").filter(l => l && l.split(" ")[1] !== "160000").map(l => l.split("\t").pop()!);
+    const files = (staged ? stagedFiles() : git("ls-files").split("\n")).filter(f => f && !allowed.has(f));
     const hits: string[] = [];
     for (const file of files) {
       let text: string;
