@@ -27,7 +27,7 @@ jobs:
         with:
           node-version-file: .node-version
       - run: node scripts/check.ts --online --tag "$GITHUB_REF_NAME"
-      - run: node --test tests/
+      - run: node --test tests/ "apps/*/test/*.test.ts"
       - run: node scripts/verify.ts site
       - name: Create the GitHub release
         env:

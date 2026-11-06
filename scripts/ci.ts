@@ -18,7 +18,8 @@ const quick: Step[] = [
   { name: "public-boundary", cmd: script("public-boundary.ts") },
   { name: "docs", cmd: script("docs-check.ts") },
   { name: "check", cmd: script("check.ts") },
-  { name: "tests", cmd: [node, "--test", "tests/"] },
+  // The catalog's own tests and every test an app ships in apps/<id>/test/.
+  { name: "tests", cmd: [node, "--test", "tests/", "apps/*/test/*.test.ts"] },
   { name: "site", cmd: script("catalog-build.ts", "site") },
 ];
 const full: Step[] = [...quick, { name: "check:online", cmd: script("check.ts", "--online") }];
