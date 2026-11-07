@@ -19,6 +19,7 @@ Rules: [AGENTS.md](../../AGENTS.md). Relationships: [DEPENDENCIES.md](../../DEPE
 - A new app or skill starts at the draft sentinel version `0.0.0`; `version.ts --list` includes it even before it exists in the last signed tag, and the owner types its first released version during the version command.
 - An item still in development can be marked development-only (`"channel": "dev"` in `app.json`, `channel: dev` under a skill's `metadata`): releases leave it out, Vakyartha Dev bundles it, and no release item may use it ([DEPENDENCIES.md](../../DEPENDENCIES.md), Development-only items).
 - Declare every relationship (part of an app, requires) and make sure each requirement exists here or in Vakyartha's declared core.
+- An app that declares `storage.databaseMiB` needs a Vakyartha with ADR-084 (app databases as files with a declared size), so a catalog release carrying one keeps `requires.vakyartha.min` at or above that version in `capabilities.json`.
 - Items are self-contained: no imports from outside the item, no vendored code, no keys or tokens, UTF-8 text only.
 - Public boundary: no links to private repositories, no local paths, no submodules. Refer to Vakyartha's guides by name.
 - Update the item's documents, the README counts and CHANGELOG (under "Unreleased") in the same change.
