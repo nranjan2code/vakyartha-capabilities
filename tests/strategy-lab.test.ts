@@ -59,7 +59,7 @@ test("NSE responses are validated before anything is saved", () => {
 });
 
 test("Strategy Lab starts with examples, validates rule edits and keeps surface.json in step", async () => {
-  const database = { async run() {}, async query() { return []; } };
+  const database = { maxBytes: 1048576, async run() {}, async query() { return []; } };
   const ctx: Context = { state: {}, database, callTool: async () => { throw new Error("no reads in this test"); } };
   normalize(ctx.state);
   assert.equal(ctx.state.strategies!.length, 3); assert.equal(ctx.state.universe!.length, 10);
