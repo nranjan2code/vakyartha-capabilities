@@ -12,4 +12,6 @@ Skill names and descriptions are selected first; their supporting text loads wit
 
 - `strategy-lab-reader` (`skills/strategy-lab-reader/SKILL.md`): reads `get_strategy_results` and `get_paper_accounts` and explains them with their periods, assumptions and limits. Requires `interactive-ui`.
 
+The skills read returned records only. History volume and the 50-stock universe live in the app's database, and `app-maintainer` must keep its schema check and re-read of lost history when the saved shape changes.
+
 When a capability is added or removed, update this list, `exports.skills` in `app.json` and the skill's `allowed-tools`.

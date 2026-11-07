@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- NSE Strategy Lab (development channel) declares `storage.databaseMiB: 256`, so it needs a Vakyartha with ADR-084. It keeps volume again, holds one row per symbol and date with NSE's latest reading winning, takes up to 50 stocks, and shows storage against the declared limit. A database saved by the earlier package is replaced and its sessions read again.
+
 ## 1.0.1 (unreleased)
 
 - Video Studio 1.0.1: typechecks under strict TypeScript (its saved-source check accepts any stored value), and its 17 tests now run in CI.

@@ -1010,7 +1010,7 @@
         "id": "cap",
         "type": "text",
         "props": {
-          "content": "Daily NSE history saved on this computer: up to five years per stock (from 2 Nov 2021), then each new session. 10 of 15 stocks · benchmark not saved yet · storage 0.0 of 2 MiB.",
+          "content": "Daily NSE history saved on this computer: up to five years per stock (from 2 Nov 2021), then each new session. 10 of 50 stocks · benchmark not saved yet · storage 0.0 MiB.",
           "variant": "caption"
         }
       },
@@ -1193,7 +1193,7 @@
         "id": "st-note",
         "type": "text",
         "props": {
-          "content": "The scheduled sync runs every two minutes while Background operation is on; Sync now runs one step. Each step reads at most fifteen chunks, so the first full history of ten stocks takes about twenty minutes. Five years of 15 stocks use about 1.5 MiB of the app’s 2 MiB storage.",
+          "content": "The scheduled sync runs every two minutes while Background operation is on; Sync now runs one step. Each step reads at most fifteen chunks, so the first full history of ten stocks takes about twenty minutes.",
           "variant": "caption"
         }
       },

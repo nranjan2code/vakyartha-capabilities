@@ -79,6 +79,8 @@ export function bulk(raw: O): Map<string, Bar> {
 // --- the archive ---------------------------------------------------------------------
 
 export interface Database {
+  /** The app's declared limit (storage.databaseMiB in app.json). */
+  maxBytes: number;
   run(sql: string, values?: (string | number | null)[]): Promise<void>;
   query(sql: string, values?: (string | number | null)[]): Promise<Record<string, unknown>[]>;
 }
@@ -90,27 +92,19 @@ function serial<T>(db: Database, work: () => Promise<T>): Promise<T> {
   return next;
 }
 export async function initialize(db: Database) {
-  // Whole paise, real dates, no volume and no index, appended only: with the host's
-  // checkpoint after every command, five years of 15 stocks measured 1.5 MiB of the
-  // 2 MiB database snapshot (the file grows in 256 KiB blocks).
-  await db.run('CREATE TABLE IF NOT EXISTS bars(symbol VARCHAR, date DATE, open INTEGER, high INTEGER, low INTEGER, close INTEGER)');
+  // A database saved by an earlier package may lack volume; its sessions are read from NSE again.
+  const old = await db.query("SELECT table_name FROM duckdb_tables() WHERE table_name='bars' AND NOT EXISTS (SELECT 1 FROM duckdb_columns() WHERE table_name='bars' AND column_name='volume')");
+  if (old.length) await db.run('DROP TABLE bars');
+  await db.run('CREATE TABLE IF NOT EXISTS bars(symbol VARCHAR, date VARCHAR, open DOUBLE, high DOUBLE, low DOUBLE, close DOUBLE, volume DOUBLE, PRIMARY KEY(symbol, date))');
   await db.run('CREATE TABLE IF NOT EXISTS actions(symbol VARCHAR, ex_date VARCHAR, kind VARCHAR, purpose VARCHAR, factor DOUBLE, PRIMARY KEY(symbol, ex_date, kind))');
 }
-const paise = (rupees: number) => Math.round(rupees * 100);
-/** Add sessions not saved yet; a saved session keeps its first validated reading. Appending
- * only avoids the deleted blocks a file never gives back. */
+/** Insert or replace sessions; NSE's latest reading of a day wins. */
 export async function saveBars(db: Database, symbol: string, bars: Bar[]) {
   if (!bars.length) return;
   return serial(db, async () => {
   await db.run('BEGIN TRANSACTION');
   try {
-    const sorted = [...bars].sort((a, b) => a.date.localeCompare(b.date));
-    const saved = new Set(((await db.query("SELECT strftime(date, '%Y-%m-%d') AS d FROM bars WHERE symbol=? AND date BETWEEN CAST(? AS DATE) AND CAST(? AS DATE)", [symbol, sorted[0]!.date, sorted.at(-1)!.date])) as { d: string }[]).map((r) => r.d));
-    const fresh = sorted.filter((b) => !saved.has(b.date));
-    for (let i = 0; i < fresh.length; i += 100) {
-      const part = fresh.slice(i, i + 100);
-      await db.run(`INSERT INTO bars VALUES ${part.map(() => '(?,CAST(? AS DATE),?,?,?,?)').join(',')}`, part.flatMap((b) => [symbol, b.date, paise(b.open), paise(b.high), paise(b.low), paise(b.close)]));
-    }
+    for (const b of bars) await db.run('INSERT OR REPLACE INTO bars VALUES(?,?,?,?,?,?,?)', [symbol, b.date, b.open, b.high, b.low, b.close, b.volume]);
     await db.run('COMMIT');
   } catch (e) { await db.run('ROLLBACK'); throw e; }
   });
@@ -127,9 +121,7 @@ export async function saveActions(db: Database, symbol: string, list: Action[]) 
 }
 /** Saved sessions oldest first. One symbol is about 1,250 rows, inside the query bound. */
 export async function loadBars(db: Database, symbol: string): Promise<Bar[]> {
-  // Volume is validated on arrival but not kept: no rule uses it, and it is the costliest column.
-  return ((await db.query("SELECT strftime(date, '%Y-%m-%d') AS date, open, high, low, close FROM bars WHERE symbol=? ORDER BY date", [symbol])) as Record<string, unknown>[])
-    .map((r) => ({ date: String(r.date), open: Number(r.open) / 100, high: Number(r.high) / 100, low: Number(r.low) / 100, close: Number(r.close) / 100, volume: 0 }));
+  return (await db.query('SELECT date, open, high, low, close, volume FROM bars WHERE symbol=? ORDER BY date', [symbol])) as unknown as Bar[];
 }
 export async function loadActions(db: Database, symbol: string): Promise<Action[]> {
   return ((await db.query('SELECT ex_date, kind, purpose, factor FROM actions WHERE symbol=? ORDER BY ex_date', [symbol])) as { ex_date: string; kind: string; purpose: string; factor: number }[])
@@ -137,11 +129,10 @@ export async function loadActions(db: Database, symbol: string): Promise<Action[
 }
 export interface Coverage { symbol: string; first: string; last: string; sessions: number }
 export async function coverage(db: Database): Promise<Map<string, Coverage>> {
-  const rows = await db.query("SELECT symbol, strftime(min(date), '%Y-%m-%d') AS first, strftime(max(date), '%Y-%m-%d') AS last, count(*)::INTEGER AS sessions FROM bars GROUP BY symbol");
+  const rows = await db.query('SELECT symbol, min(date) AS first, max(date) AS last, count(*)::INTEGER AS sessions FROM bars GROUP BY symbol');
   return new Map(rows.map((r) => [String(r.symbol), { symbol: String(r.symbol), first: String(r.first), last: String(r.last), sessions: Number(r.sessions) }]));
 }
-/** The database file's size in blocks, free ones included; the host refuses a snapshot over 2 MiB. */
-export const STORAGE_LIMIT = 2 * 1024 * 1024, STORAGE_GUARD = 1.75 * 1024 * 1024;
+/** The database file's size in blocks, free ones included, which is what the host holds against the app's limit. */
 export async function storageUsed(db: Database): Promise<number> {
   // Recent writes sit in the write-ahead log until a checkpoint; measure the file they become.
   await serial(db, () => db.run('CHECKPOINT'));

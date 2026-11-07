@@ -32,7 +32,8 @@
     ],
     "storage": {
       "sqlite": false,
-      "duckdb": true
+      "duckdb": true,
+      "databaseMiB": 256
     },
     "toolActions": {
       "sync": [

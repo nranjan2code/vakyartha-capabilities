@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { adjust, backtest, monthly, newBook, prepare, rsi, sma, step, type Bar, type Rules } from "../apps/strategy-lab/engine.ts";
-import { bulk, decode, stockChunk } from "../apps/strategy-lab/source.ts";
-import { handleAction, normalize, surfaceFile, type Context } from "../apps/strategy-lab/server.ts";
+import { bulk, decode, initialize, saveBars, stockChunk, type Database } from "../apps/strategy-lab/source.ts";
+import { handleAction, MAX_UNIVERSE, normalize, surfaceFile, symbols, sync, type Context } from "../apps/strategy-lab/server.ts";
 
 const days = (n: number, from = Date.UTC(2025, 0, 6)) => Array.from({ length: n }, (_, i) => new Date(from + i * 86_400_000).toISOString().slice(0, 10));
 const bars = (closes: number[], dates = days(closes.length)): Bar[] => closes.map((c, i) => ({ date: dates[i]!, open: c, high: c * 1.01, low: c * 0.99, close: c, volume: 1000 }));
@@ -73,4 +73,75 @@ test("Strategy Lab starts with examples, validates rule edits and keeps surface.
   assert.equal(ctx.state.strategies![0]!.rules.params.fast, 10);
   assert.deepEqual(ctx.state.strategies![0]!.symbols, ["RELIANCE", "TCS"]);
   assert.deepEqual(JSON.parse(readFileSync(new URL("../apps/strategy-lab/surface.json", import.meta.url), "utf8")), JSON.parse(JSON.stringify(surfaceFile())));
+});
+
+// The saved-history contract, against a database that records its statements.
+const app = JSON.parse(readFileSync(new URL("../apps/strategy-lab/app.json", import.meta.url), "utf8"));
+const MIB = 1048576;
+
+function recording(oldSchema = false): Database & { sql: string[] } {
+  const sql: string[] = [];
+  return {
+    sql, maxBytes: 256 * MIB,
+    async run(statement) { sql.push(statement); },
+    async query(statement) {
+      sql.push(statement);
+      if (statement.includes('duckdb_tables')) return oldSchema ? [{ table_name: 'bars' }] : [];
+      if (statement.includes('pragma_database_size')) return [{ total_blocks: 240, block_size: 262144 }];
+      return [];
+    },
+  };
+}
+const bar = { date: '2026-11-02', open: 100, high: 110, low: 90, close: 105, volume: 1234 };
+
+test('the app declares its database size and takes up to fifty stocks', () => {
+  assert.equal(app.entitlements.storage.databaseMiB, 256);
+  assert.equal(MAX_UNIVERSE, 50);
+  const fifty = Array.from({ length: 50 }, (_, i) => `SYM${String.fromCharCode(65 + i % 26)}${i}`);
+  assert.equal(symbols(fifty).length, 50);
+});
+
+test('sessions keep volume, one row per symbol and date, and the latest reading wins', async () => {
+  const db = recording();
+  await initialize(db);
+  const create = db.sql.find((s) => s.includes('CREATE TABLE IF NOT EXISTS bars'))!;
+  assert.match(create, /volume DOUBLE/);
+  assert.match(create, /PRIMARY KEY\(symbol, date\)/);
+  const values: unknown[][] = [];
+  const run = db.run;
+  db.run = async (s, v) => { if (v) values.push(v); await run(s, v); };
+  await saveBars(db, 'INFY', [bar]);
+  assert.ok(db.sql.some((s) => s.startsWith('INSERT OR REPLACE INTO bars')));
+  assert.deepEqual(values[0], ['INFY', bar.date, 100, 110, 90, 105, 1234]);
+});
+
+test('a database from the earlier package without volume is replaced', async () => {
+  const db = recording(true);
+  await initialize(db);
+  assert.ok(db.sql.indexOf('DROP TABLE bars') < db.sql.findIndex((s) => s.includes('CREATE TABLE IF NOT EXISTS bars')));
+  assert.ok(db.sql.includes('DROP TABLE bars'));
+  const fresh = recording();
+  await initialize(fresh);
+  assert.ok(!fresh.sql.includes('DROP TABLE bars'));
+});
+
+test('storage is shown against the declared limit, not a fixed one', async () => {
+  const context = { state: normalize({}), database: recording(), callTool: async () => { throw new Error('no reads'); }, now: () => new Date('2026-11-02T06:00:00Z') };
+  const result = await sync(context);
+  const text = JSON.stringify(result);
+  assert.match(text, /storage 60 MiB of 256 MiB/);
+  assert.doesNotMatch(text, /2 MiB/);
+  assert.equal(context.state.storage, 60 * MIB);
+});
+
+test('progress that outlived its database is read again, and a wrong symbol stays reported', async () => {
+  const state = normalize({ universe: ['INFY', 'NOPE'] });
+  state.bench = { next: null, until: '', done: true, checkedAt: '2026-11-02T00:00:00Z' };
+  state.sync!.INFY = { next: null, until: '', done: true, actionsAt: '2026-11-02T00:00:00Z' };
+  state.sync!.NOPE = { next: null, until: '', done: true, error: 'Not found. Check the symbol in Data.' };
+  await sync({ state, database: recording(), callTool: async () => { throw new Error('offline'); }, now: () => new Date('2026-11-02T06:00:00Z') });
+  assert.equal(state.sync!.INFY!.done, false);
+  assert.equal(state.sync!.INFY!.actionsAt, undefined);
+  assert.equal(state.bench!.done, false);
+  assert.equal(state.sync!.NOPE!.done, true);
 });

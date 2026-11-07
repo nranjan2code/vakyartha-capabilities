@@ -2,7 +2,7 @@
 // history and run forward on paper. State owns strategies, results, paper books
 // and sync progress; DuckDB owns every saved session and corporate action.
 import { adjust, backtest, monthly, newBook, prepare, step, equityOf, yearly, DEFAULT_PARAMS, LIMITS, TEMPLATES, type Action, type Bar, type Book, type Metrics, type Order, type Params, type Point, type Position, type Result, type Rules, type Series, type Template, type Trade } from './engine.ts';
-import { actions, bulk, coverage, decode, forget, indexChunk, initialize, loadActions, loadBars, NseError, saveActions, saveBars, stockChunk, storageUsed, STORAGE_GUARD, type Database } from './source.ts';
+import { actions, bulk, coverage, decode, forget, indexChunk, initialize, loadActions, loadBars, NseError, saveActions, saveBars, stockChunk, storageUsed, type Database } from './source.ts';
 import { view, TITLES } from './views.ts';
 
 export { view, TITLES };
@@ -22,7 +22,7 @@ export interface State {
   universe?: string[]; benchmark?: string; sync?: Record<string, Sync>; bench?: Sync & { checkedAt?: string };
   covered?: Record<string, Covered>; actionList?: Record<string, Action[]>;
   strategies?: Strategy[]; results?: Record<string, Stored>; paper?: Paper[]; draft?: Draft;
-  addDraft?: string; storage?: number; ui?: Ui; receipts?: Receipt[]; problem?: string; syncedAt?: string; note?: string;
+  addDraft?: string; storage?: number; storageLimit?: number; ui?: Ui; receipts?: Receipt[]; problem?: string; syncedAt?: string; note?: string;
 }
 export interface Context {
   state: State; database: Database; callTool(name: string, args: Record<string, unknown>): Promise<unknown>;
@@ -31,7 +31,7 @@ export interface Context {
 
 export const DEFAULT_UNIVERSE = ['RELIANCE', 'HDFCBANK', 'ICICIBANK', 'INFY', 'TCS', 'BHARTIARTL', 'ITC', 'LT', 'SBIN', 'HINDUNILVR'];
 export const BENCHMARKS = ['Nifty 50', 'Nifty 500', 'Nifty Next 50', 'Nifty Bank', 'Nifty Midcap 100'];
-export const MAX_UNIVERSE = 15, MAX_STRATEGIES = 12, MAX_PAPER = 6, MAX_TRADES = 400;
+export const MAX_UNIVERSE = 50, MAX_STRATEGIES = 12, MAX_PAPER = 6, MAX_TRADES = 400;
 /** NSE's history window: five years back from the present. Earlier chunks answer "not found". */
 export const WINDOW_YEARS = 5;
 const SYMBOL = /^[A-Z0-9][A-Z0-9&.-]{0,24}$/;
@@ -99,6 +99,7 @@ export function normalize(s: State): State {
   s.draft = selected ? (d && d.forId === selected.id ? { ...draftOf(selected), ...(d as unknown as Draft), forId: selected.id, params: { ...draftOf(selected).params, ...(obj(d.params) ?? {}) } as Draft['params'] } : draftOf(selected)) : undefined;
   s.addDraft = str(s.addDraft, 400);
   s.storage = finite(s.storage) ? s.storage : 0;
+  s.storageLimit = finite(s.storageLimit) ? s.storageLimit : 0;
   s.receipts = (Array.isArray(s.receipts) ? s.receipts : []).slice(0, 80);
   s.problem = s.problem ? str(s.problem, 500) : undefined;
   return s;
@@ -154,6 +155,13 @@ async function refreshCoverage(ctx: Context) {
   ctx.state.covered = Object.fromEntries([...cov.entries()].map(([k, c]) => [k, { first: c.first, last: c.last, sessions: c.sessions }]));
 }
 
+/** Progress can outlive its database (a replaced database file, an older schema): whatever has no sessions saved is read again. */
+function rereadLost(s: State) {
+  const lost = (key: string, e: Sync) => { if (e.done && !e.error && !s.covered![key]?.sessions) { e.done = false; e.next = 'today'; e.until = ''; delete e.actionsAt; delete e.actionsError; } };
+  lost(INDEX_KEY(s.benchmark!), s.bench!);
+  for (const sym of s.universe!) lost(sym, s.sync![sym]!);
+}
+
 /** The previous session in the benchmark calendar, which is the exchange's own record of trading days. */
 async function calendar(ctx: Context): Promise<string[]> {
   return (await loadBars(ctx.database, INDEX_KEY(ctx.state.benchmark!))).map((b) => b.date);
@@ -166,7 +174,7 @@ async function calendar(ctx: Context): Promise<string[]> {
  */
 export async function sync(ctx: Context) {
   const s = normalize(ctx.state), t0 = Date.now(), failures: string[] = [];
-  await initialize(ctx.database); await refreshCoverage(ctx);
+  await initialize(ctx.database); await refreshCoverage(ctx); rereadLost(s);
   let budget = 15;
   const late = () => Date.now() - t0 > 18_000 || budget <= 0;
   const benchKey = INDEX_KEY(s.benchmark!);
@@ -298,6 +306,7 @@ async function chartOf(ctx: Context): Promise<Chart | undefined> {
 }
 async function render(ctx: Context, focusSurface?: string) {
   const s = ctx.state;
+  s.storageLimit = ctx.database.maxBytes;
   await initialize(ctx.database);
   return { updates: view(s, today(ctx), await chartOf(ctx)), ...(focusSurface ? { focusSurface } : {}) };
 }
@@ -352,7 +361,6 @@ export async function handleAction(controlId: string, value: unknown, ctx: Conte
       const add = symbols(s.addDraft).filter((x) => !s.universe!.includes(x));
       if (!add.length) throw new Error('Type one or more NSE symbols to add, separated by commas.');
       if (s.universe!.length + add.length > MAX_UNIVERSE) throw new Error(`The universe holds up to ${MAX_UNIVERSE} stocks; remove some before adding ${add.length}.`);
-      if ((s.storage ?? 0) > STORAGE_GUARD) throw new Error('Saved history is close to the app\u2019s 2 MiB storage limit; remove a stock before adding more.');
       s.universe!.push(...add); for (const x of add) s.sync![x] = { next: 'today', until: '', done: false };
       s.addDraft = ''; s.note = `${add.join(', ')} added; history syncs in the background.`;
       return render(ctx);

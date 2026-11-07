@@ -352,6 +352,7 @@ function paper(s: State): Update {
 
 // --- Data ----------------------------------------------------------------------------
 
+const mib = (bytes: number) => `${(bytes / 1048576).toFixed(bytes < 10485760 ? 1 : 0)} MiB`;
 function data(s: State, on: string): Update {
   const pr = progress(s), bench = s.covered![`INDEX:${s.benchmark}`];
   const stocks = s.universe!.map((sym) => {
@@ -364,7 +365,7 @@ function data(s: State, on: string): Update {
   const pctDone = pr.total ? Math.round(pr.done / pr.total * 100) : 0;
   const nodes: Node[] = [
     { id: 'root', type: 'stack', props: { density: 'compact', gap: 'md' }, children: ['cap', ...notice(s).map((n) => n.id), 'prog', 'controls', 'tabs'] },
-    caption('cap', `Daily NSE history saved on this computer: up to five years per stock (from ${day(windowStart(on))}), then each new session. ${s.universe!.length} of ${MAX_UNIVERSE} stocks · benchmark ${bench ? `${day(bench.first)} – ${day(bench.last)}` : 'not saved yet'} · storage ${((s.storage ?? 0) / 1048576).toFixed(1)} of 2 MiB.`),
+    caption('cap', `Daily NSE history saved on this computer: up to five years per stock (from ${day(windowStart(on))}), then each new session. ${s.universe!.length} of ${MAX_UNIVERSE} stocks · benchmark ${bench ? `${day(bench.first)} – ${day(bench.last)}` : 'not saved yet'} · storage ${mib(s.storage ?? 0)}${s.storageLimit ? ` of ${mib(s.storageLimit)}` : ''}.`),
     ...notice(s),
     { id: 'prog', type: 'progress', props: { label: pr.ready ? 'History complete' : `History saving in the background · ${pr.done} of ${pr.total} stocks`, value: pctDone, show: 'value' } },
     { id: 'controls', type: 'stack', props: { direction: 'horizontal', gap: 'sm', wrap: true, align: 'end' }, children: ['add', 'add-go', 'bench', 'sync'] },
@@ -382,7 +383,7 @@ function data(s: State, on: string): Update {
     { id: 'st-actions', type: 'stack', props: { direction: 'horizontal', gap: 'sm' }, children: ['st-retry', 'st-remove'] },
     { id: 'st-retry', type: 'button', props: { label: 'Sync again', action: 'retry_symbol', payload: { symbol: '{symbol}' }, style: 'link' } },
     { id: 'st-remove', type: 'button', props: { label: '{confirm}', action: 'remove_symbol', payload: { symbol: '{symbol}' }, style: 'link' } },
-    caption('st-note', 'The scheduled sync runs every two minutes while Background operation is on; Sync now runs one step. Each step reads at most fifteen chunks, so the first full history of ten stocks takes about twenty minutes. Five years of 15 stocks use about 1.5 MiB of the app’s 2 MiB storage.'),
+    caption('st-note', 'The scheduled sync runs every two minutes while Background operation is on; Sync now runs one step. Each step reads at most fifteen chunks, so the first full history of ten stocks takes about twenty minutes.'),
     caption('st-none', 'No stocks yet. Add NSE symbols above.'),
     { id: 'ca-table', type: 'table', props: { sortable: true, searchable: true, pageSize: 20, columns: [{ key: 'symbol', label: 'Stock' }, { key: 'date', label: 'Ex-date' }, { key: 'kind', label: 'Type' }, { key: 'purpose', label: 'Purpose' }, { key: 'factor', label: 'Price factor', align: 'end' }], rows: { records: '{/actions}', fields: ['symbol', 'date', 'kind', 'purpose', 'factor'] } } },
     caption('ca-none', 'No corporate actions saved yet; they are checked weekly once a stock’s history is complete.'),

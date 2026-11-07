@@ -20,7 +20,7 @@
 
 ## Boundaries
 
-Brokered tools only, no network listener, no broker or credentials. Each run makes at most fifteen reads, stays inside the 30-second deadline and the query bound of 10,000 rows (about 1,300 per stock per query). Storage is bounded by the host’s 2 MiB database snapshot: 15 stocks of five-year history use about 1.5 MiB (measured with a checkpoint after every command), Data shows the use and adding stops at 1.75 MiB. State is bounded: 15 stocks, 12 strategies, 6 paper accounts, 400 trades and fills per book, 80 receipts.
+Brokered tools only, no network listener, no broker or credentials. Each run makes at most fifteen reads, stays inside the 30-second deadline and the query bound of 10,000 rows (about 1,300 per stock per query). State is bounded: 50 stocks, 12 strategies, 6 paper accounts, 400 trades and fills per book, 80 receipts. The database is `bars` (volume kept, `PRIMARY KEY(symbol, date)`, `INSERT OR REPLACE`, so NSE’s latest reading wins) and `actions`, with a declared limit of 256 MiB (`storage.databaseMiB`); Data shows the use against `context.database.maxBytes`. Five years of 50 stocks measured 5.5 MiB on a real DuckDB file, and the largest single-stock read 126 KiB of the 256 KiB query bound. A saved database without volume is replaced, and any stock or benchmark with progress but no saved sessions is read from NSE again. State is bounded: 15 stocks, 12 strategies, 6 paper accounts, 400 trades and fills per book, 80 receipts.
 
 ## Extension points
 
