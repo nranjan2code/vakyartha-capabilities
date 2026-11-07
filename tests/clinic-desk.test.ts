@@ -29,3 +29,17 @@ test("Clinic Desk routes people to the relevant tab and keeps calendar navigatio
   const schedule = view(context.state, now(), ["today"])[0]!;
   assert.match(String(schedule.nodes.find((node) => node.id === "tabs")?.props?.active), /^appts#\d+$/);
 });
+
+test("Today's filters have an action of their own in every state and view", () => {
+  // The surface lint rejects inputs nothing submits; a quiet clinic in week or month view shows
+  // no booking card or tab action that could cover them (an update then failed outright).
+  const quiet = normalize({ ...emptyState(), clinic: { name: "Test Clinic", timezone: "UTC", tagline: "", phone: "", address: "" }, doctors: [doctor] });
+  for (const shown of ["list", "week", "month"] as const) {
+    const state = normalize({ ...quiet, ui: { ...quiet.ui!, view: shown } });
+    const nodes = view(state, now(), ["today"])[0]!.nodes as { id: string; type: string; children?: string[]; props: Record<string, unknown> }[];
+    const filters = nodes.find((n) => n.id === "filters")!;
+    assert.deepEqual(filters.children!.slice(0, 2), ["filter", "view"]);
+    const always = filters.children!.map((id) => nodes.find((n) => n.id === id)!).filter((n) => n.type === "button" && n.props.action && !n.props.visibleIf);
+    assert.ok(always.length, `no action beside the filters in ${shown}`);
+  }
+});

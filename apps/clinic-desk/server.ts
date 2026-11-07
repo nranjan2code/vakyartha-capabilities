@@ -653,14 +653,17 @@ function todaySurface(s: State, nowDate: Date): Update {
       { id: "head", type: "stack", props: { gap: "xs" }, children: ["title", "subtitle"] },
       { id: "title", type: "text", props: { content: "{/title}", variant: "heading" } },
       caption("subtitle", "{/subtitle}"),
-      row("bar", ["prev", "date", "next", "now", "walkin", "book", "ask", "export"]),
+      row("bar", ["prev", "date", "next", "now", "walkin", "book", "export"]),
       btn("prev", "Previous day", "prev_day"), { id: "date", type: "date", props: { label: "Day", bind: "/date", maxWidth: "sm" } }, btn("next", "Next day", "next_day"),
       btn("now", "Today", "go_today", "secondary", undefined, { visibleIf: "{/notToday}" }),
       btn("walkin", "Walk-in", "walk_in", "primary", undefined, { visibleIf: "{/isToday}" }),
       btn("book", "New booking", "view.open", isToday ? "secondary" : "primary", { surface: "book" }),
       btn("ask", "Ask assistant", "assistant.compose", "secondary", { path: "assistantRequest", workflowPath: "assistantWorkflow" }),
       btn("export", "Export CSV", "file.save", "link", { name: "/export/name", text: "/export/csv" }, { visibleIf: "{/hasAppts}" }),
-      row("filters", ["filter", "view"]),
+      // Ask stays here: an action that is always shown gives these two inputs a submit scope in
+      // their own row. Without it they relied on whatever the tabs below happened to offer, and
+      // a quiet clinic in week or month view had none, which the surface lint rejects.
+      row("filters", ["filter", "view", "ask"]),
       { id: "filter", type: "select", props: { label: "Doctor", bind: "/filter", options: "{/doctorFilterOptions}" } },
       { id: "view", type: "select", props: { label: "Show", bind: "/view", options: [{ label: "Day list", value: "list" }, { label: "Week", value: "week" }, { label: "Month", value: "month" }] } },
       { id: "stats", type: "grid", props: { columns: 5, minItemWidth: "sm", gap: "sm" }, children: ["st-booked", "st-in", "st-done", "st-miss", "st-free"] },

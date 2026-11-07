@@ -3,6 +3,7 @@
 ## Unreleased
 
 - NSE Strategy Lab (development channel) declares `storage.databaseMiB: 256`, so it needs a Vakyartha with ADR-084. It keeps volume again, holds one row per symbol and date with NSE's latest reading winning, takes up to 50 stocks, and shows storage against the declared limit. A database saved by the earlier package is replaced and its sessions read again.
+- Clinic Desk: Today's doctor and view filters keep an action in their own row (Ask assistant moves beside them). A clinic with a doctor but nothing actionable below, in week or month view, or on a day it could not book, projected a surface the host refused, which failed the app's update.
 
 ## 1.0.1 (unreleased)
 
