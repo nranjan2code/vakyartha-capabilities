@@ -1,11 +1,12 @@
 # Document Desk
 
-Keep your documents in one searchable library. Add PDF, Word, Markdown, web page, spreadsheet and text files, or share a folder and the library stays in step with it. Find passages by meaning, exact phrase or pattern, and read them as clean text.
+Keep your documents in one searchable library, filed in your own categories. Add PDF, Word, Excel, PowerPoint, OpenDocument, EPUB, RTF, email, Markdown, web page, spreadsheet and text files, or share a folder and the library stays in step with it. Find passages by meaning, exact phrase or pattern, and read them as clean text.
 
 ## Use it
 
 - **Add documents.** Choose up to 20 files at a time (20 MB each). The original is kept for this app only; the library keeps its text as Markdown. A file already in the library is not added twice.
 - **Share a folder.** Opens the app's Shared folders panel. The folder and its subfolders are read, never changed, moved or deleted; hidden files and links are skipped. When you close the panel the folders are checked. New and edited files are read, files you removed leave the library. With Background operation on, folders are checked every 10 minutes; **Check folders now** on Sources does it at once.
+- **Categories.** The Categories view makes one drawer per kind of paper, such as Home, Health or Taxes. Each category can file documents by itself: by words in the title or top headings, by a subfolder of a shared folder, or by kind, and categories are tried top to bottom (Up and Down change the order). A document you file yourself (Details, or **File results** after a search) stays where you put it; **Apply rules to the library** files the rest again. Deleting a category keeps its documents. **Category** filters the list and every search.
 - **Search.** Type words and press **Search**. *Best match* ranks documents by relevance (rare words count most, titles and headings more than body text, documents your other documents link to a little more) and shows the best passage with your words in bold, its section and why it matched. Put "an exact phrase" in quotes; put -word to leave out documents that contain it. *Exact text* lists every line containing the text; *Pattern* takes a regular expression. **Kind** narrows any search and the list.
 - **Read.** Choosing a result opens the document beside the list at that passage. Long documents are read in parts; **Outline** jumps to a heading, **Links** lists documents it links to and those linking to it, **Read aloud** reads the open part. **Details** shows where it came from, its tags and its status.
 - **Needs attention.** Files that could not be read or have no text (such as scanned PDFs) are listed with the reason and **Try again**.
@@ -19,6 +20,6 @@ Document records and their Markdown live in this app's database (up to 512 MB). 
 ## Limits
 
 - PDF text comes from the system's PDF engine and needs macOS. Scanned PDFs without a text layer have no searchable text; text recognition is not included.
-- Word documents must be .docx. Up to 4 MB of text per document, 2,000 spreadsheet rows, 5,000 files across shared folders, 8 shared folders.
+- Kinds: PDF; Word (.docx), OpenDocument text (.odt) and rich text (.rtf); Excel (.xlsx) and OpenDocument sheets (.ods), CSV and TSV; PowerPoint (.pptx) and OpenDocument slides (.odp), one section per slide; EPUB books; saved emails (.eml), with sender, date and attachment names; Markdown, web pages, JSON and text. Older binary formats (.doc, .xls, .ppt) and images are not read. Up to 4 MB of text per document, 2,000 spreadsheet rows, 5,000 files across shared folders, 8 shared folders.
 - A check reads up to about 100 changed files; more wait for the next check, and Sources says how many.
 - The Documents list shows the 1,000 most recent documents; search covers all of them.

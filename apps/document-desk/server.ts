@@ -6,14 +6,20 @@
 // the database whenever the corpus revision moves.
 import { convert } from "./convert.ts";
 import { buildView, type Query, type Update } from "./views.ts";
-import { deleteDoc, ensureSchema, folderDocId, invalidate, library, outline, parts, saveDoc, uploadDocId, type Database, type Doc, type Library, type SearchEngine } from "./library.ts";
+import { KIND_GROUP, KIND_GROUPS, passes, deleteCategory, deleteDoc, ensureSchema, folderDocId, invalidate, library, outline, parts, ruleCategory, saveCategory, saveDoc, type Category, uploadDocId, type Database, type Doc, type Library, type SearchEngine } from "./library.ts";
 
 export interface SyncState { at?: string; added?: number; updated?: number; removed?: number; failed?: number; waiting?: number; folders?: { path: string; name: string }[]; message?: string }
 export interface State {
   rev?: number; query?: string; mode?: "smart" | "exact" | "regex"; kind?: string;
   openId?: string; part?: number; tab?: string; tabTick?: number; confirmDelete?: boolean; tags?: string;
   sync?: SyncState; notice?: string; excluded?: string[];
+  /** Library filter: "all", "none" (uncategorised) or a category id. */
+  category?: string;
+  /** The open document's category choice, the bulk-filing target, and the category drafts. */
+  docCategory?: string; bulkCategory?: string;
+  newCategory?: CategoryDraft; editCategory?: string; editDraft?: CategoryDraft; confirmCategory?: string;
 }
+export interface CategoryDraft { name: string; words: string; folder: string; kind: string }
 interface Staged { ref: unknown; name: string; kind: string; text?: string; bytes?: Uint8Array; pages?: string[]; pdfTitle?: string; size?: number; modified?: number; sha256?: string; error?: string }
 interface Documents {
   list(): Promise<{ folders: { index: number; path: string; name: string }[]; files: { folder: number; path: string; size: number; modified: number; tooLarge?: boolean }[]; truncated: boolean; available: boolean }>;
@@ -23,7 +29,7 @@ interface Documents {
 export interface Context { state: State; database?: Database; documents?: Documents; search?: SearchEngine; now?: () => Date }
 
 const MODES = new Set(["smart", "exact", "regex"]);
-const KINDS = new Set(["all", "pdf", "word", "markdown", "web", "sheet", "text"]);
+const KINDS = new Set(["all", ...KIND_GROUPS.map(([k]) => k)]);
 const READ_BATCH = 8, MAX_READS = 13;
 
 export function normalize(s: State): State {
@@ -36,7 +42,34 @@ export function normalize(s: State): State {
     confirmDelete: s.confirmDelete === true, tags: line(s.tags, 300),
     sync: s.sync && typeof s.sync === "object" ? s.sync : {}, notice: line(s.notice, 400),
     excluded: Array.isArray(s.excluded) ? s.excluded.filter((x): x is string => typeof x === "string").slice(0, 5000) : [],
+    category: line(s.category, 80) || "all", docCategory: line(s.docCategory, 80), bulkCategory: line(s.bulkCategory, 80),
+    newCategory: draft(s.newCategory), editCategory: line(s.editCategory, 80) || undefined, editDraft: draft(s.editDraft), confirmCategory: line(s.confirmCategory, 80) || undefined,
   };
+}
+
+function draft(v: unknown): CategoryDraft {
+  const d = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
+  const t = (x: unknown, n: number) => (typeof x === "string" ? x : "").replace(/\s+/g, " ").slice(0, n);
+  return { name: t(d.name, 60), words: t(d.words, 300), folder: t(d.folder, 200), kind: KINDS.has(String(d.kind)) ? String(d.kind) : "all" };
+}
+/** A draft as a saved category: a name, rule words, a subfolder and a kind (all optional but the name). */
+function fromDraft(d: CategoryDraft, id: string, position: number): Category {
+  const name = d.name.trim();
+  if (!name) throw new Error("Give the category a name");
+  return { id, name, words: [...new Set(d.words.toLowerCase().split(/[,;]+/).map(w => w.trim().replace(/[^\p{L}\p{N} ]+/gu, " ").replace(/\s+/g, " ").trim()).filter(Boolean))].slice(0, 20), folder: d.folder.trim().replace(/^\/+|\/+$/g, ""), kind: d.kind === "all" ? "" : d.kind, position };
+}
+const blankDraft = (): CategoryDraft => ({ name: "", words: "", folder: "", kind: "all" });
+
+/** Files every document a person has not filed by hand by the categories' rules; returns how many moved. */
+async function applyRules(db: Database, lib: Library): Promise<number> {
+  let moved = 0;
+  for (const d of lib.docs.values()) {
+    if (d.categoryBy === "person") continue;
+    const id = ruleCategory(d, lib.texts.get(d.id) ?? "", lib.categories);
+    if (id === d.category) continue;
+    await saveDoc(db, { ...d, category: id, categoryBy: id ? "rule" : "" }); moved++;
+  }
+  return moved;
 }
 
 const needs = (c: Context): { db: Database; engine: SearchEngine } => {
@@ -50,8 +83,15 @@ const bump = (s: State) => { s.rev = (s.rev ?? 0) + 1; invalidate(); };
 const focus = (s: State, tab: string) => { s.tab = tab; s.tabTick = (s.tabTick ?? 0) + 1; };
 
 /** One staged file to a document record and its Markdown. */
-function toDoc(base: Omit<Doc, "title" | "status" | "note" | "words" | "pages" | "tags" | "added" | "updated">, file: Staged, prior: Doc | undefined, now: string): { doc: Doc; markdown?: string } {
-  const common = { ...base, tags: prior?.tags ?? [], added: prior?.added ?? now, updated: now };
+function toDoc(base: Omit<Doc, "title" | "status" | "note" | "words" | "pages" | "tags" | "added" | "updated" | "category" | "categoryBy">, file: Staged, prior: Doc | undefined, now: string, categories: readonly Category[] = []): { doc: Doc; markdown?: string } {
+  const doc = finishDoc(base, file, prior, now);
+  // A category the person chose stays; otherwise the categories' rules file it.
+  if (prior?.categoryBy === "person") return { ...doc, doc: { ...doc.doc, category: prior.category, categoryBy: "person" } };
+  const category = ruleCategory(doc.doc, doc.markdown ?? "", categories);
+  return { ...doc, doc: { ...doc.doc, category, categoryBy: category ? "rule" : "" } };
+}
+function finishDoc(base: Omit<Doc, "title" | "status" | "note" | "words" | "pages" | "tags" | "added" | "updated" | "category" | "categoryBy">, file: Staged, prior: Doc | undefined, now: string): { doc: Doc; markdown?: string } {
+  const common = { ...base, tags: prior?.tags ?? [], added: prior?.added ?? now, updated: now, category: "", categoryBy: "" as const };
   if (file.error) return { doc: { ...common, title: prior?.title || base.name.replace(/\.[^.]+$/, ""), status: "failed", note: file.error, words: 0, pages: 0 }, markdown: "" };
   try {
     const out = convert({ name: file.name, kind: file.kind, text: file.text, bytes: file.bytes, pages: file.pages, pdfTitle: file.pdfTitle });
@@ -76,7 +116,7 @@ async function addUploads(c: Context, s: State, value: unknown, lib: Library, no
       const upload = (file.ref as { upload: string }).upload;
       const same = file.sha256 ? known.get(file.sha256) : undefined;
       if (same) { dupes++; await c.documents.forget(upload); continue; }
-      const { doc, markdown } = toDoc({ id: uploadDocId(upload), kind: file.kind, source: "upload", folder: "", path: "", upload, name: file.name, size: file.size ?? 0, modified: file.modified ?? Date.parse(now), sha256: file.sha256 ?? "" }, file, undefined, now);
+      const { doc, markdown } = toDoc({ id: uploadDocId(upload), kind: file.kind, source: "upload", folder: "", path: "", upload, name: file.name, size: file.size ?? 0, modified: file.modified ?? Date.parse(now), sha256: file.sha256 ?? "" }, file, undefined, now, lib.categories);
       await saveDoc(db, doc, markdown);
       if (doc.status === "failed") failed++; else added++;
       if (file.sha256) known.set(file.sha256, doc);
@@ -114,7 +154,7 @@ export async function sync(c: Context, s: State, deadline: number, now: string):
     const prior = lib.docs.get(id);
     if (prior && prior.size === file.size && prior.modified === file.modified) continue;
     if (file.tooLarge) {
-      if (prior?.note !== "Larger than 20 MB") { await saveDoc(db, { id, title: file.path.split("/").pop()!.replace(/\.[^.]+$/, ""), kind: file.path.split(".").pop()!.toLowerCase(), source: "folder", folder: folder.path, path: file.path, upload: "", name: file.path.split("/").pop()!, size: file.size, modified: file.modified, sha256: "", added: now, updated: now, status: "failed", note: "Larger than 20 MB", words: 0, pages: 0, tags: [] }, ""); changed = true; }
+      if (prior?.note !== "Larger than 20 MB") { await saveDoc(db, { id, title: file.path.split("/").pop()!.replace(/\.[^.]+$/, ""), kind: file.path.split(".").pop()!.toLowerCase(), source: "folder", folder: folder.path, path: file.path, upload: "", name: file.path.split("/").pop()!, size: file.size, modified: file.modified, sha256: "", added: now, updated: now, status: "failed", note: "Larger than 20 MB", words: 0, pages: 0, tags: [], category: "", categoryBy: "" }, ""); changed = true; }
       failed++; continue;
     }
     todo.push({ id, folder, file, prior });
@@ -132,7 +172,7 @@ export async function sync(c: Context, s: State, deadline: number, now: string):
         // Touched but unchanged: keep the text, remember the new time.
         await saveDoc(db, { ...t.prior, modified: file.modified ?? t.file.modified, size: file.size ?? t.file.size }); changed = true; continue;
       }
-      const { doc, markdown } = toDoc({ id: t.id, kind: file.kind, source: "folder", folder: t.folder.path, path: t.file.path, upload: "", name: file.name, size: file.size ?? t.file.size, modified: file.modified ?? t.file.modified, sha256: file.sha256 ?? "" }, file, t.prior, now);
+      const { doc, markdown } = toDoc({ id: t.id, kind: file.kind, source: "folder", folder: t.folder.path, path: t.file.path, upload: "", name: file.name, size: file.size ?? t.file.size, modified: file.modified ?? t.file.modified, sha256: file.sha256 ?? "" }, file, t.prior, now, lib.categories);
       await saveDoc(db, doc, markdown); changed = true;
       if (doc.status === "failed") failed++; else if (t.prior) updated++; else added++;
     }
@@ -161,6 +201,11 @@ export async function handleAction(controlId: string, value: unknown, context: C
     else if (controlId === "/mode") { s.mode = MODES.has(String(value)) ? value as State["mode"] : "smart"; if (s.query) focus(s, "results"); }
     else if (controlId === "/kind") s.kind = KINDS.has(String(value)) ? String(value) : "all";
     else if (controlId === "/doc/tags") s.tags = String(value ?? "").slice(0, 300);
+    else if (controlId === "/category") s.category = String(value ?? "all").slice(0, 80) || "all";
+    else if (controlId === "/doc/category") s.docCategory = String(value ?? "").slice(0, 80);
+    else if (controlId === "/bulkCategory") s.bulkCategory = String(value ?? "").slice(0, 80);
+    else if (controlId.startsWith("/newCategory/")) s.newCategory = draft({ ...s.newCategory, [controlId.slice(13)]: value });
+    else if (controlId.startsWith("/editDraft/")) s.editDraft = draft({ ...s.editDraft, [controlId.slice(11)]: value });
     else return { updates: [] };
   } else if (action === "search") {
     if (s.query) focus(s, "results");
@@ -169,7 +214,7 @@ export async function handleAction(controlId: string, value: unknown, context: C
   } else if (action === "open") {
     const lib = await library(db, s.rev!, engine);
     if (!id || !lib.docs.has(id)) throw new Error("This document is no longer in the library");
-    s.openId = id; s.confirmDelete = false; s.tags = lib.docs.get(id)!.tags.join(", ");
+    s.openId = id; s.confirmDelete = false; s.tags = lib.docs.get(id)!.tags.join(", "); s.docCategory = lib.docs.get(id)!.category;
     s.part = Number.isInteger(payload.part) ? payload.part as number : Number.isInteger(payload.line) ? partOfLine(lib, id, payload.line as number) : 0;
     focusSurface = "library";
   } else if (action === "part") {
@@ -184,8 +229,70 @@ export async function handleAction(controlId: string, value: unknown, context: C
     const lib = await library(db, s.rev!, engine);
     const doc = s.openId ? lib.docs.get(s.openId) : undefined;
     if (!doc) throw new Error("Open a document first");
-    await saveDoc(db, { ...doc, tags: tagsFrom(s.tags), updated: now }); bump(s);
-    s.notice = "Tags saved.";
+    const category = lib.categories.some(c => c.id === s.docCategory) ? s.docCategory! : "";
+    // Choosing a category, or choosing none, is the person's; rules never move it afterwards.
+    const changed = category !== doc.category;
+    await saveDoc(db, { ...doc, tags: tagsFrom(s.tags), ...(changed ? { category, categoryBy: "person" as const } : {}), updated: now }); bump(s);
+    s.notice = changed ? `Filed in ${lib.categories.find(c => c.id === category)?.name ?? "no category"}. Tags saved.` : "Tags saved.";
+  } else if (action === "add_category") {
+    const lib = await library(db, s.rev!, engine);
+    if (lib.categories.length >= 200) throw new Error("A library keeps up to 200 categories");
+    const c = fromDraft(s.newCategory!, `c-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, lib.categories.length);
+    if (lib.categories.some(x => x.name.toLowerCase() === c.name.toLowerCase())) throw new Error(`There is already a category called ${c.name}`);
+    await saveCategory(db, c); bump(s);
+    const moved = await applyRules(db, await library(db, s.rev!, engine)); if (moved) bump(s);
+    s.newCategory = blankDraft();
+    s.notice = `Category ${c.name} added.${moved ? ` Its rule filed ${moved} document${moved === 1 ? "" : "s"}.` : ""}`;
+  } else if (action === "edit_category") {
+    const c = (await library(db, s.rev!, engine)).categories.find(x => x.id === id);
+    if (!c) throw new Error("This category no longer exists");
+    s.editCategory = c.id; s.confirmCategory = undefined;
+    s.editDraft = { name: c.name, words: c.words.join(", "), folder: c.folder, kind: c.kind || "all" };
+  } else if (action === "cancel_category") {
+    s.editCategory = undefined; s.confirmCategory = undefined;
+  } else if (action === "save_category") {
+    const lib = await library(db, s.rev!, engine);
+    const old = lib.categories.find(x => x.id === s.editCategory);
+    if (!old) throw new Error("This category no longer exists");
+    const c = fromDraft(s.editDraft!, old.id, old.position);
+    if (lib.categories.some(x => x.id !== c.id && x.name.toLowerCase() === c.name.toLowerCase())) throw new Error(`There is already a category called ${c.name}`);
+    await saveCategory(db, c); bump(s);
+    const moved = await applyRules(db, await library(db, s.rev!, engine)); if (moved) bump(s);
+    s.editCategory = undefined;
+    s.notice = `Category ${c.name} saved.${moved ? ` ${moved} document${moved === 1 ? "" : "s"} refiled by its rules.` : ""}`;
+  } else if (action === "move_category") {
+    const lib = await library(db, s.rev!, engine);
+    const order = [...lib.categories], i = order.findIndex(x => x.id === id), j = i + (Number((value as { by?: unknown })?.by) < 0 ? -1 : 1);
+    if (i < 0 || j < 0 || j >= order.length) return { updates: await render(context, s) };
+    [order[i], order[j]] = [order[j]!, order[i]!];
+    for (const [n, c] of order.entries()) if (c.position !== n) await saveCategory(db, { ...c, position: n });
+    bump(s);
+    // Rules are tried in order, so the new order can refile documents.
+    if (await applyRules(db, await library(db, s.rev!, engine))) bump(s);
+  } else if (action === "ask_delete_category") {
+    s.confirmCategory = id; s.editCategory = undefined;
+  } else if (action === "delete_category") {
+    const lib = await library(db, s.rev!, engine);
+    const c = lib.categories.find(x => x.id === s.confirmCategory);
+    if (!c) throw new Error("This category no longer exists");
+    await deleteCategory(db, c.id); bump(s);
+    if (await applyRules(db, await library(db, s.rev!, engine))) bump(s);
+    if (s.category === c.id) s.category = "all";
+    s.confirmCategory = undefined;
+    s.notice = `Category ${c.name} deleted. Its documents are kept, filed by the remaining rules or uncategorised.`;
+  } else if (action === "apply_rules") {
+    const moved = await applyRules(db, await library(db, s.rev!, engine)); if (moved) bump(s);
+    s.notice = moved ? `${moved} document${moved === 1 ? "" : "s"} filed by the rules. Documents you filed yourself stay where you put them.` : "Every document already matches the rules.";
+  } else if (action === "show_category") {
+    s.category = id ?? "all"; s.query = ""; focus(s, "documents"); focusSurface = "library";
+  } else if (action === "file_results") {
+    const lib = await library(db, s.rev!, engine);
+    const target = lib.categories.find(c => c.id === s.bulkCategory);
+    if (!target) throw new Error("Choose a category for these results");
+    const ids = resultIds(s, lib, engine);
+    for (const docId of ids) { const d = lib.docs.get(docId)!; if (d.category !== target.id || d.categoryBy !== "person") await saveDoc(db, { ...d, category: target.id, categoryBy: "person" }); }
+    bump(s);
+    s.notice = `Filed ${ids.length} document${ids.length === 1 ? "" : "s"} in ${target.name}.`;
   } else if (action === "retry") {
     const lib = await library(db, s.rev!, engine);
     const doc = id ? lib.docs.get(id) : undefined;
@@ -225,6 +332,16 @@ export async function syncFolders(context: Context): Promise<{ updates: Update[]
   return { updates: await render(context, s) };
 }
 
+/** The documents the current search shows, as the Results tab lists them. */
+function resultIds(s: State, lib: Library, engine: SearchEngine): string[] {
+  if (!s.query) return [];
+  const include = (id: string) => inFilter(s, lib.docs.get(id));
+  if (s.mode === "smart") return lib.index.search(s.query, { limit: 40, include }).map(h => h.id);
+  return [...new Set(engine.grep([...lib.texts].filter(([id]) => include(id)).map(([id, text]) => ({ id, text })), s.query, { regex: s.mode === "regex", limit: 60 }).matches.map(m => m.documentId))];
+}
+/** Whether a document passes the Library's kind and category filters. */
+const inFilter = (s: State, d: Doc | undefined): boolean => passes(d, s.kind, s.category);
+
 async function render(context: Context, s: State): Promise<Update[]> {
   const { db, engine } = needs(context);
   const lib = await library(db, s.rev!, engine);
@@ -242,7 +359,7 @@ export async function renderApp(context: Context) {
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
 
-const GROUP: Record<string, string> = { pdf: "pdf", docx: "word", md: "markdown", markdown: "markdown", html: "web", htm: "web", csv: "sheet", tsv: "sheet", txt: "text", text: "text", json: "text" };
+const GROUP = KIND_GROUP;
 
 /** The heading path in force at a line. */
 function sectionAt(markdown: string, line: number): string {
@@ -256,7 +373,16 @@ export async function handleQuery(tool: string, params: Record<string, unknown>,
   const { db, engine } = needs(context);
   const lib = await library(db, s.rev!, engine);
   const where = (d: Doc) => d.source === "folder" ? `${d.folder.split("/").pop()}/${d.path}` : "uploaded";
-  const meta = (d: Doc) => ({ kind: GROUP[d.kind] ?? d.kind, ...(d.pages ? { pages: d.pages } : {}), updated: d.updated.slice(0, 10) });
+  const catName = (id: string) => lib.categories.find(c => c.id === id)?.name;
+  const meta = (d: Doc) => ({ kind: GROUP[d.kind] ?? d.kind, ...(d.category && catName(d.category) ? { category: catName(d.category) } : {}), ...(d.pages ? { pages: d.pages } : {}), updated: d.updated.slice(0, 10) });
+  /** A category named by the model: its name, any case; "none" means uncategorised. */
+  const categoryParam = (v: unknown): string => {
+    if (typeof v !== "string" || !v.trim()) return "all";
+    if (v.trim().toLowerCase() === "none") return "none";
+    const c = lib.categories.find(x => x.name.toLowerCase() === v.trim().toLowerCase());
+    if (!c) throw new Error(`No category is called ${v}; categories: ${lib.categories.map(x => x.name).join(", ") || "none yet"}`);
+    return c.id;
+  };
   const docOf = (id: unknown) => {
     const doc = typeof id === "string" ? lib.docs.get(id) : undefined;
     if (!doc) throw new Error("No document has that id; use search_documents or list_documents for ids");
@@ -270,7 +396,8 @@ export async function handleQuery(tool: string, params: Record<string, unknown>,
     const only = params.document !== undefined ? docOf(params.document).id : undefined;
     const kind = typeof params.kind === "string" ? params.kind : undefined;
     const tags = Array.isArray(params.tags) ? params.tags.filter((t): t is string => typeof t === "string").map(t => t.toLowerCase()) : [];
-    const include = (id: string) => { const d = lib.docs.get(id); return Boolean(d) && (!only || id === only) && (!kind || GROUP[d!.kind] === kind) && tags.every(t => d!.tags.includes(t)); };
+    const category = categoryParam(params.category);
+    const include = (id: string) => { const d = lib.docs.get(id); return passes(d, kind ?? "all", category) && (!only || id === only) && tags.every(t => d!.tags.includes(t)); };
     if (mode === "smart") {
       return { query, results: lib.index.search(query, { limit, passagesPerDocument: 2, include }).map(h => {
         const d = lib.docs.get(h.id)!;
@@ -313,11 +440,13 @@ export async function handleQuery(tool: string, params: Record<string, unknown>,
     const title = typeof params.title === "string" ? params.title.toLowerCase().trim() : "";
     const offset = Math.max(0, Number(params.offset) || 0), limit = Math.max(1, Math.min(100, Number(params.limit) || 30));
     const order = params.sort === "oldest" ? (a: Doc, b: Doc) => a.updated.localeCompare(b.updated) : params.sort === "title" ? (a: Doc, b: Doc) => a.title.localeCompare(b.title) : (a: Doc, b: Doc) => b.updated.localeCompare(a.updated);
-    const all = [...lib.docs.values()].filter(d => (!tag || d.tags.includes(tag)) && (!kind || GROUP[d.kind] === kind) && (!title || d.title.toLowerCase().includes(title))).sort(order);
-    return { total: all.length, offset, documents: all.slice(offset, offset + limit).map(d => ({ id: d.id, title: d.title, source: where(d), ...meta(d), status: d.status, words: d.words, tags: d.tags })) };
+    const category = categoryParam(params.category);
+    const all = [...lib.docs.values()].filter(d => passes(d, kind || "all", category) && (!tag || d.tags.includes(tag)) && (!title || d.title.toLowerCase().includes(title))).sort(order);
+    return { total: all.length, offset, categories: lib.categories.map(c => ({ name: c.name, documents: [...lib.docs.values()].filter(d => d.category === c.id).length })), documents: all.slice(offset, offset + limit).map(d => ({ id: d.id, title: d.title, source: where(d), ...meta(d), status: d.status, words: d.words, tags: d.tags })) };
   }
   throw new Error(`Unknown Document Desk tool: ${tool}`);
 }
 
 /** The shipped surface.json: every view of a new, empty library. */
-export const surfaceFile = () => buildView(normalize({}), undefined, undefined, syncSummary).map(u => ({ id: u.surface, title: u.surface === "library" ? "Library" : "Sources", data: u.data[0]!.value, nodes: u.nodes }));
+const TITLES: Record<string, string> = { library: "Library", categories: "Categories", sources: "Sources" };
+export const surfaceFile = () => buildView(normalize({}), undefined, undefined, syncSummary).map(u => ({ id: u.surface, title: TITLES[u.surface], data: u.data[0]!.value, nodes: u.nodes }));

@@ -1,7 +1,7 @@
 // The two views, derived from the library and the saved choices on every run:
 // Library (search, the collection and the open document) and Sources (shared
 // folders, sync health and files that need attention).
-import { outline, parts, type Doc, type Highlight, type Library, type SearchEngine } from "./library.ts";
+import { KIND_GROUPS, outline, parts, passes, type Category, type Doc, type Highlight, type Library, type SearchEngine } from "./library.ts";
 import type { State, SyncState } from "./server.ts";
 
 export interface Node { id: string; type: string; props?: Record<string, unknown>; children?: string[] | { each: string; template: string } }
@@ -9,9 +9,8 @@ export interface Update { surface: string; nodes: Node[]; data: { op: "replace";
 export interface Query { text: string; mode: "smart" | "exact" | "regex" }
 
 const MAX_LISTED = 1000;
-const KIND_GROUP: Record<string, string> = { pdf: "pdf", docx: "word", md: "markdown", markdown: "markdown", html: "web", htm: "web", csv: "sheet", tsv: "sheet", txt: "text", text: "text", json: "text" };
-const KIND_LABEL: Record<string, string> = { pdf: "PDF", docx: "Word", md: "Markdown", markdown: "Markdown", html: "Web page", htm: "Web page", csv: "Spreadsheet", tsv: "Spreadsheet", txt: "Text", text: "Text", json: "JSON" };
-const KIND_OPTIONS = [["all", "All kinds"], ["pdf", "PDF"], ["word", "Word"], ["markdown", "Markdown"], ["web", "Web pages"], ["sheet", "Spreadsheets"], ["text", "Text"]].map(([value, label]) => ({ value, label }));
+const KIND_LABEL: Record<string, string> = { pdf: "PDF", docx: "Word", odt: "OpenDocument text", rtf: "Rich text", md: "Markdown", markdown: "Markdown", html: "Web page", htm: "Web page", csv: "Spreadsheet", tsv: "Spreadsheet", xlsx: "Excel", ods: "OpenDocument sheet", pptx: "PowerPoint", odp: "OpenDocument slides", epub: "Book", eml: "Email", txt: "Text", text: "Text", json: "JSON" };
+const KIND_OPTIONS = [["all", "All kinds"], ...KIND_GROUPS].map(([value, label]) => ({ value, label }));
 const MODE_OPTIONS = [{ value: "smart", label: "Best match" }, { value: "exact", label: "Exact text" }, { value: "regex", label: "Pattern" }];
 
 const plural = (n: number, w: string) => `${n.toLocaleString("en")} ${w}${n === 1 ? "" : "s"}`;
@@ -34,7 +33,7 @@ function tabbed(id: string, active: string, panels: [string, string, string[]][]
 }
 
 export function buildView(s: State, lib: Library | undefined, engine: SearchEngine | undefined, syncSummary: (y: SyncState) => string): Update[] {
-  return [librarySurface(s, lib, engine), sourcesSurface(s, lib, syncSummary)];
+  return [librarySurface(s, lib, engine), categoriesSurface(s, lib), sourcesSurface(s, lib, syncSummary)];
 }
 
 function results(s: State, lib: Library, engine: SearchEngine, include: (id: string) => boolean): { items: Record<string, unknown>[]; summary: string; error?: string } {
@@ -70,7 +69,9 @@ function results(s: State, lib: Library, engine: SearchEngine, include: (id: str
 
 function librarySurface(s: State, lib: Library | undefined, engine: SearchEngine | undefined): Update {
   const docs = lib ? [...lib.docs.values()] : [];
-  const include = (id: string) => s.kind === "all" || KIND_GROUP[lib!.docs.get(id)?.kind ?? ""] === s.kind;
+  const include = (id: string) => passes(lib!.docs.get(id), s.kind, s.category);
+  const cats = lib?.categories ?? [];
+  const catName = (id: string) => cats.find(c => c.id === id)?.name ?? "";
   const listed = docs.filter(d => include(d.id)).sort((a, b) => b.updated.localeCompare(a.updated));
   const attention = docs.filter(d => d.status !== "indexed");
   const searched = Boolean(s.query && lib && engine);
@@ -79,7 +80,7 @@ function librarySurface(s: State, lib: Library | undefined, engine: SearchEngine
   const totalWords = docs.reduce((n, d) => n + d.words, 0);
 
   const panels: [string, string, string[]][] = [];
-  if (searched) panels.push(["results", `Results (${found!.items.length})`, found!.error ? ["results-error"] : found!.items.length ? ["results-caption", "results-list"] : ["results-caption"]]);
+  if (searched) panels.push(["results", `Results (${found!.items.length})`, found!.error ? ["results-error"] : found!.items.length ? ["results-caption", ...(cats.length ? ["file-bar"] : []), "results-list"] : ["results-caption"]]);
   panels.push(["documents", `Documents (${listed.length.toLocaleString("en")})`, listed.length ? ["documents-list", ...(listed.length > MAX_LISTED ? ["documents-more"] : [])] : ["documents-empty"]]);
   if (attention.length) panels.push(["attention", `Needs attention (${attention.length})`, ["attention-list"]]);
   const active = panels.some(p => p[0] === s.tab) ? `${s.tab}#${s.tabTick}` : `${panels[0]![0]}#${s.tabTick}`;
@@ -87,10 +88,11 @@ function librarySurface(s: State, lib: Library | undefined, engine: SearchEngine
   const nodes: Node[] = [
     { id: "root", type: "stack", props: { gap: "md", density: "compact" }, children: ["summary", "toolbar", ...(s.notice ? ["notice"] : []), docs.length ? "work" : "welcome"] },
     { id: "summary", type: "text", props: { content: "{/summary}", variant: "caption" } },
-    { id: "toolbar", type: "stack", props: { direction: "horizontal", wrap: true, gap: "sm", align: "end" }, children: ["query", "mode", "kind", "go", ...(s.query ? ["clear"] : []), "add", "share"] },
+    { id: "toolbar", type: "stack", props: { direction: "horizontal", wrap: true, gap: "sm", align: "end" }, children: ["query", "mode", "kind", ...(cats.length ? ["category"] : []), "go", ...(s.query ? ["clear"] : []), "add", "share"] },
     { id: "query", type: "input", props: { label: "Search", bind: "/query", placeholder: "Words, \"an exact phrase\", or -word to leave out" } },
     { id: "mode", type: "select", props: { label: "Match", bind: "/mode", options: MODE_OPTIONS, presentation: "dropdown", maxWidth: "sm" } },
     { id: "kind", type: "select", props: { label: "Kind", bind: "/kind", options: KIND_OPTIONS, presentation: "dropdown", maxWidth: "sm" } },
+    ...(cats.length ? [{ id: "category", type: "select", props: { label: "Category", bind: "/category", options: "{/categoryOptions}", presentation: "dropdown", maxWidth: "sm" } }] : []),
     { id: "go", type: "button", props: { label: "Search", action: "search", style: "primary" } },
     ...(s.query ? [{ id: "clear", type: "button", props: { label: "Clear", action: "clear_search", style: "link" } }] : []),
     { id: "add", type: "button", props: { label: "Add documents", action: "documents.upload", payload: { then: "add_uploads" }, style: "secondary" } },
@@ -117,6 +119,11 @@ function librarySurface(s: State, lib: Library | undefined, engine: SearchEngine
       ] : []),
       ...(searched ? found!.error ? [{ id: "results-error", type: "alert", props: { title: "This pattern cannot be searched", body: found!.error, tone: "warning" } }] : [
         { id: "results-caption", type: "text", props: { content: "{/resultsSummary}", variant: "caption" } },
+        ...(found!.items.length && cats.length ? [
+          { id: "file-bar", type: "stack", props: { direction: "horizontal", gap: "sm", align: "end", wrap: true }, children: ["file-target", "file-go"] },
+          { id: "file-target", type: "select", props: { label: "File these results in", bind: "/bulkCategory", options: "{/fileOptions}", presentation: "dropdown", maxWidth: "sm" } },
+          { id: "file-go", type: "button", props: { label: "File results", action: "file_results", style: "secondary" } },
+        ] : []),
         ...(found!.items.length ? [
           { id: "results-list", type: "grid", props: { columns: 1, gap: "sm", pageSize: 10 }, children: { each: "/results", template: "hit" } },
           { id: "hit", type: "card", props: { title: "{title}", subtitle: "{where}", action: "open", payload: { id: "{id}", line: "{line}" }, titleLines: 2 }, children: ["hit-snippet", "hit-why"] },
@@ -130,7 +137,10 @@ function librarySurface(s: State, lib: Library | undefined, engine: SearchEngine
   const data: Record<string, unknown> = {
     summary: docs.length ? [plural(docs.length, "document"), `${plural(totalWords, "word")} searchable`, s.sync?.at ? `folders checked ${day(s.sync.at)}` : ""].filter(Boolean).join(" · ") : "Your documents, kept as searchable text.",
     query: s.query ?? "", mode: s.mode, kind: s.kind, notice: s.notice ?? "",
-    documents: listed.slice(0, MAX_LISTED).map(d => ({ id: d.id, title: d.title, badge: badge(d), tone: d.id === s.openId ? "info" : tone(d), meta: [where(d), d.pages ? plural(d.pages, "page") : plural(d.words, "word"), day(d.updated)].join(" · ") })),
+    documents: listed.slice(0, MAX_LISTED).map(d => ({ id: d.id, title: d.title, badge: badge(d), tone: d.id === s.openId ? "info" : tone(d), meta: [catName(d.category), where(d), d.pages ? plural(d.pages, "page") : plural(d.words, "word"), day(d.updated)].filter(Boolean).join(" · ") })),
+    categoryOptions: [{ value: "all", label: "All categories" }, { value: "none", label: "Uncategorised" }, ...cats.map(c => ({ value: c.id, label: c.name }))],
+    category: s.category, bulkCategory: s.bulkCategory ?? "",
+    fileOptions: [{ value: "", label: "Choose a category" }, ...cats.map(c => ({ value: c.id, label: c.name }))],
     attention: attention.map(d => ({ id: d.id, title: d.title, note: d.note || "Not read", badge: badge(d), tone: tone(d) })),
     ...(searched ? { results: found!.items, resultsSummary: found!.summary } : {}),
     ...(open ? readerData(s, lib!, open) : {}),
@@ -152,7 +162,7 @@ export function routeWords(docs: readonly Doc[], lib: Library): string {
     if (size + part.length > 6000) break;
     out.push(part); size += part.length + 1;
   }
-  return out.join(" ");
+  return [...lib.categories.map(c => c.name), ...out].join(" ");
 }
 
 function readerNodes(s: State, lib: Library, d: Doc): Node[] {
@@ -187,9 +197,10 @@ function readerNodes(s: State, lib: Library, d: Doc): Node[] {
       { id: "related", type: "card", props: { title: "{title}", subtitle: "{relation}", layout: "row", action: "open", payload: { id: "{id}" } } },
     ] : []),
     { id: "details-table", type: "table", props: { columns: [{ key: "field", label: "Field" }, { key: "value", label: "Value" }], rows: "{/doc/details}" } },
-    { id: "tags-bar", type: "stack", props: { direction: "horizontal", align: "end", gap: "sm" }, children: ["tags", "save-tags"] },
+    { id: "tags-bar", type: "stack", props: { direction: "horizontal", align: "end", gap: "sm", wrap: true }, children: [...(lib.categories.length ? ["doc-category"] : []), "tags", "save-tags"] },
+    ...(lib.categories.length ? [{ id: "doc-category", type: "select", props: { label: "Category", bind: "/doc/category", options: "{/doc/categoryOptions}", presentation: "dropdown", maxWidth: "sm" } }] : []),
     { id: "tags", type: "input", props: { label: "Tags", bind: "/doc/tags", placeholder: "contracts, home" } },
-    { id: "save-tags", type: "button", props: { label: "Save tags", action: "save_tags", style: "secondary" } },
+    { id: "save-tags", type: "button", props: { label: lib.categories.length ? "Save" : "Save tags", action: "save_tags", style: "secondary" } },
     ...(s.confirmDelete ? [
       { id: "confirm", type: "card", props: { title: d.source === "folder" ? "Leave this file out of the library?" : "Delete this document?", body: d.source === "folder" ? "Its text leaves the library. The file in your folder is not touched." : "Its text and the kept original are removed for good.", tone: "danger" }, children: ["confirm-bar"] },
       { id: "confirm-bar", type: "stack", props: { direction: "horizontal", gap: "sm" }, children: ["delete-yes", "delete-no"] },
@@ -214,8 +225,10 @@ function readerData(s: State, lib: Library, d: Doc): Record<string, unknown> {
       outline: outline(text).map(h => ({ label: `${"  ".repeat(Math.max(0, h.level - 1))}${h.text}`, part: partOf(h.line) })),
       related: related.filter(([id]) => lib.docs.has(id)).map(([id, relation]) => ({ id, title: lib.docs.get(id)!.title, relation })),
       tags: s.tags ?? d.tags.join(", "),
+      category: s.docCategory ?? d.category,
+      categoryOptions: [{ value: "", label: "No category" }, ...lib.categories.map(c => ({ value: c.id, label: c.name }))],
       details: [
-        ["Source", d.source === "folder" ? `Shared folder ${d.folder}` : "Uploaded"], ...(d.path ? [["File", d.path]] : [["File", d.name]]),
+        ["Source", d.source === "folder" ? `Shared folder ${d.folder}` : "Uploaded"], ...(d.category ? [["Category", `${lib.categories.find(c => c.id === d.category)?.name ?? ""} (${d.categoryBy === "person" ? "filed by you" : "filed by its rule"})`]] : []), ...(d.path ? [["File", d.path]] : [["File", d.name]]),
         ["Kind", KIND_LABEL[d.kind] ?? d.kind], ["Size", size(d.size)], ["Added", day(d.added)], ["Updated", day(d.updated)],
         ["Status", d.status === "indexed" ? "Searchable" : d.status === "empty" ? "No readable text" : "Not read"], ...(d.note ? [["Note", d.note]] : []), ["Fingerprint", d.sha256.slice(0, 16)],
       ].map(([field, value]) => ({ field, value })),
@@ -225,6 +238,62 @@ function readerData(s: State, lib: Library, d: Doc): Record<string, unknown> {
 }
 
 const stripForSpeech = (md: string) => md.replace(/```[\s\S]*?```/g, " ").replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/^#{1,6}\s+/gm, "").replace(/[*_`>|]/g, "").replace(/\n{2,}/g, "\n\n").trim().slice(0, 8000);
+
+const ruleText = (c: Category) => [c.words.length ? `title or headings mention ${c.words.join(", ")}` : "", c.folder ? `in shared subfolder ${c.folder}` : "", c.kind ? `${KIND_OPTIONS.find(k => k.value === c.kind)?.label ?? c.kind} files` : ""].filter(Boolean).join("; ");
+const draftFields = (prefix: string, at: string): Node[] => [
+  { id: `${prefix}-name`, type: "input", props: { label: "Name", bind: `${at}/name`, placeholder: "Home, Health, Taxes", maxWidth: "sm" } },
+  { id: `${prefix}-words`, type: "input", props: { label: "File automatically when the title or headings mention", bind: `${at}/words`, placeholder: "lease, rent, landlord" } },
+  { id: `${prefix}-folder`, type: "input", props: { label: "Or files in this shared subfolder", bind: `${at}/folder`, placeholder: "Home/Contracts", maxWidth: "sm" } },
+  { id: `${prefix}-kind`, type: "select", props: { label: "Only this kind", bind: `${at}/kind`, options: KIND_OPTIONS, presentation: "dropdown", maxWidth: "sm" } },
+];
+
+/** Categories: one per drawer, with optional rules that file new documents; the person's own filing always wins. */
+function categoriesSurface(s: State, lib: Library | undefined): Update {
+  const cats = lib?.categories ?? [], docs = lib ? [...lib.docs.values()] : [];
+  const count = (id: string) => docs.filter(d => d.category === id).length;
+  const editing = cats.find(c => c.id === s.editCategory), confirming = cats.find(c => c.id === s.confirmCategory);
+  const nodes: Node[] = [
+    { id: "root", type: "stack", props: { gap: "md", density: "compact" }, children: ["caption", "add-section", ...(editing ? ["edit-section"] : []), ...(confirming ? ["confirm-cat"] : []), cats.length ? "list-section" : "no-cats"] },
+    { id: "caption", type: "text", props: { content: "{/caption}", variant: "caption" } },
+    { id: "add-section", type: "section", props: { title: "New category", description: "Rules are optional. A document matches when every part you fill in holds; categories are tried top to bottom." }, children: ["add-form"] },
+    { id: "add-form", type: "stack", props: { direction: "horizontal", wrap: true, gap: "sm", align: "end" }, children: ["new-name", "new-words", "new-folder", "new-kind", "add-cat"] },
+    ...draftFields("new", "/newCategory"),
+    { id: "add-cat", type: "button", props: { label: "Add category", action: "add_category", style: "primary" } },
+    ...(editing ? [
+      { id: "edit-section", type: "section", props: { title: `Edit ${editing.name}` }, children: ["edit-form"] },
+      { id: "edit-form", type: "stack", props: { direction: "horizontal", wrap: true, gap: "sm", align: "end" }, children: ["edit-name", "edit-words", "edit-folder", "edit-kind", "edit-save", "edit-cancel"] },
+      ...draftFields("edit", "/editDraft"),
+      { id: "edit-save", type: "button", props: { label: "Save category", action: "save_category", style: "primary" } },
+      { id: "edit-cancel", type: "button", props: { label: "Cancel", action: "cancel_category", style: "link" } },
+    ] : []),
+    ...(confirming ? [
+      { id: "confirm-cat", type: "card", props: { title: `Delete ${confirming.name}?`, body: "Its documents stay in the library; the remaining rules file them, or they become uncategorised.", tone: "danger" }, children: ["confirm-cat-bar"] },
+      { id: "confirm-cat-bar", type: "stack", props: { direction: "horizontal", gap: "sm" }, children: ["cat-delete-yes", "cat-delete-no"] },
+      { id: "cat-delete-yes", type: "button", props: { label: "Delete category", action: "delete_category", style: "danger" } },
+      { id: "cat-delete-no", type: "button", props: { label: "Keep it", action: "cancel_category", style: "secondary" } },
+    ] : []),
+    ...(cats.length ? [
+      { id: "list-section", type: "section", props: { title: "{/listTitle}" }, children: ["list-bar", "cat-list"] },
+      { id: "list-bar", type: "stack", props: { direction: "horizontal", gap: "sm", wrap: true }, children: ["apply-rules"] },
+      { id: "apply-rules", type: "button", props: { label: "Apply rules to the library", action: "apply_rules", style: "secondary" } },
+      { id: "cat-list", type: "grid", props: { columns: 1, gap: "sm", searchable: cats.length > 10, pageSize: 20 }, children: { each: "/categories", template: "cat-card" } },
+      { id: "cat-card", type: "card", props: { title: "{name}", subtitle: "{meta}", body: "{rule}", layout: "row", action: "show_category", payload: { id: "{id}" } }, children: ["cat-bar"] },
+      { id: "cat-bar", type: "stack", props: { direction: "horizontal", gap: "sm", wrap: true }, children: ["cat-up", "cat-down", "cat-edit", "cat-delete"] },
+      { id: "cat-up", type: "button", props: { label: "Up", action: "move_category", payload: { id: "{id}", by: -1 }, style: "link", visibleIf: "{canUp}" } },
+      { id: "cat-down", type: "button", props: { label: "Down", action: "move_category", payload: { id: "{id}", by: 1 }, style: "link", visibleIf: "{canDown}" } },
+      { id: "cat-edit", type: "button", props: { label: "Edit", action: "edit_category", payload: { id: "{id}" }, style: "secondary" } },
+      { id: "cat-delete", type: "button", props: { label: "Delete", action: "ask_delete_category", payload: { id: "{id}" }, style: "link" } },
+    ] : [{ id: "no-cats", type: "text", props: { content: "No categories yet. Make one per kind of paper you keep, such as Home, Health or Taxes. Documents you file yourself stay where you put them.", variant: "caption" } }]),
+  ];
+  const uncategorised = docs.filter(d => !d.category).length;
+  const data = {
+    caption: cats.length ? `${plural(cats.length, "category")} · ${plural(uncategorised, "document")} uncategorised` : "Group your documents into categories. Each document has one category; tags can still cross them.",
+    newCategory: s.newCategory, ...(editing ? { editDraft: s.editDraft } : {}),
+    listTitle: plural(cats.length, "category"),
+    categories: cats.map((c, i) => ({ id: c.id, name: c.name, meta: plural(count(c.id), "document"), rule: ruleText(c) || "No rule: filed by hand only.", canUp: i > 0, canDown: i < cats.length - 1 })),
+  };
+  return { surface: "categories", nodes, data: replace(data) };
+}
 
 function sourcesSurface(s: State, lib: Library | undefined, syncSummary: (y: SyncState) => string): Update {
   const docs = lib ? [...lib.docs.values()] : [];

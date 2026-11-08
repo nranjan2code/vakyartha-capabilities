@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "channel": "dev",
   "name": "Document Desk",
-  "description": "Keep your documents in one searchable library. Add PDF, Word, Markdown, web page, spreadsheet and text files, or share a folder and the library stays in step with it. Find passages by meaning, exact phrase or pattern, and read them as clean text.",
+  "description": "Keep your documents in one searchable library, filed in your own categories. Add PDF, Word, Excel, PowerPoint, OpenDocument, EPUB, RTF, email, Markdown, web page, spreadsheet and text files, or share a folder and the library stays in step with it. Find passages by meaning, exact phrase or pattern, and read them as clean text.",
   "author": "Vakyartha",
   "icon": "book",
   "brand": "#4f46e5",
@@ -52,7 +52,7 @@
         "name": "search_documents",
         "title": "Search documents",
         "readOnly": true,
-        "description": "Search the person's own documents (contracts, policies, bills, notes, reports) kept in Document Desk. Start here for any question about what their papers say. mode smart (default) returns the best documents, each with its best passages, section and line; put a phrase that must appear in \"quotes\" and -word to leave documents out. mode exact finds lines containing the text; mode regex finds lines matching a regular expression. Narrow with document (one id), kind or tags. Read-only.",
+        "description": "Search the person's own documents (contracts, policies, bills, notes, reports) kept in Document Desk. Start here for any question about what their papers say. mode smart (default) returns the best documents, each with its best passages, section and line; put a phrase that must appear in \"quotes\" and -word to leave documents out. mode exact finds lines containing the text; mode regex finds lines matching a regular expression. Narrow with document (one id), category, kind or tags. Read-only.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -78,9 +78,12 @@
               "enum": [
                 "pdf",
                 "word",
+                "sheet",
+                "slides",
                 "markdown",
                 "web",
-                "sheet",
+                "book",
+                "email",
                 "text"
               ]
             },
@@ -96,6 +99,11 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 20
+            },
+            "category": {
+              "type": "string",
+              "maxLength": 60,
+              "description": "A category name, or none for uncategorised"
             }
           },
           "required": [
@@ -164,7 +172,7 @@
         "name": "list_documents",
         "title": "List documents",
         "readOnly": true,
-        "description": "List Document Desk documents with id, title, kind, pages, date, status and tags. Newest first by default; sort oldest or title. Narrow with kind, tag or words in the title (title). Use it for questions like \"my latest bill\" or \"which policies do I have\". Read-only.",
+        "description": "List Document Desk documents with id, title, category, kind, pages, date, status and tags, and the person's categories with their counts. Newest first by default; sort oldest or title. Narrow with category, kind, tag or words in the title (title). Use it for questions like \"my latest bill\", \"what is in Health\" or \"which policies do I have\". Read-only.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -173,9 +181,12 @@
               "enum": [
                 "pdf",
                 "word",
+                "sheet",
+                "slides",
                 "markdown",
                 "web",
-                "sheet",
+                "book",
+                "email",
                 "text"
               ]
             },
@@ -203,6 +214,11 @@
             "offset": {
               "type": "integer",
               "minimum": 0
+            },
+            "category": {
+              "type": "string",
+              "maxLength": 60,
+              "description": "A category name, or none for uncategorised"
             }
           },
           "additionalProperties": false

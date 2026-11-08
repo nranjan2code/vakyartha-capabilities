@@ -9,6 +9,24 @@
       "kind": "all",
       "notice": "",
       "documents": [],
+      "categoryOptions": [
+        {
+          "value": "all",
+          "label": "All categories"
+        },
+        {
+          "value": "none",
+          "label": "Uncategorised"
+        }
+      ],
+      "category": "all",
+      "bulkCategory": "",
+      "fileOptions": [
+        {
+          "value": "",
+          "label": "Choose a category"
+        }
+      ],
       "attention": [],
       "route": {
         "keywords": ""
@@ -104,7 +122,15 @@
             },
             {
               "value": "word",
-              "label": "Word"
+              "label": "Documents"
+            },
+            {
+              "value": "sheet",
+              "label": "Spreadsheets"
+            },
+            {
+              "value": "slides",
+              "label": "Presentations"
             },
             {
               "value": "markdown",
@@ -115,8 +141,12 @@
               "label": "Web pages"
             },
             {
-              "value": "sheet",
-              "label": "Spreadsheets"
+              "value": "book",
+              "label": "Books"
+            },
+            {
+              "value": "email",
+              "label": "Email"
             },
             {
               "value": "text",
@@ -206,6 +236,170 @@
             "then": "sync"
           },
           "style": "secondary"
+        }
+      }
+    ]
+  },
+  {
+    "id": "categories",
+    "title": "Categories",
+    "data": {
+      "caption": "Group your documents into categories. Each document has one category; tags can still cross them.",
+      "newCategory": {
+        "name": "",
+        "words": "",
+        "folder": "",
+        "kind": "all"
+      },
+      "listTitle": "0 categorys",
+      "categories": []
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "caption",
+          "add-section",
+          "no-cats"
+        ]
+      },
+      {
+        "id": "caption",
+        "type": "text",
+        "props": {
+          "content": "{/caption}",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "add-section",
+        "type": "section",
+        "props": {
+          "title": "New category",
+          "description": "Rules are optional. A document matches when every part you fill in holds; categories are tried top to bottom."
+        },
+        "children": [
+          "add-form"
+        ]
+      },
+      {
+        "id": "add-form",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
+        },
+        "children": [
+          "new-name",
+          "new-words",
+          "new-folder",
+          "new-kind",
+          "add-cat"
+        ]
+      },
+      {
+        "id": "new-name",
+        "type": "input",
+        "props": {
+          "label": "Name",
+          "bind": "/newCategory/name",
+          "placeholder": "Home, Health, Taxes",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "new-words",
+        "type": "input",
+        "props": {
+          "label": "File automatically when the title or headings mention",
+          "bind": "/newCategory/words",
+          "placeholder": "lease, rent, landlord"
+        }
+      },
+      {
+        "id": "new-folder",
+        "type": "input",
+        "props": {
+          "label": "Or files in this shared subfolder",
+          "bind": "/newCategory/folder",
+          "placeholder": "Home/Contracts",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "new-kind",
+        "type": "select",
+        "props": {
+          "label": "Only this kind",
+          "bind": "/newCategory/kind",
+          "options": [
+            {
+              "value": "all",
+              "label": "All kinds"
+            },
+            {
+              "value": "pdf",
+              "label": "PDF"
+            },
+            {
+              "value": "word",
+              "label": "Documents"
+            },
+            {
+              "value": "sheet",
+              "label": "Spreadsheets"
+            },
+            {
+              "value": "slides",
+              "label": "Presentations"
+            },
+            {
+              "value": "markdown",
+              "label": "Markdown"
+            },
+            {
+              "value": "web",
+              "label": "Web pages"
+            },
+            {
+              "value": "book",
+              "label": "Books"
+            },
+            {
+              "value": "email",
+              "label": "Email"
+            },
+            {
+              "value": "text",
+              "label": "Text"
+            }
+          ],
+          "presentation": "dropdown",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "add-cat",
+        "type": "button",
+        "props": {
+          "label": "Add category",
+          "action": "add_category",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "no-cats",
+        "type": "text",
+        "props": {
+          "content": "No categories yet. Make one per kind of paper you keep, such as Home, Health or Taxes. Documents you file yourself stay where you put them.",
+          "variant": "caption"
         }
       }
     ]
