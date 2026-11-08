@@ -1,0 +1,350 @@
+[
+  {
+    "id": "library",
+    "title": "Library",
+    "data": {
+      "summary": "Your documents, kept as searchable text.",
+      "query": "",
+      "mode": "smart",
+      "kind": "all",
+      "notice": "",
+      "documents": [],
+      "attention": []
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "summary",
+          "toolbar",
+          "welcome"
+        ]
+      },
+      {
+        "id": "summary",
+        "type": "text",
+        "props": {
+          "content": "{/summary}",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "toolbar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
+        },
+        "children": [
+          "query",
+          "mode",
+          "kind",
+          "go",
+          "add",
+          "share"
+        ]
+      },
+      {
+        "id": "query",
+        "type": "input",
+        "props": {
+          "label": "Search",
+          "bind": "/query",
+          "placeholder": "Words, \"an exact phrase\", or -word to leave out"
+        }
+      },
+      {
+        "id": "mode",
+        "type": "select",
+        "props": {
+          "label": "Match",
+          "bind": "/mode",
+          "options": [
+            {
+              "value": "smart",
+              "label": "Best match"
+            },
+            {
+              "value": "exact",
+              "label": "Exact text"
+            },
+            {
+              "value": "regex",
+              "label": "Pattern"
+            }
+          ],
+          "presentation": "dropdown",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "kind",
+        "type": "select",
+        "props": {
+          "label": "Kind",
+          "bind": "/kind",
+          "options": [
+            {
+              "value": "all",
+              "label": "All kinds"
+            },
+            {
+              "value": "pdf",
+              "label": "PDF"
+            },
+            {
+              "value": "word",
+              "label": "Word"
+            },
+            {
+              "value": "markdown",
+              "label": "Markdown"
+            },
+            {
+              "value": "web",
+              "label": "Web pages"
+            },
+            {
+              "value": "sheet",
+              "label": "Spreadsheets"
+            },
+            {
+              "value": "text",
+              "label": "Text"
+            }
+          ],
+          "presentation": "dropdown",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "go",
+        "type": "button",
+        "props": {
+          "label": "Search",
+          "action": "search",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "add",
+        "type": "button",
+        "props": {
+          "label": "Add documents",
+          "action": "documents.upload",
+          "payload": {
+            "then": "add_uploads"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "share",
+        "type": "button",
+        "props": {
+          "label": "Share a folder",
+          "action": "documents.folders",
+          "payload": {
+            "then": "sync"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "welcome",
+        "type": "section",
+        "props": {
+          "title": "Start your library",
+          "description": "Add PDF, Word, Markdown, web page, spreadsheet or text files, or share a folder and the library keeps itself in step with it. Everything becomes searchable text; the files stay yours and are never changed."
+        },
+        "children": [
+          "welcome-bar"
+        ]
+      },
+      {
+        "id": "welcome-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm"
+        },
+        "children": [
+          "welcome-add",
+          "welcome-share"
+        ]
+      },
+      {
+        "id": "welcome-add",
+        "type": "button",
+        "props": {
+          "label": "Add documents",
+          "action": "documents.upload",
+          "payload": {
+            "then": "add_uploads"
+          },
+          "style": "primary"
+        }
+      },
+      {
+        "id": "welcome-share",
+        "type": "button",
+        "props": {
+          "label": "Share a folder",
+          "action": "documents.folders",
+          "payload": {
+            "then": "sync"
+          },
+          "style": "secondary"
+        }
+      }
+    ]
+  },
+  {
+    "id": "sources",
+    "title": "Sources",
+    "data": {
+      "caption": "Share a folder to keep the library in step with it. With Background operation on, folders are checked every 10 minutes.",
+      "stats": {
+        "docs": "0",
+        "folders": "0",
+        "uploads": "0",
+        "attention": "0"
+      },
+      "folders": []
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "caption",
+          "bar",
+          "stats",
+          "no-folders"
+        ]
+      },
+      {
+        "id": "caption",
+        "type": "text",
+        "props": {
+          "content": "{/caption}",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm"
+        },
+        "children": [
+          "share",
+          "rescan",
+          "add"
+        ]
+      },
+      {
+        "id": "share",
+        "type": "button",
+        "props": {
+          "label": "Share a folder",
+          "action": "documents.folders",
+          "payload": {
+            "then": "sync"
+          },
+          "style": "primary"
+        }
+      },
+      {
+        "id": "rescan",
+        "type": "button",
+        "props": {
+          "label": "Check folders now",
+          "action": "sync",
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "add",
+        "type": "button",
+        "props": {
+          "label": "Add documents",
+          "action": "documents.upload",
+          "payload": {
+            "then": "add_uploads"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "stats",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "md"
+        },
+        "children": [
+          "stat-docs",
+          "stat-folders",
+          "stat-uploads",
+          "stat-attention"
+        ]
+      },
+      {
+        "id": "stat-docs",
+        "type": "stat",
+        "props": {
+          "label": "Documents",
+          "value": "{/stats/docs}"
+        }
+      },
+      {
+        "id": "stat-folders",
+        "type": "stat",
+        "props": {
+          "label": "Shared folders",
+          "value": "{/stats/folders}"
+        }
+      },
+      {
+        "id": "stat-uploads",
+        "type": "stat",
+        "props": {
+          "label": "Uploaded",
+          "value": "{/stats/uploads}"
+        }
+      },
+      {
+        "id": "stat-attention",
+        "type": "stat",
+        "props": {
+          "label": "Need attention",
+          "value": "{/stats/attention}"
+        }
+      },
+      {
+        "id": "no-folders",
+        "type": "text",
+        "props": {
+          "content": "No folders are shared yet. A shared folder is read, never changed: new and edited files are picked up when the folders are checked, and files you remove leave the library.",
+          "variant": "caption"
+        }
+      }
+    ]
+  }
+]

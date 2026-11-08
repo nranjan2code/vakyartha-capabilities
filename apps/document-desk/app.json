@@ -1,0 +1,97 @@
+{
+  "id": "document-desk",
+  "version": "1.0.0",
+  "channel": "dev",
+  "name": "Document Desk",
+  "description": "Keep your documents in one searchable library. Add PDF, Word, Markdown, web page, spreadsheet and text files, or share a folder and the library stays in step with it. Find passages by meaning, exact phrase or pattern, and read them as clean text.",
+  "author": "Vakyartha",
+  "icon": "book",
+  "brand": "#4f46e5",
+  "category": "productivity",
+  "entrypoints": {
+    "backend": "server.ts",
+    "surface": "surface.json",
+    "render": "renderApp"
+  },
+  "runtime": {
+    "engine": "node26",
+    "memoryLimitMb": 512,
+    "cpuTimeLimitSec": 120,
+    "maxStorageMb": 16
+  },
+  "entitlements": {
+    "network": {
+      "mode": "airgap",
+      "allowedDomains": []
+    },
+    "mcpTools": [],
+    "documents": {
+      "upload": true,
+      "folders": true,
+      "reason": "Document Desk keeps the files you add and the folders you share as searchable text."
+    },
+    "storage": {
+      "duckdb": true,
+      "databaseMiB": 512
+    },
+    "toolActions": {},
+    "toolPurposes": {}
+  },
+  "triggers": [
+    { "id": "check-folders", "kind": "cron", "expression": "*/10 * * * *", "action": "syncFolders", "maxDurationSec": 120 }
+  ],
+  "exports": {
+    "tools": [
+      {
+        "name": "search_documents",
+        "title": "Search documents",
+        "description": "Search the person's Document Desk library. mode smart (default) ranks documents by relevance and returns the best passages with their section and line; \"quoted phrases\" must appear and -word leaves documents out. mode exact finds lines containing the text; mode regex finds lines matching a regular expression. Read-only.",
+        "readOnly": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "minLength": 1, "maxLength": 300 },
+            "mode": { "type": "string", "enum": ["smart", "exact", "regex"] },
+            "limit": { "type": "integer", "minimum": 1, "maximum": 20 }
+          },
+          "required": ["query"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "read_document",
+        "title": "Read a document",
+        "description": "Read up to about 12,000 characters of one Document Desk document as Markdown, from a line (use a search result's line) or from offsetLine. more says whether text continues; read on from toLine + 1. Read-only.",
+        "readOnly": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string", "minLength": 1, "maxLength": 80 },
+            "line": { "type": "integer", "minimum": 1 },
+            "offsetLine": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "list_documents",
+        "title": "List documents",
+        "description": "List Document Desk documents, most recently updated first, optionally with one tag. Returns id, title, kind, source, status, words, pages and tags. Read-only.",
+        "readOnly": true,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "tag": { "type": "string", "maxLength": 32 },
+            "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
+            "offset": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      }
+    ],
+    "skills": [
+      { "name": "document-desk-reader", "description": "Answer questions from the person's own documents in Document Desk: search, read the passage, and cite it.", "path": "skills/document-desk-reader/SKILL.md" }
+    ]
+  }
+}

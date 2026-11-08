@@ -1,0 +1,283 @@
+// Document Desk: a library of the person's documents, kept as Markdown and
+// searchable by relevance, exact phrase or pattern. Files arrive two ways, both
+// owned by the host: uploads (`documents.upload`) and folders shared read-only
+// (`documents.folders`). The app database is the only data owner; the search
+// index comes from Projection's engine (`context.search`) and is rebuilt from
+// the database whenever the corpus revision moves.
+import { convert } from "./convert.ts";
+import { buildView, type Query, type Update } from "./views.ts";
+import { deleteDoc, ensureSchema, folderDocId, invalidate, library, parts, saveDoc, uploadDocId, type Database, type Doc, type Library, type SearchEngine } from "./library.ts";
+
+export interface SyncState { at?: string; added?: number; updated?: number; removed?: number; failed?: number; waiting?: number; folders?: { path: string; name: string }[]; message?: string }
+export interface State {
+  rev?: number; query?: string; mode?: "smart" | "exact" | "regex"; kind?: string;
+  openId?: string; part?: number; tab?: string; tabTick?: number; confirmDelete?: boolean; tags?: string;
+  sync?: SyncState; notice?: string; excluded?: string[];
+}
+interface Staged { ref: unknown; name: string; kind: string; text?: string; bytes?: Uint8Array; pages?: string[]; pdfTitle?: string; size?: number; modified?: number; sha256?: string; error?: string }
+interface Documents {
+  list(): Promise<{ folders: { index: number; path: string; name: string }[]; files: { folder: number; path: string; size: number; modified: number; tooLarge?: boolean }[]; truncated: boolean; available: boolean }>;
+  read(files: unknown[]): Promise<Staged[]>;
+  forget(upload: string): Promise<unknown>;
+}
+export interface Context { state: State; database?: Database; documents?: Documents; search?: SearchEngine; now?: () => Date }
+
+const MODES = new Set(["smart", "exact", "regex"]);
+const KINDS = new Set(["all", "pdf", "word", "markdown", "web", "sheet", "text"]);
+const READ_BATCH = 8, MAX_READS = 13;
+
+export function normalize(s: State): State {
+  const line = (v: unknown, n: number) => (typeof v === "string" ? v : "").replace(/\s+/g, " ").trim().slice(0, n);
+  const rev = Number.isInteger(s.rev) && s.rev! >= 0 ? s.rev! : 0;
+  return {
+    rev, query: line(s.query, 300), mode: MODES.has(String(s.mode)) ? s.mode : "smart", kind: KINDS.has(String(s.kind)) ? s.kind : "all",
+    openId: typeof s.openId === "string" ? s.openId.slice(0, 80) : undefined, part: Number.isInteger(s.part) && s.part! >= 0 ? s.part : 0,
+    tab: typeof s.tab === "string" ? s.tab.slice(0, 40) : undefined, tabTick: Number.isInteger(s.tabTick) ? s.tabTick : 0,
+    confirmDelete: s.confirmDelete === true, tags: line(s.tags, 300),
+    sync: s.sync && typeof s.sync === "object" ? s.sync : {}, notice: line(s.notice, 400),
+    excluded: Array.isArray(s.excluded) ? s.excluded.filter((x): x is string => typeof x === "string").slice(0, 5000) : [],
+  };
+}
+
+const needs = (c: Context): { db: Database; engine: SearchEngine } => {
+  if (!c.database) throw new Error("Document Desk needs its database");
+  if (!c.search?.DocumentIndex) throw new Error("Search is unavailable in this Vakyartha version");
+  return { db: c.database, engine: c.search };
+};
+export const tagsFrom = (v: unknown) => [...new Set(String(v ?? "").split(/[\s,]+/).map(t => t.replace(/^#+/, "").toLowerCase()).filter(t => /^[\p{L}\p{N}_-]{1,32}$/u.test(t)))].slice(0, 12);
+const words = (md: string) => md.match(/[\p{L}\p{N}]+/gu)?.length ?? 0;
+const bump = (s: State) => { s.rev = (s.rev ?? 0) + 1; invalidate(); };
+const focus = (s: State, tab: string) => { s.tab = tab; s.tabTick = (s.tabTick ?? 0) + 1; };
+
+/** One staged file to a document record and its Markdown. */
+function toDoc(base: Omit<Doc, "title" | "status" | "note" | "words" | "pages" | "tags" | "added" | "updated">, file: Staged, prior: Doc | undefined, now: string): { doc: Doc; markdown?: string } {
+  const common = { ...base, tags: prior?.tags ?? [], added: prior?.added ?? now, updated: now };
+  if (file.error) return { doc: { ...common, title: prior?.title || base.name.replace(/\.[^.]+$/, ""), status: "failed", note: file.error, words: 0, pages: 0 }, markdown: "" };
+  try {
+    const out = convert({ name: file.name, kind: file.kind, text: file.text, bytes: file.bytes, pages: file.pages, pdfTitle: file.pdfTitle });
+    const n = words(out.markdown);
+    return { doc: { ...common, title: out.title, status: n ? "indexed" : "empty", note: out.note ?? (n ? "" : "No readable text was found."), words: n, pages: out.pages ?? 0 }, markdown: out.markdown };
+  } catch (error) {
+    return { doc: { ...common, title: prior?.title || base.name.replace(/\.[^.]+$/, ""), status: "failed", note: (error as Error).message, words: 0, pages: 0 }, markdown: "" };
+  }
+}
+
+/** Uploads the host stored for this app: read, convert, keep. Duplicates of a kept file are skipped. */
+async function addUploads(c: Context, s: State, value: unknown, lib: Library, now: string): Promise<string> {
+  const { db } = needs(c);
+  const v = (value ?? {}) as { uploads?: { upload?: unknown; name?: unknown }[]; skipped?: unknown[] };
+  const uploads = (Array.isArray(v.uploads) ? v.uploads : []).filter(u => typeof u?.upload === "string").slice(0, READ_BATCH * MAX_READS);
+  if (!uploads.length) throw new Error("Choose at least one document to add");
+  if (!c.documents) throw new Error("Uploads need a newer Vakyartha");
+  const known = new Map([...lib.docs.values()].map(d => [d.sha256, d]));
+  let added = 0, dupes = 0, failed = 0, lastId = "";
+  for (let i = 0; i < uploads.length; i += READ_BATCH) {
+    for (const file of await c.documents.read(uploads.slice(i, i + READ_BATCH).map(u => ({ upload: u.upload })))) {
+      const upload = (file.ref as { upload: string }).upload;
+      const same = file.sha256 ? known.get(file.sha256) : undefined;
+      if (same) { dupes++; await c.documents.forget(upload); continue; }
+      const { doc, markdown } = toDoc({ id: uploadDocId(upload), kind: file.kind, source: "upload", folder: "", path: "", upload, name: file.name, size: file.size ?? 0, modified: file.modified ?? Date.parse(now), sha256: file.sha256 ?? "" }, file, undefined, now);
+      await saveDoc(db, doc, markdown);
+      if (doc.status === "failed") failed++; else added++;
+      if (file.sha256) known.set(file.sha256, doc);
+      lastId = doc.id;
+    }
+  }
+  const skipped = (Array.isArray(v.skipped) ? v.skipped : []).length;
+  if (lastId) { s.openId = lastId; s.part = 0; }
+  bump(s);
+  return [added && `Added ${added} document${added === 1 ? "" : "s"}`, dupes && `${dupes} already in the library`, failed && `${failed} could not be read`, skipped && `${skipped} not uploaded`].filter(Boolean).join(". ") + ".";
+}
+
+/**
+ * Brings the library in step with the shared folders: new and changed files are
+ * read and converted, files that left (or whose folder stopped being shared) are
+ * removed. Reads stop at the tool budget or the deadline; the rest wait for the
+ * next run, and the summary says how many.
+ */
+export async function sync(c: Context, s: State, deadline: number, now: string): Promise<void> {
+  const { db, engine } = needs(c);
+  if (!c.documents) throw new Error("Shared folders need a newer Vakyartha");
+  const listing = await c.documents.list();
+  if (!listing.available) { s.sync = { ...s.sync, at: now, message: "Shared folders need the desktop app." }; return; }
+  const lib = await library(db, s.rev!, engine);
+  const byPath = new Map(listing.folders.map(f => [f.index, f]));
+  const excluded = new Set(s.excluded);
+  const seen = new Set<string>(), todo: { id: string; folder: { index: number; path: string; name: string }; file: (typeof listing.files)[number]; prior?: Doc }[] = [];
+  let failed = 0, changed = false;
+  for (const file of listing.files) {
+    const folder = byPath.get(file.folder);
+    if (!folder) continue;
+    const id = folderDocId(folder.path, file.path);
+    if (excluded.has(id)) continue;
+    seen.add(id);
+    const prior = lib.docs.get(id);
+    if (prior && prior.size === file.size && prior.modified === file.modified) continue;
+    if (file.tooLarge) {
+      if (prior?.note !== "Larger than 20 MB") { await saveDoc(db, { id, title: file.path.split("/").pop()!.replace(/\.[^.]+$/, ""), kind: file.path.split(".").pop()!.toLowerCase(), source: "folder", folder: folder.path, path: file.path, upload: "", name: file.path.split("/").pop()!, size: file.size, modified: file.modified, sha256: "", added: now, updated: now, status: "failed", note: "Larger than 20 MB", words: 0, pages: 0, tags: [] }, ""); changed = true; }
+      failed++; continue;
+    }
+    todo.push({ id, folder, file, prior });
+  }
+  let removed = 0;
+  for (const d of lib.docs.values()) if (d.source === "folder" && !seen.has(d.id)) { await deleteDoc(db, d.id); removed++; changed = true; }
+  let added = 0, updated = 0, reads = 0, done = 0;
+  while (done < todo.length && reads < MAX_READS && Date.now() < deadline) {
+    const batch = todo.slice(done, done + READ_BATCH);
+    const staged = await c.documents.read(batch.map(t => ({ folder: t.folder.index, path: t.file.path })));
+    reads++; done += batch.length;
+    for (const [i, file] of staged.entries()) {
+      const t = batch[i]!;
+      if (t.prior && file.sha256 && t.prior.sha256 === file.sha256 && t.prior.status !== "failed") {
+        // Touched but unchanged: keep the text, remember the new time.
+        await saveDoc(db, { ...t.prior, modified: file.modified ?? t.file.modified, size: file.size ?? t.file.size }); changed = true; continue;
+      }
+      const { doc, markdown } = toDoc({ id: t.id, kind: file.kind, source: "folder", folder: t.folder.path, path: t.file.path, upload: "", name: file.name, size: file.size ?? t.file.size, modified: file.modified ?? t.file.modified, sha256: file.sha256 ?? "" }, file, t.prior, now);
+      await saveDoc(db, doc, markdown); changed = true;
+      if (doc.status === "failed") failed++; else if (t.prior) updated++; else added++;
+    }
+  }
+  const waiting = todo.length - done;
+  s.sync = { at: now, added, updated, removed, failed, waiting, folders: listing.folders.map(f => ({ path: f.path, name: f.name })), message: listing.truncated ? "The shared folders hold more than 5,000 files; only the first 5,000 are kept." : "" };
+  if (changed) bump(s);
+}
+
+const syncSummary = (y: SyncState) => {
+  const parts = [y.added && `${y.added} added`, y.updated && `${y.updated} updated`, y.removed && `${y.removed} removed`, y.failed && `${y.failed} could not be read`, y.waiting && `${y.waiting} waiting for the next run`].filter(Boolean);
+  return y.message || (parts.length ? `Folders checked: ${parts.join(", ")}.` : "Folders checked: everything is up to date.");
+};
+
+export async function handleAction(controlId: string, value: unknown, context: Context, action?: string): Promise<{ updates: Update[]; focusSurface?: string }> {
+  const s = (context.state = normalize(context.state));
+  const now = (context.now?.() ?? new Date()).toISOString();
+  const { db, engine } = needs(context);
+  await ensureSchema(db);
+  const payload = (value && typeof value === "object" ? value : {}) as { id?: unknown; part?: unknown; line?: unknown };
+  const id = typeof payload.id === "string" ? payload.id : undefined;
+  let focusSurface: string | undefined;
+  s.notice = "";
+  if (!action) {
+    if (controlId === "/query") s.query = String(value ?? "").slice(0, 300);
+    else if (controlId === "/mode") { s.mode = MODES.has(String(value)) ? value as State["mode"] : "smart"; if (s.query) focus(s, "results"); }
+    else if (controlId === "/kind") s.kind = KINDS.has(String(value)) ? String(value) : "all";
+    else if (controlId === "/doc/tags") s.tags = String(value ?? "").slice(0, 300);
+    else return { updates: [] };
+  } else if (action === "search") {
+    if (s.query) focus(s, "results");
+  } else if (action === "clear_search") {
+    s.query = ""; focus(s, "documents");
+  } else if (action === "open") {
+    const lib = await library(db, s.rev!, engine);
+    if (!id || !lib.docs.has(id)) throw new Error("This document is no longer in the library");
+    s.openId = id; s.confirmDelete = false; s.tags = lib.docs.get(id)!.tags.join(", ");
+    s.part = Number.isInteger(payload.part) ? payload.part as number : Number.isInteger(payload.line) ? partOfLine(lib, id, payload.line as number) : 0;
+    focusSurface = "library";
+  } else if (action === "part") {
+    s.part = Math.max(0, Number(payload.part) || 0);
+  } else if (action === "add_uploads") {
+    s.notice = await addUploads(context, s, value, await library(db, s.rev!, engine), now);
+    focus(s, "documents");
+  } else if (action === "sync") {
+    await sync(context, s, Date.now() + 22_000, now);
+    s.notice = syncSummary(s.sync!);
+  } else if (action === "save_tags") {
+    const lib = await library(db, s.rev!, engine);
+    const doc = s.openId ? lib.docs.get(s.openId) : undefined;
+    if (!doc) throw new Error("Open a document first");
+    await saveDoc(db, { ...doc, tags: tagsFrom(s.tags), updated: now }); bump(s);
+    s.notice = "Tags saved.";
+  } else if (action === "retry") {
+    const lib = await library(db, s.rev!, engine);
+    const doc = id ? lib.docs.get(id) : undefined;
+    if (!doc) throw new Error("This document is no longer in the library");
+    if (doc.source === "folder") { await saveDoc(db, { ...doc, modified: 0 }); bump(s); await sync(context, s, Date.now() + 22_000, now); s.notice = syncSummary(s.sync!); }
+    else { await deleteDoc(db, doc.id); bump(s); s.notice = await addUploads(context, s, { uploads: [{ upload: doc.upload }] }, await library(db, s.rev!, engine), now); }
+  } else if (action === "ask_delete") {
+    s.confirmDelete = Boolean(s.openId);
+  } else if (action === "cancel_delete") {
+    s.confirmDelete = false;
+  } else if (action === "delete") {
+    const lib = await library(db, s.rev!, engine);
+    const doc = s.openId ? lib.docs.get(s.openId) : undefined;
+    if (!doc) throw new Error("Open a document first");
+    await deleteDoc(db, doc.id);
+    // A shared file stays where it is; it is left out of the library until it is included again.
+    if (doc.source === "folder") s.excluded = [...new Set([...s.excluded!, doc.id])];
+    else await context.documents?.forget(doc.upload);
+    bump(s); s.openId = undefined; s.confirmDelete = false;
+    s.notice = doc.source === "folder" ? `${doc.title} is left out of the library. The file itself is unchanged.` : `${doc.title} was deleted.`;
+  } else if (action === "include_all") {
+    s.excluded = []; await sync(context, s, Date.now() + 22_000, now); s.notice = syncSummary(s.sync!);
+  } else {
+    throw new Error(`Unknown Document Desk action: ${action}`);
+  }
+  return { updates: await render(context, s), ...(focusSurface ? { focusSurface } : {}) };
+}
+
+function partOfLine(lib: Library, id: string, line: number): number {
+  return Math.max(0, parts(lib.texts.get(id) ?? "").findIndex(p => line >= p.start && line <= p.end));
+}
+
+/** Folder sync on the schedule (Background operation). */
+export async function syncFolders(context: Context): Promise<{ updates: Update[] }> {
+  const s = (context.state = normalize(context.state));
+  await sync(context, s, Date.now() + 90_000, (context.now?.() ?? new Date()).toISOString());
+  return { updates: await render(context, s) };
+}
+
+async function render(context: Context, s: State): Promise<Update[]> {
+  const { db, engine } = needs(context);
+  const lib = await library(db, s.rev!, engine);
+  return buildView(s, lib, engine, syncSummary);
+}
+
+/** Rebuild saved views during a reviewed package update; reads only the app's own database. */
+export async function renderApp(context: Context) {
+  const s = normalize(context.state);
+  if (!context.database || !context.search?.DocumentIndex) return { updates: buildView(s, undefined, undefined, syncSummary) };
+  return { updates: await render(context, s) };
+}
+
+// ---------- Exported read-only tools ----------
+
+const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
+
+export async function handleQuery(tool: string, params: Record<string, unknown>, context: Context): Promise<unknown> {
+  const s = normalize(context.state);
+  const { db, engine } = needs(context);
+  const lib = await library(db, s.rev!, engine);
+  const where = (d: Doc) => d.source === "folder" ? `${d.folder.split("/").pop()}/${d.path}` : "uploaded";
+  if (tool === "search_documents") {
+    const query = String(params.query ?? "").trim().slice(0, 300);
+    if (!query) throw new Error("Give a search query");
+    const limit = Math.max(1, Math.min(20, Number(params.limit) || 8));
+    const q: Query = { text: query, mode: MODES.has(String(params.mode)) ? params.mode as Query["mode"] : "smart" };
+    if (q.mode === "smart") {
+      return { query, results: lib.index.search(query, { limit, passagesPerDocument: 2 }).map(h => ({ id: h.id, title: h.title, source: where(lib.docs.get(h.id)!), coverage: Math.round(h.coverage * 100) / 100, passages: h.passages.map(p => ({ section: p.headings.join(" › "), line: p.line, text: p.snippet })) })) };
+    }
+    const g = engine.grep([...lib.texts].map(([id, text]) => ({ id, text })), query, { regex: q.mode === "regex", limit: limit * 4, context: 1 });
+    return { query, total: g.total, truncated: g.truncated, matches: g.matches.map(m => ({ id: m.documentId, title: lib.docs.get(m.documentId)?.title ?? "", line: m.line, text: clip([...m.before, m.text, ...m.after].join("\n"), 600) })) };
+  }
+  if (tool === "read_document") {
+    const id = String(params.id ?? "");
+    const doc = lib.docs.get(id);
+    if (!doc) throw new Error("No document has that id; search or list documents first");
+    const text = lib.texts.get(id) ?? "";
+    const line = Number.isInteger(params.line) ? params.line as number : undefined;
+    const lines = text.split("\n");
+    const start = line ? Math.max(0, line - 1) : Math.max(0, (Number(params.offsetLine) || 1) - 1);
+    let end = start, size = 0;
+    while (end < lines.length && size < 12_000) size += lines[end++]!.length + 1;
+    return { id, title: doc.title, kind: doc.kind, source: where(doc), status: doc.status, note: doc.note, lines: lines.length, fromLine: start + 1, toLine: end, more: end < lines.length, text: lines.slice(start, end).join("\n") };
+  }
+  if (tool === "list_documents") {
+    const tag = typeof params.tag === "string" ? params.tag.toLowerCase() : "";
+    const offset = Math.max(0, Number(params.offset) || 0), limit = Math.max(1, Math.min(100, Number(params.limit) || 50));
+    const all = [...lib.docs.values()].filter(d => !tag || d.tags.includes(tag)).sort((a, b) => b.updated.localeCompare(a.updated));
+    return { total: all.length, offset, documents: all.slice(offset, offset + limit).map(d => ({ id: d.id, title: d.title, kind: d.kind, source: where(d), status: d.status, words: d.words, pages: d.pages, tags: d.tags, updated: d.updated })) };
+  }
+  throw new Error(`Unknown Document Desk tool: ${tool}`);
+}
+
+/** The shipped surface.json: every view of a new, empty library. */
+export const surfaceFile = () => buildView(normalize({}), undefined, undefined, syncSummary).map(u => ({ id: u.surface, title: u.surface === "library" ? "Library" : "Sources", data: u.data[0]!.value, nodes: u.nodes }));

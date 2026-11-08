@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Document Desk 1.0.0 (development channel): a searchable library of the person's documents. Uploads and read-only shared folders through the host's document sources, Markdown from PDF (system engine), DOCX, HTML, CSV, JSON and text, relevance search with passages, phrases and link rank, exact and pattern search, a reader with parts, outline and links, and read-only `search_documents`, `read_document` and `list_documents` with the `document-desk-reader` skill. Needs a Vakyartha with ADR-090.
 - NSE Strategy Lab (development channel) declares `storage.databaseMiB: 256`, so it needs a Vakyartha with ADR-084. It keeps volume again, holds one row per symbol and date with NSE's latest reading winning, takes up to 50 stocks, and shows storage against the declared limit. A database saved by the earlier package is replaced and its sessions read again.
 - Clinic Desk: Today's doctor and view filters keep an action in their own row (Ask assistant moves beside them). A clinic with a doctor but nothing actionable below, in week or month view, or on a day it could not book, projected a surface the host refused, which failed the app's update.
 
