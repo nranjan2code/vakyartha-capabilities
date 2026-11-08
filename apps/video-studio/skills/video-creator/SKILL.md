@@ -5,7 +5,7 @@ metadata:
   author: Vakyartha
   part-of: app:video-studio
   requires: skill:broadcast-programme
-allowed-tools: use_skill read_skill_file app-video-studio__get_creator_context app-video-studio__propose_video app-news-desk__get_bulletin app-market-terminal__get_market_brief app-weather-desk__get_weather_briefing app-wish-radar__get_broadcast_script
+allowed-tools: use_skill read_skill_file app-video-studio__get_creator_context app-video-studio__propose_video app-news-desk__get_bulletin app-market-terminal__get_market_brief app-weather-desk__get_weather_briefing
 ---
 
 # Make a show for Video Studio

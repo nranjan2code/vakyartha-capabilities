@@ -4,7 +4,7 @@ Video Studio collects watchable programmes from Vakyartha apps into a personal l
 
 ## Use it
 
-Choose a source in Creator Studio and select **Import latest programme**. News Desk, Market Terminal, Weather Desk and Wish Radar return their own saved programme through read-only in-process MCP tools. Video Studio saves a local draft with the source app and import time. Refresh the source app first if it has no saved programme.
+Choose a source in Creator Studio and select **Import latest programme**. News Desk, Market Terminal and Weather Desk return their own saved programme through read-only in-process MCP tools. Video Studio saves a local draft with the source app and import time. Refresh the source app first if it has no saved programme.
 
 Review a draft before **Add to library**. Creator Studio keeps the storyboard beside the programme inspector on wide windows and stacks them on narrow windows. Search and local paging keep longer scene and draft collections easy to browse. Edit its title, scene heading and narration; changes save as you type, so switching scenes never loses words. Each scene shows its word count and an estimated spoken length (about 150 words a minute; the selected voice sets the real length). Make a Short from one scene; it keeps the show's source timing.
 
@@ -21,7 +21,7 @@ The app owns saved programme records in its normal app state. A record keeps its
 
 These are saved watchable programmes: Video Studio never creates a video file in any format. TTS happens through Vakyartha's shared Listen and Watch player; generated audio is not saved as an asset. There is no external feed, account, posting, reactions, follower graph or upload. Short is a concise one-scene cut in the host's existing Watch presentation; it does not create a separate video format or promise a fixed runtime.
 
-Only apps with an exported watchable-programme tool are available in this version: News Desk, Market Terminal, Weather Desk and Wish Radar. Each source is optional: Video Studio installs on its own, and the catalog lists the four source apps as optional enhancements. A source that is not installed, turned off or denied in Access cannot be imported, and the import says so. Other apps can join when they export a suitable read-only programme. Missing, disabled or empty sources remain unavailable; Video Studio never fills them with sample data.
+Only apps with an exported watchable-programme tool are available in this version: News Desk, Market Terminal and Weather Desk. Each source is optional: Video Studio installs on its own, and the catalog lists the four source apps as optional enhancements. A source that is not installed, turned off or denied in Access cannot be imported, and the import says so. Other apps can join when they export a suitable read-only programme. Missing, disabled or empty sources remain unavailable; Video Studio never fills them with sample data.
 
 ## Access and background
 

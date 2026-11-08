@@ -15,7 +15,6 @@ export const SOURCES = [
   { id: 'news', name: 'News Desk', tool: 'app-news-desk__get_bulletin', args: { channel: 'top' } },
   { id: 'markets', name: 'Market Terminal', tool: 'app-market-terminal__get_market_brief', args: {} },
   { id: 'weather', name: 'Weather Desk', tool: 'app-weather-desk__get_weather_briefing', args: {} },
-  { id: 'wishes', name: 'Wish Radar', tool: 'app-wish-radar__get_broadcast_script', args: { format: 'programme' } },
 ] as const;
 const SOURCE = new Map<string, (typeof SOURCES)[number]>(SOURCES.map(x => [x.id, x]));
 const str = (v: unknown, max: number) => typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : '';

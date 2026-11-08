@@ -26,8 +26,7 @@
     "mcpTools": [
       "app-news-desk__get_bulletin",
       "app-market-terminal__get_market_brief",
-      "app-weather-desk__get_weather_briefing",
-      "app-wish-radar__get_broadcast_script"
+      "app-weather-desk__get_weather_briefing"
     ],
     "storage": {
       "duckdb": false
@@ -41,9 +40,6 @@
       ],
       "import_weather": [
         "app-weather-desk__get_weather_briefing"
-      ],
-      "import_wishes": [
-        "app-wish-radar__get_broadcast_script"
       ]
     },
     "toolPurposes": {
@@ -57,10 +53,6 @@
       },
       "app-weather-desk__get_weather_briefing": {
         "reason": "Import the saved weather programme for a place you select in Weather Desk.",
-        "optional": true
-      },
-      "app-wish-radar__get_broadcast_script": {
-        "reason": "Import your saved wishlist broadcast as a watchable show.",
         "optional": true
       }
     }

@@ -310,10 +310,6 @@
         {
           "label": "Weather Desk",
           "value": "weather"
-        },
-        {
-          "label": "Wish Radar",
-          "value": "wishes"
         }
       ],
       "format": "show",
