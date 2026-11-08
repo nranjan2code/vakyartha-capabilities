@@ -6,7 +6,7 @@
 // the database whenever the corpus revision moves.
 import { convert } from "./convert.ts";
 import { buildView, type Query, type Update } from "./views.ts";
-import { deleteDoc, ensureSchema, folderDocId, invalidate, library, parts, saveDoc, uploadDocId, type Database, type Doc, type Library, type SearchEngine } from "./library.ts";
+import { deleteDoc, ensureSchema, folderDocId, invalidate, library, outline, parts, saveDoc, uploadDocId, type Database, type Doc, type Library, type SearchEngine } from "./library.ts";
 
 export interface SyncState { at?: string; added?: number; updated?: number; removed?: number; failed?: number; waiting?: number; folders?: { path: string; name: string }[]; message?: string }
 export interface State {
@@ -242,39 +242,79 @@ export async function renderApp(context: Context) {
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}…` : s);
 
+const GROUP: Record<string, string> = { pdf: "pdf", docx: "word", md: "markdown", markdown: "markdown", html: "web", htm: "web", csv: "sheet", tsv: "sheet", txt: "text", text: "text", json: "text" };
+
+/** The heading path in force at a line. */
+function sectionAt(markdown: string, line: number): string {
+  const path: string[] = [];
+  for (const h of outline(markdown)) { if (h.line > line) break; path.length = Math.min(path.length, h.level - 1); path[h.level - 1] = h.text; }
+  return path.filter(Boolean).join(" › ");
+}
+
 export async function handleQuery(tool: string, params: Record<string, unknown>, context: Context): Promise<unknown> {
   const s = normalize(context.state);
   const { db, engine } = needs(context);
   const lib = await library(db, s.rev!, engine);
   const where = (d: Doc) => d.source === "folder" ? `${d.folder.split("/").pop()}/${d.path}` : "uploaded";
+  const meta = (d: Doc) => ({ kind: GROUP[d.kind] ?? d.kind, ...(d.pages ? { pages: d.pages } : {}), updated: d.updated.slice(0, 10) });
+  const docOf = (id: unknown) => {
+    const doc = typeof id === "string" ? lib.docs.get(id) : undefined;
+    if (!doc) throw new Error("No document has that id; use search_documents or list_documents for ids");
+    return doc;
+  };
   if (tool === "search_documents") {
     const query = String(params.query ?? "").trim().slice(0, 300);
     if (!query) throw new Error("Give a search query");
-    const limit = Math.max(1, Math.min(20, Number(params.limit) || 8));
-    const q: Query = { text: query, mode: MODES.has(String(params.mode)) ? params.mode as Query["mode"] : "smart" };
-    if (q.mode === "smart") {
-      return { query, results: lib.index.search(query, { limit, passagesPerDocument: 2 }).map(h => ({ id: h.id, title: h.title, source: where(lib.docs.get(h.id)!), coverage: Math.round(h.coverage * 100) / 100, passages: h.passages.map(p => ({ section: p.headings.join(" › "), line: p.line, text: p.snippet })) })) };
+    const limit = Math.max(1, Math.min(20, Number(params.limit) || 5));
+    const mode = MODES.has(String(params.mode)) ? params.mode as Query["mode"] : "smart";
+    const only = params.document !== undefined ? docOf(params.document).id : undefined;
+    const kind = typeof params.kind === "string" ? params.kind : undefined;
+    const tags = Array.isArray(params.tags) ? params.tags.filter((t): t is string => typeof t === "string").map(t => t.toLowerCase()) : [];
+    const include = (id: string) => { const d = lib.docs.get(id); return Boolean(d) && (!only || id === only) && (!kind || GROUP[d!.kind] === kind) && tags.every(t => d!.tags.includes(t)); };
+    if (mode === "smart") {
+      return { query, results: lib.index.search(query, { limit, passagesPerDocument: 2, include }).map(h => {
+        const d = lib.docs.get(h.id)!;
+        return { id: h.id, title: h.title, source: where(d), ...meta(d), coverage: Math.round(h.coverage * 100) / 100, passages: h.passages.map(p => ({ section: p.headings.join(" › "), line: p.line, text: p.snippet })) };
+      }) };
     }
-    const g = engine.grep([...lib.texts].map(([id, text]) => ({ id, text })), query, { regex: q.mode === "regex", limit: limit * 4, context: 1 });
-    return { query, total: g.total, truncated: g.truncated, matches: g.matches.map(m => ({ id: m.documentId, title: lib.docs.get(m.documentId)?.title ?? "", line: m.line, text: clip([...m.before, m.text, ...m.after].join("\n"), 600) })) };
+    const g = engine.grep([...lib.texts].filter(([id]) => include(id)).map(([id, text]) => ({ id, text })), query, { regex: mode === "regex", limit: limit * 4, context: 1 });
+    return { query, total: g.total, truncated: g.truncated, matches: g.matches.map(m => ({ id: m.documentId, title: lib.docs.get(m.documentId)?.title ?? "", section: sectionAt(lib.texts.get(m.documentId) ?? "", m.line), line: m.line, text: clip([...m.before, m.text, ...m.after].join("\n"), 600) })) };
+  }
+  if (tool === "get_document_outline") {
+    const doc = docOf(params.id), text = lib.texts.get(doc.id) ?? "";
+    const heads = outline(text);
+    const named = (ids: string[] | undefined) => (ids ?? []).filter(id => lib.docs.has(id)).map(id => ({ id, title: lib.docs.get(id)!.title }));
+    return { id: doc.id, title: doc.title, source: where(doc), ...meta(doc), words: doc.words, lines: text.split("\n").length, status: doc.status, ...(doc.note ? { note: doc.note } : {}), tags: doc.tags,
+      headings: heads.slice(0, 300).map(h => ({ level: h.level, text: h.text, line: h.line })), ...(heads.length > 300 ? { moreHeadings: heads.length - 300 } : {}),
+      linksTo: named(lib.links.get(doc.id)), linkedFrom: named(lib.backlinks.get(doc.id)) };
   }
   if (tool === "read_document") {
-    const id = String(params.id ?? "");
-    const doc = lib.docs.get(id);
-    if (!doc) throw new Error("No document has that id; search or list documents first");
-    const text = lib.texts.get(id) ?? "";
-    const line = Number.isInteger(params.line) ? params.line as number : undefined;
-    const lines = text.split("\n");
-    const start = line ? Math.max(0, line - 1) : Math.max(0, (Number(params.offsetLine) || 1) - 1);
+    const doc = docOf(params.id), text = lib.texts.get(doc.id) ?? "";
+    const lines = text.split("\n"), heads = outline(text);
+    let start = 0;
+    if (typeof params.section === "string" && params.section.trim()) {
+      const want = params.section.trim().toLowerCase();
+      const h = heads.find(x => x.text.toLowerCase() === want) ?? heads.find(x => x.text.toLowerCase().includes(want));
+      if (!h) throw new Error(`No heading matches "${params.section}"; get_document_outline lists them`);
+      start = h.line - 1;
+    } else if (Number.isInteger(params.page)) {
+      const h = heads.find(x => x.text === `Page ${params.page}`);
+      if (!h) throw new Error(doc.kind === "pdf" ? `This PDF has no text on page ${params.page}` : "Pages apply to PDF documents; use section or line");
+      start = h.line - 1;
+    } else if (Number.isInteger(params.line)) start = Math.max(0, (params.line as number) - 1);
+    else if (Number.isInteger(params.offsetLine)) start = Math.max(0, (params.offsetLine as number) - 1);
     let end = start, size = 0;
     while (end < lines.length && size < 12_000) size += lines[end++]!.length + 1;
-    return { id, title: doc.title, kind: doc.kind, source: where(doc), status: doc.status, note: doc.note, lines: lines.length, fromLine: start + 1, toLine: end, more: end < lines.length, text: lines.slice(start, end).join("\n") };
+    return { id: doc.id, title: doc.title, source: where(doc), ...meta(doc), status: doc.status, ...(doc.note ? { note: doc.note } : {}), section: sectionAt(text, start + 1), lines: lines.length, fromLine: start + 1, toLine: end, more: end < lines.length, text: lines.slice(start, end).join("\n") };
   }
   if (tool === "list_documents") {
     const tag = typeof params.tag === "string" ? params.tag.toLowerCase() : "";
-    const offset = Math.max(0, Number(params.offset) || 0), limit = Math.max(1, Math.min(100, Number(params.limit) || 50));
-    const all = [...lib.docs.values()].filter(d => !tag || d.tags.includes(tag)).sort((a, b) => b.updated.localeCompare(a.updated));
-    return { total: all.length, offset, documents: all.slice(offset, offset + limit).map(d => ({ id: d.id, title: d.title, kind: d.kind, source: where(d), status: d.status, words: d.words, pages: d.pages, tags: d.tags, updated: d.updated })) };
+    const kind = typeof params.kind === "string" ? params.kind : "";
+    const title = typeof params.title === "string" ? params.title.toLowerCase().trim() : "";
+    const offset = Math.max(0, Number(params.offset) || 0), limit = Math.max(1, Math.min(100, Number(params.limit) || 30));
+    const order = params.sort === "oldest" ? (a: Doc, b: Doc) => a.updated.localeCompare(b.updated) : params.sort === "title" ? (a: Doc, b: Doc) => a.title.localeCompare(b.title) : (a: Doc, b: Doc) => b.updated.localeCompare(a.updated);
+    const all = [...lib.docs.values()].filter(d => (!tag || d.tags.includes(tag)) && (!kind || GROUP[d.kind] === kind) && (!title || d.title.toLowerCase().includes(title))).sort(order);
+    return { total: all.length, offset, documents: all.slice(offset, offset + limit).map(d => ({ id: d.id, title: d.title, source: where(d), ...meta(d), status: d.status, words: d.words, tags: d.tags })) };
   }
   throw new Error(`Unknown Document Desk tool: ${tool}`);
 }

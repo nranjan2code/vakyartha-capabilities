@@ -38,60 +38,190 @@
     "toolPurposes": {}
   },
   "triggers": [
-    { "id": "check-folders", "kind": "cron", "expression": "*/10 * * * *", "action": "syncFolders", "maxDurationSec": 120 }
+    {
+      "id": "check-folders",
+      "kind": "cron",
+      "expression": "*/10 * * * *",
+      "action": "syncFolders",
+      "maxDurationSec": 120
+    }
   ],
   "exports": {
     "tools": [
       {
         "name": "search_documents",
         "title": "Search documents",
-        "description": "Search the person's Document Desk library. mode smart (default) ranks documents by relevance and returns the best passages with their section and line; \"quoted phrases\" must appear and -word leaves documents out. mode exact finds lines containing the text; mode regex finds lines matching a regular expression. Read-only.",
         "readOnly": true,
+        "description": "Search the person's own documents (contracts, policies, bills, notes, reports) kept in Document Desk. Start here for any question about what their papers say. mode smart (default) returns the best documents, each with its best passages, section and line; put a phrase that must appear in \"quotes\" and -word to leave documents out. mode exact finds lines containing the text; mode regex finds lines matching a regular expression. Narrow with document (one id), kind or tags. Read-only.",
         "inputSchema": {
           "type": "object",
           "properties": {
-            "query": { "type": "string", "minLength": 1, "maxLength": 300 },
-            "mode": { "type": "string", "enum": ["smart", "exact", "regex"] },
-            "limit": { "type": "integer", "minimum": 1, "maximum": 20 }
+            "query": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "smart",
+                "exact",
+                "regex"
+              ]
+            },
+            "document": {
+              "type": "string",
+              "maxLength": 80
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "pdf",
+                "word",
+                "markdown",
+                "web",
+                "sheet",
+                "text"
+              ]
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "maxLength": 32
+              },
+              "maxItems": 6
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
           },
-          "required": ["query"],
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "get_document_outline",
+        "title": "Document outline",
+        "readOnly": true,
+        "description": "One Document Desk document's outline: title, kind, pages, words, status, tags, every heading with its line (PDFs have a \"Page n\" heading per page), and the documents it links to or is linked from. Use it to find the right part of a long document before reading. Read-only.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          },
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         }
       },
       {
         "name": "read_document",
         "title": "Read a document",
-        "description": "Read up to about 12,000 characters of one Document Desk document as Markdown, from a line (use a search result's line) or from offsetLine. more says whether text continues; read on from toLine + 1. Read-only.",
         "readOnly": true,
+        "description": "Read about 12,000 characters of one Document Desk document as Markdown, starting at a section (heading text), a PDF page, a line (from a search result) or offsetLine. Returns the section it starts in; more says whether text continues, so read on with offsetLine = toLine + 1. Read-only.",
         "inputSchema": {
           "type": "object",
           "properties": {
-            "id": { "type": "string", "minLength": 1, "maxLength": 80 },
-            "line": { "type": "integer", "minimum": 1 },
-            "offsetLine": { "type": "integer", "minimum": 1 }
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "section": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "page": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "line": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "offsetLine": {
+              "type": "integer",
+              "minimum": 1
+            }
           },
-          "required": ["id"],
+          "required": [
+            "id"
+          ],
           "additionalProperties": false
         }
       },
       {
         "name": "list_documents",
         "title": "List documents",
-        "description": "List Document Desk documents, most recently updated first, optionally with one tag. Returns id, title, kind, source, status, words, pages and tags. Read-only.",
         "readOnly": true,
+        "description": "List Document Desk documents with id, title, kind, pages, date, status and tags. Newest first by default; sort oldest or title. Narrow with kind, tag or words in the title (title). Use it for questions like \"my latest bill\" or \"which policies do I have\". Read-only.",
         "inputSchema": {
           "type": "object",
           "properties": {
-            "tag": { "type": "string", "maxLength": 32 },
-            "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
-            "offset": { "type": "integer", "minimum": 0 }
+            "kind": {
+              "type": "string",
+              "enum": [
+                "pdf",
+                "word",
+                "markdown",
+                "web",
+                "sheet",
+                "text"
+              ]
+            },
+            "tag": {
+              "type": "string",
+              "maxLength": 32
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 120
+            },
+            "sort": {
+              "type": "string",
+              "enum": [
+                "newest",
+                "oldest",
+                "title"
+              ]
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0
+            }
           },
           "additionalProperties": false
         }
       }
     ],
     "skills": [
-      { "name": "document-desk-reader", "description": "Answer questions from the person's own documents in Document Desk: search, read the passage, and cite it.", "path": "skills/document-desk-reader/SKILL.md" }
-    ]
+      {
+        "name": "document-desk-reader",
+        "description": "Answer questions from the person's own documents in Document Desk: search, read the passage, and cite it.",
+        "path": "skills/document-desk-reader/SKILL.md"
+      }
+    ],
+    "routeKeywords": {
+      "surface": "library",
+      "path": "/route/keywords",
+      "tools": [
+        "search_documents"
+      ]
+    }
   }
 }

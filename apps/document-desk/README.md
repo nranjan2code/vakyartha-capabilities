@@ -10,7 +10,7 @@ Keep your documents in one searchable library. Add PDF, Word, Markdown, web page
 - **Read.** Choosing a result opens the document beside the list at that passage. Long documents are read in parts; **Outline** jumps to a heading, **Links** lists documents it links to and those linking to it, **Read aloud** reads the open part. **Details** shows where it came from, its tags and its status.
 - **Needs attention.** Files that could not be read or have no text (such as scanned PDFs) are listed with the reason and **Try again**.
 - **Leave out or delete.** A shared file can be left out of the library (the file is not touched; Sources includes them again). An uploaded document is deleted with its kept original.
-- **Ask the assistant.** With the `document-desk-reader` skill, the assistant can search and read your library (read-only) and answers with the document and section it used.
+- **Ask the assistant.** Ask about what your papers say, such as "how much notice do I give to end my lease". The library's titles and headings help the assistant find Document Desk without you naming it. With the `document-desk-reader` skill it searches (within one document, a kind or tags when that helps), opens the outline of long documents, reads the right section or PDF page, and answers with the document and section it used. It only reads.
 
 ## Data
 

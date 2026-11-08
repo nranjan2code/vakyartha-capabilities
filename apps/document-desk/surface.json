@@ -9,7 +9,10 @@
       "kind": "all",
       "notice": "",
       "documents": [],
-      "attention": []
+      "attention": [],
+      "route": {
+        "keywords": ""
+      }
     },
     "nodes": [
       {

@@ -134,8 +134,25 @@ function librarySurface(s: State, lib: Library | undefined, engine: SearchEngine
     attention: attention.map(d => ({ id: d.id, title: d.title, note: d.note || "Not read", badge: badge(d), tone: tone(d) })),
     ...(searched ? { results: found!.items, resultsSummary: found!.summary } : {}),
     ...(open ? readerData(s, lib!, open) : {}),
+    route: { keywords: lib ? routeWords(docs, lib) : "" },
   };
   return { surface: "library", nodes, data: replace(data) };
+}
+
+/**
+ * What the library is about, for the assistant's routing (exports.routeKeywords): titles,
+ * top headings and tags, most recent documents first, bounded. Ranked locally, never sent to a model.
+ */
+export function routeWords(docs: readonly Doc[], lib: Library): string {
+  const out: string[] = [];
+  let size = 0;
+  for (const d of [...docs].filter(d => d.status === "indexed").sort((a, b) => b.updated.localeCompare(a.updated))) {
+    const heads = outline(lib.texts.get(d.id) ?? "").filter(h => h.level <= 2 && !/^Page \d+$/.test(h.text)).slice(0, 12).map(h => h.text);
+    const part = [d.title, ...heads, ...d.tags].join(" ");
+    if (size + part.length > 6000) break;
+    out.push(part); size += part.length + 1;
+  }
+  return out.join(" ");
 }
 
 function readerNodes(s: State, lib: Library, d: Doc): Node[] {
