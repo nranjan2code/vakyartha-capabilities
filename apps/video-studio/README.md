@@ -6,7 +6,7 @@ Video Studio collects watchable programmes from Vakyartha apps into a personal l
 
 Choose a source in Creator Studio and select **Import latest programme**. News Desk, Market Terminal and Weather Desk return their own saved programme through read-only in-process MCP tools. Video Studio saves a local draft with the source app and import time. Refresh the source app first if it has no saved programme.
 
-Review a draft before **Add to library**. Creator Studio keeps the storyboard beside the programme inspector on wide windows and stacks them on narrow windows. Search and local paging keep longer scene and draft collections easy to browse. Edit its title, scene heading and narration; changes save as you type, so switching scenes never loses words. Each scene shows its word count and an estimated spoken length (about 150 words a minute; the selected voice sets the real length). Make a Short from one scene; it keeps the show's source timing.
+Review a draft before **Add to library**. Creator Studio keeps the storyboard beside the programme inspector on wide windows and stacks them on narrow windows. Search and local paging keep longer scene and draft collections easy to browse. Edit its title, scene heading and narration; changes save as you type, so switching scenes never loses words. Each scene shows its word count and an estimated length at normal speed (about 150 words a minute, plus the pauses between scenes and the theme cues; the selected voice and speed set the real length). Make a Short from one scene; it keeps the show's source timing.
 
 Four views:
 

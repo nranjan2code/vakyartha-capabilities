@@ -236,3 +236,10 @@ test('row templates travel only with the lists that use them', () => {
     assert.ok(byId.size === u.nodes.length);
   }
 });
+
+test('a cover length counts the theme cues and pauses, not only the words', () => {
+  const show: Programme = { title: 'Cued', segments: [{ ...scene, delivery: 'opening', cue: 'intro' }, { ...scene, delivery: 'closing', cue: 'outro', break: 'section' }] };
+  const rows = views({ videos: [{ id: 'cued', title: 'Cued', format: 'show', source: 'News Desk', savedAt: '2026-11-04T10:00:00.000Z', status: 'library', programme: show }] }).find(x => x.surface === 'library')!.data[0]!.value.homeRows as Record<string, unknown>[];
+  // 6 words (2.4 s) + intro 5 s + section pause 0.9 s + outro 5.8 s.
+  assert.equal(JSON.stringify(rows).includes('"0:14"'), true);
+});

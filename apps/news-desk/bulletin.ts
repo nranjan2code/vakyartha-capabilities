@@ -140,7 +140,7 @@ export function programme(top: Story[], all: Story[], topics: string[], clock: C
   });
   // Everything the show does not read crawls along the bottom, in ranking order, newest marked.
   const ticker = all.filter((st) => !used.has(st.id)).slice(0, 60).map((st) => ({ text: st.lead.title, kicker: st.category, link: st.lead.url, ...(st.lead.publishedAt ? { at: st.lead.publishedAt } : {}), ...(isFresh(st, clock.now) ? { fresh: true as const } : {}) }));
-  out.push({ text: `Those are the stories at ${w.time}. You've been listening to News Desk${channel ? `, ${channel}` : ''}, from the publishers you follow. Open the app for full coverage and the original reports.`, delivery: 'closing', cue: 'outro', break: 'section', kicker: title, heading: 'Full coverage and the original reports are in the app' });
+  out.push({ text: `Those are the stories at ${w.time}. That was News Desk${channel ? `, ${channel}` : ''}, from the publishers you follow. Open the app for full coverage and the original reports.`, delivery: 'closing', cue: 'outro', break: 'section', kicker: title, heading: 'Full coverage and the original reports are in the app' });
   return { title, segments: out, ...(ticker.length ? { ticker } : {}) };
 }
 
