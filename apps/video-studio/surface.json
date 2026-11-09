@@ -174,116 +174,445 @@
     "title": "Creator Studio",
     "nodes": [
       {
-        "id": "root",
-        "type": "stack",
+        "id": "new",
+        "type": "button",
         "props": {
-          "direction": "vertical",
-          "gap": "md"
-        },
-        "children": [
-          "creator-intro"
-        ]
-      },
-      {
-        "id": "creator-intro",
-        "type": "section",
-        "props": {
-          "title": "Creator Studio",
-          "description": "Create a source-aware production or bring a saved programme into your workspace."
-        },
-        "children": [
-          "creator-paths"
-        ]
-      },
-      {
-        "id": "creator-paths",
-        "type": "grid",
-        "props": {
-          "columns": 2,
-          "minItemWidth": "md",
-          "gap": "md"
-        },
-        "children": [
-          "new-production",
-          "source-production"
-        ]
-      },
-      {
-        "id": "new-production",
-        "type": "section",
-        "props": {
-          "title": "Create a production",
-          "description": "Describe the show or short you want to make."
-        },
-        "children": [
-          "creator-topic",
-          "creator-format",
-          "assistant-create"
-        ]
-      },
-      {
-        "id": "creator-topic",
-        "type": "input",
-        "props": {
-          "label": "Production brief",
-          "bind": "/topic",
-          "placeholder": "What should this be about?"
+          "label": "New project",
+          "action": "new_project",
+          "glyph": "plus",
+          "iconOnly": true,
+          "style": "link",
+          "payload": {}
         }
       },
       {
-        "id": "creator-format",
-        "type": "select",
+        "id": "projects",
+        "type": "button",
         "props": {
-          "label": "Format",
-          "bind": "/format",
-          "options": "{/formatOptions}",
-          "presentation": "dropdown"
+          "label": "Projects",
+          "action": "panel_projects",
+          "glyph": "folder",
+          "iconOnly": true,
+          "style": "link",
+          "payload": {}
         }
       },
       {
-        "id": "assistant-create",
+        "id": "sources",
+        "type": "button",
+        "props": {
+          "label": "Sources from apps",
+          "action": "panel_sources",
+          "glyph": "globe",
+          "iconOnly": true,
+          "style": "link",
+          "payload": {}
+        }
+      },
+      {
+        "id": "media",
+        "type": "button",
+        "props": {
+          "label": "Media",
+          "action": "panel_media",
+          "glyph": "film",
+          "iconOnly": true,
+          "style": "link",
+          "payload": {}
+        }
+      },
+      {
+        "id": "scene",
+        "type": "button",
+        "props": {
+          "label": "Scene properties",
+          "action": "panel_scene",
+          "glyph": "sliders",
+          "iconOnly": true,
+          "style": "link",
+          "payload": {}
+        }
+      },
+      {
+        "id": "history",
+        "type": "button",
+        "props": {
+          "label": "History and checkpoints",
+          "action": "panel_history",
+          "glyph": "clock",
+          "iconOnly": true,
+          "style": "link",
+          "payload": {}
+        }
+      },
+      {
+        "id": "assistant",
         "type": "button",
         "props": {
           "label": "Create with assistant",
           "action": "assistant.compose",
+          "glyph": "bolt",
+          "iconOnly": true,
+          "style": "link",
           "payload": {
             "path": "authorRequest",
             "workflowPath": "authorWorkflow"
-          },
-          "style": "primary"
+          }
         }
       },
       {
-        "id": "source-production",
-        "type": "section",
+        "id": "production-toolbar",
+        "type": "stack",
         "props": {
-          "title": "Use a saved programme",
-          "description": "Import the latest programme already saved in a Vakyartha app."
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "region": "toolbar"
         },
         "children": [
-          "creator-source",
-          "import-source"
+          "new",
+          "projects",
+          "sources",
+          "media",
+          "scene",
+          "history",
+          "assistant"
         ]
       },
       {
-        "id": "creator-source",
+        "id": "brief",
+        "type": "input",
+        "props": {
+          "label": "Production brief",
+          "bind": "/topic"
+        }
+      },
+      {
+        "id": "new-format",
         "type": "select",
         "props": {
-          "label": "Source app",
-          "bind": "/source",
-          "options": "{/sourceOptions}",
+          "label": "Format",
+          "bind": "/format",
+          "options": [
+            {
+              "label": "Show",
+              "value": "show"
+            },
+            {
+              "label": "Short",
+              "value": "short"
+            }
+          ],
           "presentation": "dropdown"
         }
       },
       {
-        "id": "import-source",
+        "id": "create-project",
         "type": "button",
         "props": {
-          "label": "Import programme",
-          "action": "import_news",
-          "payload": {},
-          "style": "secondary"
+          "label": "Create project",
+          "action": "new_project",
+          "glyph": "plus",
+          "iconOnly": true,
+          "style": "link",
+          "payload": {}
         }
+      },
+      {
+        "id": "project-list",
+        "type": "grid",
+        "props": {
+          "columns": 1,
+          "pageSize": 8,
+          "searchable": true
+        },
+        "children": {
+          "each": "/projects",
+          "template": "project-row"
+        }
+      },
+      {
+        "id": "project-row",
+        "type": "card",
+        "props": {
+          "title": "{title}",
+          "subtitle": "{status}"
+        },
+        "children": [
+          "project-open"
+        ]
+      },
+      {
+        "id": "project-open",
+        "type": "button",
+        "props": {
+          "label": "Open project",
+          "action": "open_video",
+          "glyph": "film",
+          "iconOnly": true,
+          "style": "link",
+          "payload": {
+            "id": "{id}"
+          }
+        }
+      },
+      {
+        "id": "production-sidebar",
+        "type": "stack",
+        "props": {
+          "region": "sidebar",
+          "gap": "sm"
+        },
+        "children": [
+          "brief",
+          "new-format",
+          "create-project",
+          "project-list"
+        ]
+      },
+      {
+        "id": "programme-stage",
+        "type": "stage",
+        "props": {
+          "value": {
+            "title": "Create a project",
+            "segments": []
+          },
+          "label": "Programme preview"
+        }
+      },
+      {
+        "id": "play",
+        "type": "button",
+        "props": {
+          "label": "Play programme in place",
+          "action": "voice.play",
+          "glyph": "play",
+          "iconOnly": true,
+          "style": "link",
+          "payload": {
+            "programme": {},
+            "time": "{/creator/cursor}"
+          },
+          "disabled": true
+        }
+      },
+      {
+        "id": "watch-scene",
+        "type": "button",
+        "props": {
+          "label": "Watch from this scene",
+          "action": "voice.watch",
+          "glyph": "eye",
+          "iconOnly": true,
+          "style": "link",
+          "payload": {
+            "queue": {},
+            "from": 0,
+            "portrait": false
+          },
+          "disabled": true
+        }
+      },
+      {
+        "id": "pause",
+        "type": "button",
+        "props": {
+          "label": "Pause or continue",
+          "action": "voice.pause",
+          "glyph": "pause",
+          "iconOnly": true,
+          "style": "link",
+          "payload": {}
+        }
+      },
+      {
+        "id": "stop",
+        "type": "button",
+        "props": {
+          "label": "Stop",
+          "action": "voice.stop",
+          "glyph": "stop",
+          "iconOnly": true,
+          "style": "link",
+          "payload": {}
+        }
+      },
+      {
+        "id": "measure",
+        "type": "button",
+        "props": {
+          "label": "Prepare and measure narration",
+          "action": "voice.prepare",
+          "glyph": "clock",
+          "iconOnly": true,
+          "style": "link",
+          "payload": {
+            "programme": {},
+            "result": "prepared_timings"
+          },
+          "disabled": true
+        }
+      },
+      {
+        "id": "landscape",
+        "type": "button",
+        "props": {
+          "label": "Landscape",
+          "action": "landscape",
+          "glyph": "film",
+          "iconOnly": true,
+          "style": "link",
+          "payload": {},
+          "pressed": true
+        }
+      },
+      {
+        "id": "portrait",
+        "type": "button",
+        "props": {
+          "label": "Portrait",
+          "action": "portrait",
+          "glyph": "film",
+          "iconOnly": true,
+          "style": "link",
+          "payload": {},
+          "pressed": false
+        }
+      },
+      {
+        "id": "captions",
+        "type": "button",
+        "props": {
+          "label": "Captions",
+          "action": "toggle_captions",
+          "glyph": "info",
+          "iconOnly": true,
+          "style": "link",
+          "payload": {},
+          "pressed": false
+        }
+      },
+      {
+        "id": "loop",
+        "type": "button",
+        "props": {
+          "label": "Loop selected clip or programme",
+          "action": "toggle_loop",
+          "glyph": "redo",
+          "iconOnly": true,
+          "style": "link",
+          "payload": {},
+          "pressed": false
+        }
+      },
+      {
+        "id": "transport",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm"
+        },
+        "children": [
+          "play",
+          "watch-scene",
+          "pause",
+          "stop",
+          "measure",
+          "landscape",
+          "portrait",
+          "captions",
+          "loop"
+        ]
+      },
+      {
+        "id": "production-preview",
+        "type": "stack",
+        "props": {
+          "region": "preview",
+          "gap": "sm"
+        },
+        "children": [
+          "programme-stage",
+          "transport"
+        ]
+      },
+      {
+        "id": "inspector-empty",
+        "type": "text",
+        "props": {
+          "content": "Select or create a project to edit it.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "production-inspector",
+        "type": "stack",
+        "props": {
+          "region": "inspector",
+          "gap": "sm"
+        },
+        "children": [
+          "inspector-empty"
+        ]
+      },
+      {
+        "id": "production-timeline",
+        "type": "mediatrack",
+        "props": {
+          "region": "timeline",
+          "label": "Production timeline",
+          "duration": 1,
+          "clips": [],
+          "tracks": [
+            {
+              "id": "visual",
+              "label": "Video / images"
+            },
+            {
+              "id": "voice",
+              "label": "Narration",
+              "kind": "audio"
+            },
+            {
+              "id": "music",
+              "label": "Music",
+              "kind": "audio"
+            },
+            {
+              "id": "captions",
+              "label": "Captions"
+            }
+          ],
+          "selected": "",
+          "cursor": 0,
+          "bind": "/creator/command"
+        }
+      },
+      {
+        "id": "production-status",
+        "type": "text",
+        "props": {
+          "region": "status",
+          "content": "Create a project or import source material",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "root",
+        "type": "workspace",
+        "props": {
+          "label": "Video Studio editor"
+        },
+        "children": [
+          "production-toolbar",
+          "production-sidebar",
+          "production-preview",
+          "production-inspector",
+          "production-timeline",
+          "production-status"
+        ]
       }
     ],
     "data": {
@@ -372,7 +701,20 @@
           "tool": "propose_video",
           "stage": 2
         }
-      }
+      },
+      "creator": {
+        "panel": "scene",
+        "clip": "",
+        "cursor": 0,
+        "command": {},
+        "asset": "",
+        "assetKind": "",
+        "assetTitle": "",
+        "assetDuration": 10,
+        "checkpoint": "",
+        "target": 45
+      },
+      "projects": []
     }
   }
 ]

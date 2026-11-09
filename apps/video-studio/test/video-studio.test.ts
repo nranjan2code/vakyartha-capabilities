@@ -66,7 +66,7 @@ test('initial surface and retained state render every view', () => {
   const studio = all.find(x => x.surface === 'studio')!;
   const library = all.find(x => x.surface === 'library')!.data[0]!.value.homeRows as Record<string, unknown>[];
   assert.equal('programme' in library[0]!, false);
-  assert.equal(studio.nodes.some(x => x.id === 'production-workspace' && x.type === 'split'), true);
+  assert.equal(studio.nodes.some(x => x.id === 'root' && x.type === 'workspace'), true);
   assert.equal(studio.nodes.some(x => x.id === 'scene-items' && x.type === 'grid'), true);
 });
 
@@ -138,7 +138,7 @@ test('Home shows video cards that play when chosen, a shorts shelf and source ch
   assert.match(drawn.image, /^data:image\/svg\+xml,/);
   assert.match(decodeURIComponent(drawn.image), /No pictures[\s\S]*Weather Desk/);
   assert.match(row.meta, /News Desk · 4 Nov 2026/);
-  assert.match(row.length, /^\d+:\d\d$/);
+  assert.match(row.length, /^~\d+:\d\d$/);
   // Each card starts its queue at that card: its row carries its place in the queue.
   assert.deepEqual(data('library').homeRows.map((x: { id: string; index: number }) => [x.id, x.index]), [['v1', 0], ['v2', 1]]);
   assert.deepEqual(data('library').homeQueue.map((x: { id: string }) => x.id), ['v1', 'v2']);
@@ -241,5 +241,5 @@ test('a cover length counts the theme cues and pauses, not only the words', () =
   const show: Programme = { title: 'Cued', segments: [{ ...scene, delivery: 'opening', cue: 'intro' }, { ...scene, delivery: 'closing', cue: 'outro', break: 'section' }] };
   const rows = views({ videos: [{ id: 'cued', title: 'Cued', format: 'show', source: 'News Desk', savedAt: '2026-11-04T10:00:00.000Z', status: 'library', programme: show }] }).find(x => x.surface === 'library')!.data[0]!.value.homeRows as Record<string, unknown>[];
   // 6 words (2.4 s) + intro 5 s + section pause 0.9 s + outro 5.8 s.
-  assert.equal(JSON.stringify(rows).includes('"0:14"'), true);
+  assert.equal(JSON.stringify(rows).includes('"~0:14"'), true);
 });

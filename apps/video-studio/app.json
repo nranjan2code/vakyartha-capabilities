@@ -40,6 +40,15 @@
       ],
       "import_weather": [
         "app-weather-desk__get_weather_briefing"
+      ],
+      "append_source_news": [
+        "app-news-desk__get_bulletin"
+      ],
+      "append_source_markets": [
+        "app-market-terminal__get_market_brief"
+      ],
+      "append_source_weather": [
+        "app-weather-desk__get_weather_briefing"
       ]
     },
     "toolPurposes": {
@@ -109,6 +118,43 @@
           "additionalProperties": false
         },
         "readOnly": false
+      },
+      {
+        "name": "propose_edit",
+        "description": "Save a revision-checked proposal for one selected scene without changing its accepted or working narration until personal review.",
+        "readOnly": false,
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "expectedRevision": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "videoId": {
+              "type": "string"
+            },
+            "segment": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 79
+            },
+            "heading": {
+              "type": "string",
+              "maxLength": 300
+            },
+            "text": {
+              "type": "string",
+              "maxLength": 4000
+            }
+          },
+          "required": [
+            "expectedRevision",
+            "videoId",
+            "segment",
+            "text"
+          ],
+          "additionalProperties": false
+        }
       }
     ],
     "skills": [

@@ -1,12 +1,14 @@
 import { randomUUID } from 'node:crypto';
+import { parseComposition, type Composition } from './composition.ts';
+import { creatorAction, creatorView, normalizeCreator, retainProject, remember, accept, shortComposition, type CreatorState, type Snapshot, type ProjectHistory } from './creator.ts';
 
 export type Format = 'show' | 'short';
-export interface Segment { text: string; delivery: 'opening' | 'headline' | 'story' | 'aside' | 'closing'; cue?: 'intro' | 'sting' | 'outro'; break?: 'short' | 'story' | 'section'; bed?: true; breaking?: true; chart?: Record<string, unknown>; figures?: Record<string, unknown>[]; kicker: string; heading: string; image?: string; source?: string; at?: string; link?: string }
-export interface Programme { title: string; badge?: string; segments: Segment[]; ticker?: { text: string; kicker?: string; link?: string; at?: string; fresh?: true; change?: number }[] }
-export interface Video { id: string; title: string; format: Format; source: string; savedAt: string; sourceCheckedAt?: string; status: 'draft' | 'library'; programme: Programme }
+export interface Segment { sourceApp?: string; checkedAt?: string; text: string; delivery: 'opening' | 'headline' | 'story' | 'aside' | 'closing'; cue?: 'intro' | 'sting' | 'outro'; break?: 'short' | 'story' | 'section'; bed?: true; breaking?: true; chart?: Record<string, unknown>; figures?: Record<string, unknown>[]; kicker: string; heading: string; image?: string; source?: string; at?: string; link?: string }
+export interface Programme { composition?: Composition; title: string; badge?: string; segments: Segment[]; ticker?: { text: string; kicker?: string; link?: string; at?: string; fresh?: true; change?: number }[] }
+export interface Video { proposal?: { segment: number; heading: string; text: string }; accepted?: Snapshot; parentId?: string; history?: ProjectHistory; id: string; title: string; format: Format; source: string; savedAt: string; sourceCheckedAt?: string; status: 'draft' | 'library'; programme: Programme }
 export interface Progress { part: number; done: boolean; at: string }
 export interface Playlist { id: string; name: string; items: string[] }
-export interface State { videos?: Video[]; unreadable?: unknown[]; confirmUnreadable?: true; progress?: Record<string, Progress>; history?: { id: string; at: string }[]; playlists?: Playlist[]; playlist?: string; later?: string[]; channel?: string; playlistName?: string; confirmPlaylist?: string; selected?: string; source?: string; format?: Format; edit?: { id: string; title: string; segment: number; heading: string; text: string }; topic?: string; notice?: string; confirmRemove?: string; seq?: number }
+export interface State { creator?: CreatorState; videos?: Video[]; unreadable?: unknown[]; confirmUnreadable?: true; progress?: Record<string, Progress>; history?: { id: string; at: string }[]; playlists?: Playlist[]; playlist?: string; later?: string[]; channel?: string; playlistName?: string; confirmPlaylist?: string; selected?: string; source?: string; format?: Format; edit?: { id: string; title: string; segment: number; heading: string; text: string }; topic?: string; notice?: string; confirmRemove?: string; seq?: number }
 export interface Context { state: State; appRevision?: number; callTool(name: string, args: Record<string, unknown>): Promise<unknown> }
 type Node = { id: string; type: string; props?: Record<string, unknown>; children?: string[] | { each: string; template: string } };
 type Update = { surface: string; nodes: Node[]; data: { op: 'replace'; path: '/'; value: Record<string, unknown> }[] };
@@ -38,7 +40,7 @@ function segment(raw: unknown, imported: boolean): Segment | undefined {
   const link = typeof x.link === 'string' && /^https:\/\//.test(x.link) ? x.link.slice(0, 2048) : undefined;
   const chart = x.chart && typeof x.chart === 'object' ? x.chart as Record<string, unknown> : undefined;
   const figures = Array.isArray(x.figures) ? x.figures.slice(0, 6).filter(f => f && typeof f === 'object') as Record<string, unknown>[] : undefined;
-  return { text: body, delivery, ...(cue ? { cue } : {}), ...(brk ? { break: brk } : {}), ...(x.bed === true ? { bed: true as const } : {}), ...(x.breaking === true ? { breaking: true as const } : {}), ...(chart ? { chart } : {}), ...(figures?.length ? { figures } : {}), kicker, heading, ...(image ? { image } : {}), ...(str(x.source, 120) ? { source: str(x.source, 120) } : {}), ...(date(x.at) ? { at: date(x.at) } : {}), ...(link ? { link } : {}) };
+  return { ...(str(x.sourceApp,120) ? { sourceApp: str(x.sourceApp,120) } : {}), ...(date(x.checkedAt) ? { checkedAt: date(x.checkedAt) } : {}), text: body, delivery, ...(cue ? { cue } : {}), ...(brk ? { break: brk } : {}), ...(x.bed === true ? { bed: true as const } : {}), ...(x.breaking === true ? { breaking: true as const } : {}), ...(chart ? { chart } : {}), ...(figures?.length ? { figures } : {}), kicker, heading, ...(image ? { image } : {}), ...(str(x.source, 120) ? { source: str(x.source, 120) } : {}), ...(date(x.at) ? { at: date(x.at) } : {}), ...(link ? { link } : {}) };
 }
 
 export function programme(raw: unknown, fallbackTitle: string, imported = true): Programme {
@@ -55,7 +57,8 @@ export function programme(raw: unknown, fallbackTitle: string, imported = true):
     const link = typeof x.link === 'string' && /^https:\/\//.test(x.link) ? x.link.slice(0, 2048) : undefined;
     return [{ text: body, ...(str(x.kicker, 40) ? { kicker: str(x.kicker, 40) } : {}), ...(link ? { link } : {}), ...(date(x.at) ? { at: date(x.at) } : {}), ...(x.fresh === true ? { fresh: true as const } : {}), ...(typeof x.change === 'number' && Number.isFinite(x.change) ? { change: x.change } : {}) }];
   }) : [];
-  return { title: t(value.title, 80) || fallbackTitle, ...(str(value.badge, 20) ? { badge: str(value.badge, 20) } : {}), segments, ...(ticker.length ? { ticker } : {}) };
+  const composition = parseComposition(value.composition, segments.length);
+  return { ...(composition ? { composition } : {}), title: t(value.title, 80) || fallbackTitle, ...(str(value.badge, 20) ? { badge: str(value.badge, 20) } : {}), segments, ...(ticker.length ? { ticker } : {}) };
 }
 
 function normalize(raw: State = {}): State {
@@ -64,7 +67,7 @@ function normalize(raw: State = {}): State {
   const videos = (Array.isArray(raw.videos) ? raw.videos : []).slice(0, 100).flatMap(x => {
     try {
       if (!x || typeof x !== 'object' || typeof x.id !== 'string' || !['draft', 'library'].includes(x.status)) throw new Error('unreadable');
-      return [{ id: x.id.slice(0, 80), title: str(x.title, 80) || 'Untitled show', format: kind(x.format), source: str(x.source, 120) || 'Video Studio', savedAt: date(x.savedAt) ?? new Date(0).toISOString(), ...(date(x.sourceCheckedAt) ? { sourceCheckedAt: date(x.sourceCheckedAt) } : {}), status: x.status as Video['status'], programme: programme(x.programme, str(x.title, 80) || 'Untitled show', false) }];
+      return [{ ...retainProject(x), id: x.id.slice(0, 80), title: str(x.title, 80) || 'Untitled show', format: kind(x.format), source: str(x.source, 120) || 'Video Studio', savedAt: date(x.savedAt) ?? new Date(0).toISOString(), ...(date(x.sourceCheckedAt) ? { sourceCheckedAt: date(x.sourceCheckedAt) } : {}), status: x.status as Video['status'], programme: programme(x.programme, str(x.title, 80) || 'Untitled show', false) }];
     } catch { if (unreadable.length < 100) unreadable.push(x); return []; }
   });
   const selected = videos.some(x => x.id === raw.selected) ? raw.selected : videos[0]?.id;
@@ -81,7 +84,7 @@ function normalize(raw: State = {}): State {
   const playlists = (Array.isArray(raw.playlists) ? raw.playlists : []).slice(0, 20).flatMap(x => x && typeof x.id === 'string' && str(x.name, 60) ? [{ id: x.id.slice(0, 80), name: str(x.name, 60), items: [...new Set((Array.isArray(x.items) ? x.items : []).filter(i => known.has(i)))].slice(0, 50) }] : []);
   const playlist = playlists.some(x => x.id === raw.playlist) ? raw.playlist : playlists[0]?.id;
   const later = [...new Set((Array.isArray(raw.later) ? raw.later : []).filter(i => known.has(i)))].slice(0, 100);
-  return { videos, progress, history, playlists, later, channel: str(raw.channel, 120), ...(playlist ? { playlist } : {}), playlistName: str(raw.playlistName, 60), ...(playlists.some(x => x.id === raw.confirmPlaylist) ? { confirmPlaylist: raw.confirmPlaylist } : {}), ...(unreadable.length ? { unreadable, ...(raw.confirmUnreadable === true ? { confirmUnreadable: true as const } : {}) } : {}), selected, source: SOURCE.has(String(raw.source)) ? raw.source : 'news', format: kind(raw.format), edit, topic: str(raw.topic, 160), notice: str(raw.notice, 300), confirmRemove: videos.some(v => v.id === raw.confirmRemove) ? raw.confirmRemove : undefined, seq: Number.isSafeInteger(raw.seq) && Number(raw.seq) >= 0 ? Number(raw.seq) : 0 };
+  return { creator: normalizeCreator(raw.creator), videos, progress, history, playlists, later, channel: str(raw.channel, 120), ...(playlist ? { playlist } : {}), playlistName: str(raw.playlistName, 60), ...(playlists.some(x => x.id === raw.confirmPlaylist) ? { confirmPlaylist: raw.confirmPlaylist } : {}), ...(unreadable.length ? { unreadable, ...(raw.confirmUnreadable === true ? { confirmUnreadable: true as const } : {}) } : {}), selected, source: SOURCE.has(String(raw.source)) ? raw.source : 'news', format: kind(raw.format), edit, topic: str(raw.topic, 160), notice: str(raw.notice, 300), confirmRemove: videos.some(v => v.id === raw.confirmRemove) ? raw.confirmRemove : undefined, seq: Number.isSafeInteger(raw.seq) && Number(raw.seq) >= 0 ? Number(raw.seq) : 0 };
 }
 
 const val = (s: State) => {
@@ -94,10 +97,10 @@ const val = (s: State) => {
 // cues (the opening holds at least 4.5 s, the sting and outro about 5.5 s). The voice and speed set the real length.
 const PAUSE: Record<string, number> = { short: 0.22, story: 0.6, section: 0.9 };
 const CUE: Record<string, number> = { intro: 5, sting: 5.5, outro: 5.8 };
-const seconds = (p: Programme) => Math.max(1, Math.round(p.segments.reduce((sum, x, i) => sum + wordCount(x.text) / 2.5 + (i && x.break ? PAUSE[x.break] ?? 0 : 0) + (x.cue ? CUE[x.cue] ?? 0 : 0), 0)));
+const seconds = (p: Programme) => p.composition ? p.composition.duration : Math.max(1, Math.round(p.segments.reduce((sum, x, i) => sum + wordCount(x.text) / 2.5 + (i && x.break ? PAUSE[x.break] ?? 0 : 0) + (x.cue ? CUE[x.cue] ?? 0 : 0), 0)));
 const runtime = (p: Programme) => { const sec = seconds(p); return sec < 60 ? `About ${sec} s` : `About ${Math.round(sec / 60)} min`; };
 /** 74 → "1:14": the estimated length shown on a cover. */
-const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+const clock = (sec: number) => `~${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 const day = (v: string) => { const d = new Date(v); return Number.isFinite(d.getTime()) && d.getTime() > 0 ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Unknown date'; };
 const COVERS = [['#1d3b6e', '#e5484d'], ['#0f4c3a', '#f5b400'], ['#3b1d6e', '#38c6d4'], ['#5a2410', '#ff8a3d'], ['#123d57', '#9ad94f']];
 /**
@@ -124,13 +127,13 @@ const addSection = (target: Node[], id: string, title: string, description: stri
 const workflow = { title: 'Video Studio', stages: ['Plan', 'Create', 'Review'], brief: 'Your show or short brief', boundary: 'This saves a watchable programme in your local library. Listen and Watch use the shared Vakyartha voice. No video file is rendered and nothing is posted outside Vakyartha.', saved: 'Draft saved. Review the source, narration and scenes in Video Studio before adding it to your library.', guide: { start: { heading: 'Choose a subject and source', hint: 'Agree the topic, style and source apps before writing the show.' }, responded: { heading: 'Shape the programme', hint: 'Build scenes from the selected app data and preserve the original source and dates.' }, saved: { heading: 'Review your draft', hint: 'Check every scene and attribution, then add the show to your local library.' } }, steps: [{ id: 'create', label: 'Create show draft', mode: 'send', stage: 1, message: 'Read get_creator_context for the current schema and expectedRevision. Use the source tools that the person selected or that match their topic. Set source to the declared source app name; use segment source for actual publishers. Create a complete, source-aware programme with a title, ordered segments, plain spoken text, headings, attribution and dates. For a short, use one or two scenes and at most 120 spoken words total. Preserve uncertainty and do not invent facts, images, links or sources. Call propose_video to save it as an unreviewed draft. Do not add it to the library.' }, { id: 'revise', label: 'Revise the plan', mode: 'edit', message: 'Revise the show plan with these changes: ' }], review: { label: 'Review drafts', surface: 'studio', tool: 'propose_video', stage: 2 } };
 
 export function views(raw: State): Update[] {
-  const s = normalize(raw), d = val(s), rows = (each: string, template: string) => ({ each, template });
+  const s = normalize(raw), creator = creatorView(s, SOURCES), d = val(s), rows = (each: string, template: string) => ({ each, template });
   const lib = s.videos!.filter(x => x.status === 'library'), pos = new Map(lib.map((x, i) => [x.id, i]));
   const at = (id: string) => pos.get(id) ?? -1, later = new Set(s.later);
   const target = s.playlists!.find(x => x.id === s.playlist);
   // One row shape for every video card: cover, length on the cover, title, then source and date.
-  const card = (x: Video, index: number) => ({ id: x.id, index, title: x.title, image: cover(x), length: clock(seconds(x.programme)), meta: `${x.source} · ${day(x.savedAt)}`, laterLabel: later.has(x.id) ? 'Remove from Watch later' : 'Watch later' });
-  const queue = (list: Video[]) => list.map(x => ({ id: x.id, programme: x.programme }));
+  const card = (record: Video, index: number) => { const x = record.accepted ? { ...record, title: record.accepted.title, programme: record.accepted.programme } : record; return ({ id: x.id, index, title: x.title, image: cover(x), length: clock(seconds(x.programme)), meta: `${x.source} · ${day(x.savedAt)}`, laterLabel: later.has(x.id) ? 'Remove from Watch later' : 'Watch later' }); };
+  const queue = (list: Video[]) => list.map(x => ({ id: x.id, programme: x.accepted?.programme ?? x.programme }));
   const watch = (q: string, label: string, extra: Record<string, unknown> = {}) => ({ action: 'voice.watch', payload: { queue: q, index: '{index}', progress: 'watch_progress', ...extra }, actionLabel: label });
   const videoCard = (id: string, q: string, kids: string[], extra: Record<string, unknown> = {}) => n(id, 'card', { title: '{title}', subtitle: '{meta}', image: '{image}', imageLabel: '{length}', titleLines: 2, ...watch(q, 'Watch'), ...extra }, kids);
   const shortCard = (id: string, q: string) => n(id, 'card', { title: '{title}', subtitle: '{meta}', image: '{image}', imageAspect: 'tall', imageLabel: '{length}', titleLines: 2, ...watch(q, 'Watch short', { portrait: true }) });
@@ -180,38 +183,19 @@ export function views(raw: State): Update[] {
     if (listItems.length) listNodes.push(n('playlist-row', 'card', { title: '{title}', subtitle: '{label}' }, ['playlist-row-play', 'playlist-up', 'playlist-down', 'playlist-remove']), btn('playlist-row-play', 'Watch from here', 'voice.watch', { queue: '{/playlistQueue}', index: '{index}', progress: 'watch_progress' }, 'primary'), btn('playlist-up', 'Move up', 'move_in_playlist', { id: '{id}', by: -1 }), btn('playlist-down', 'Move down', 'move_in_playlist', { id: '{id}', by: 1 }), btn('playlist-remove', 'Remove', 'remove_from_playlist', { id: '{id}' }));
   }
   if (s.notice) listNodes.push(n('playlists-notice', 'text', { content: s.notice, variant: 'caption' }));
-  const studioNodes: Node[] = [];
-  addSection(studioNodes, 'creator-intro', 'Creator Studio', 'Create a source-aware production or bring a saved programme into your workspace.', [n('creator-paths', 'grid', { columns: 2, minItemWidth: 'md', gap: 'md' }, ['new-production', 'source-production'])]);
-  addSection(studioNodes, 'new-production', 'Create a production', 'Describe the show or short you want to make.', [n('creator-topic', 'input', { label: 'Production brief', bind: '/topic', placeholder: 'What should this be about?' }), n('creator-format', 'select', { label: 'Format', bind: '/format', options: '{/formatOptions}', presentation: 'dropdown' }), btn('assistant-create', 'Create with assistant', 'assistant.compose', { path: 'authorRequest', workflowPath: 'authorWorkflow' }, 'primary')]);
-  addSection(studioNodes, 'source-production', 'Use a saved programme', 'Import the latest programme already saved in a Vakyartha app.', [n('creator-source', 'select', { label: 'Source app', bind: '/source', options: '{/sourceOptions}', presentation: 'dropdown' }), btn('import-source', 'Import programme', `import_${s.source}`, {}, 'secondary')]);
-  if (d.drafts.length) {
-    addSection(studioNodes, 'drafts-list', 'Drafts to review', 'Imported or assistant-created programmes stay drafts until you add them to the library.', [n('draft-items', 'grid', { columns: 2, minItemWidth: 'md', searchable: true, pageSize: 12 }, rows('/drafts', 'draft-row'))]);
-    studioNodes.push(n('draft-row', 'card', { title: '{title}', subtitle: '{formatLabel} · {length} · {source} · {statusLabel}', image: '{image}', imageLayout: 'thumbnail', titleLines: 2 }, ['draft-open', 'draft-add']), btn('draft-open', 'Review', 'open_video', { id: '{id}' }), btn('draft-add', 'Add to library', 'add_to_library', { id: '{id}' }, 'primary'));
-  }
-  if (d.selected && d.edit) {
-    const seg = d.selected.programme.segments[d.edit.segment]!;
-    addSection(studioNodes, 'studio-editor', 'Programme details', `${d.selected.format === 'short' ? 'Short' : 'Show'} · ${runtime(d.selected.programme)} · ${d.selected.source} · Saved ${when(d.selected.savedAt)}${d.selected.sourceCheckedAt ? ` · Source checked ${when(d.selected.sourceCheckedAt)}` : ''} · Changes save as you type`, [n('edit-title', 'input', { label: 'Title', bind: '/edit/title' }), n('edit-segment', 'select', { label: 'Selected scene', bind: '/edit/segment', options: '{/segmentOptions}', presentation: 'dropdown' }), n('edit-heading', 'input', { label: 'Scene heading', bind: '/edit/heading' }), n('edit-text', 'textarea', { label: 'Narration', bind: '/edit/text' }), n('scene-preview', 'text', { content: `Scene ${d.edit.segment + 1} of ${d.selected.programme.segments.length}: ${seg.heading || d.selected.title} · ${wordCount(seg.text)} words · ${runtime({ title: '', segments: [seg] })}`, variant: 'caption' }), btn('editor-watch', 'Watch from this scene', 'voice.watch', { queue: '{/selected/programme}', from: '{/edit/segment}' }, 'primary'), ...(d.selected.status === 'library' ? [btn('editor-unlist', 'Move to drafts', 'move_to_drafts')] : [btn('editor-add', 'Add to library', 'add_to_library', {}, 'primary')]), btn('ask-remove', 'Remove show', 'ask_remove', {}, 'danger'), ...(s.confirmRemove === d.selected.id ? [n('remove-confirm', 'alert', { title: 'Remove this show?', body: 'This removes the saved programme and its scenes from Video Studio.', tone: 'warning' }), btn('remove-cancel', 'Keep show', 'cancel_remove'), btn('remove-confirmed', 'Remove from Video Studio', 'remove_video', {}, 'danger')] : [])]);
-    addSection(studioNodes, 'studio-scenes', 'Storyboard', 'Select a scene to edit its narration or cut it into a short. Watch from this scene previews it.', [n('scene-items', 'grid', { columns: 1, searchable: true, pageSize: 12 }, rows('/selected/programme/segments', 'scene-row'))]);
-    studioNodes.push(n('scene-row', 'card', { title: '{heading}', subtitle: '{kicker} · {source}' }, ['scene-edit', 'scene-short']), btn('scene-edit', 'Edit scene', 'select_scene', { index: '{index}' }), btn('scene-short', 'Make a short', 'make_short', { index: '{index}' }, 'primary'));
-    studioNodes.push(n('production-workspace', 'split', { ratio: '1:2', gap: 'md' }, ['studio-scenes', 'studio-editor']));
-  }
-  if (d.unreadableCount) {
-    const many = d.unreadableCount === 1 ? '1 saved item' : `${d.unreadableCount} saved items`;
-    addSection(studioNodes, 'unreadable', 'Items that could not be read', `${many} no longer match the programme format. They are kept unchanged and are not shown in the library.`, s.confirmUnreadable ? [n('unreadable-confirm', 'alert', { title: `Remove ${many}?`, body: 'This permanently removes them from Video Studio.', tone: 'warning' }), btn('unreadable-keep', 'Keep them', 'cancel_remove'), btn('unreadable-remove', 'Remove from Video Studio', 'remove_unreadable', {}, 'danger')] : [btn('unreadable-ask', 'Remove unreadable items', 'ask_remove_unreadable', {}, 'danger')]);
-  }
-  if (s.notice) studioNodes.push(n('studio-notice', 'text', { content: s.notice }));
+  const studioNodes = creator.nodes;
   const root = (list: Node[], ids: string[]) => list.unshift(n('root', 'stack', { direction: 'vertical', gap: 'md' }, list.filter(x => ids.includes(x.id)).map(x => x.id)));
   root(libraryNodes, ['library-intro', 'library-continue', 'library-shorts', 'library-list', 'library-notice']);
   root(shortsNodes, ['shorts-intro', 'shorts-items']);
   root(listNodes, ['you-history', 'you-later', 'playlists-intro', 'playlist-detail', 'playlists-notice']);
-  studioNodes.unshift(n('root', 'stack', { direction: 'vertical', gap: 'md' }, studioNodes.filter(x => ['creator-intro', 'unreadable', 'drafts-list', 'production-workspace', 'studio-notice'].includes(x.id)).map(x => x.id)));
+
   // Each view carries only the data it shows; programmes travel as the queues that play them.
   const notice = d.notice, { library: _library, ...studioData } = d;
   return [
     { surface: 'library', nodes: libraryNodes, data: [{ op: 'replace', path: '/', value: { channel, channelOptions: [{ label: 'All', value: 'all' }, ...channels.map(x => ({ label: x, value: x }))], homeRows: shows.map(card), homeQueue: queue(shows), shelfRows: shelf.map(card), shelfQueue: queue(shelf), continueRows: resumeRows, libraryQueue, notice } }] },
     { surface: 'shorts', nodes: shortsNodes, data: [{ op: 'replace', path: '/', value: { shortRows: shorts.map(card), shortsQueue: queue(shorts) } }] },
-    { surface: 'playlists', nodes: listNodes, data: [{ op: 'replace', path: '/', value: { historyRows, libraryQueue, laterRows, laterQueue: queue(laterList), playlist: s.playlist ?? '', playlistName: s.playlistName ?? '', playlistOptions: s.playlists!.map(x => ({ label: `${x.name} (${x.items.length})`, value: x.id })), listItems, playlistQueue: listItems.map(x => ({ id: x.id, programme: lib[at(x.id)]!.programme })), notice } }] },
-    { surface: 'studio', nodes: studioNodes, data: [{ op: 'replace', path: '/', value: studioData }] },
+    { surface: 'playlists', nodes: listNodes, data: [{ op: 'replace', path: '/', value: { historyRows, libraryQueue, laterRows, laterQueue: queue(laterList), playlist: s.playlist ?? '', playlistName: s.playlistName ?? '', playlistOptions: s.playlists!.map(x => ({ label: `${x.name} (${x.items.length})`, value: x.id })), listItems, playlistQueue: listItems.map(x => ({ id: x.id, programme: lib[at(x.id)]!.accepted?.programme ?? lib[at(x.id)]!.programme })), notice } }] },
+    { surface: 'studio', nodes: studioNodes, data: [{ op: 'replace', path: '/', value: { ...studioData, ...creator.data } }] },
   ];
 }
 
@@ -243,8 +227,10 @@ function checkStateSize(s: State) {
 }
 
 export async function handleAction(controlId: string, value: unknown, c: Context, action?: string) {
-  const s = c.state = normalize(c.state), p = value && typeof value === 'object' ? value as Record<string, unknown> : {};
-  if (!action) {
+  const s = normalize(c.state), p = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+  const working = { ...c, state: s };
+  if (await creatorAction(controlId, value, working, action, SOURCES, programme)) { /* handled by the project writer */ }
+  else if (!action) {
     if (controlId === '/source') { if (!SOURCE.has(String(value))) throw new Error('Choose an available source app'); s.source = String(value); }
     else if (controlId === '/format') s.format = kind(value);
     else if (controlId === '/topic') s.topic = str(value, 160);
@@ -253,7 +239,7 @@ export async function handleAction(controlId: string, value: unknown, c: Context
     else if (controlId === '/playlist') { if (!s.playlists!.some(x => x.id === value)) throw new Error('Choose a playlist'); s.playlist = String(value); s.confirmPlaylist = undefined; }
     else if (controlId === '/edit/title') {
       const v = selected(s); if (!s.edit || s.edit.id !== v.id) throw new Error('Open a show in Creator Studio first');
-      s.edit.title = str(value, 80);
+      remember(v); s.edit.title = str(value, 80);
       if (s.edit.title) { v.title = s.edit.title; v.programme.title = s.edit.title; s.notice = ''; } else s.notice = 'A show needs a title. The last title is kept until you type a new one.';
     }
     else if (controlId === '/edit/segment') { const v = selected(s); setEdit(s, v, Number(value)); }
@@ -261,6 +247,7 @@ export async function handleAction(controlId: string, value: unknown, c: Context
       // Edits save straight into the canonical scene, so changing scene or closing the app never loses words.
       const v = selected(s), e = s.edit; if (!e || e.id !== v.id) throw new Error('Open a scene in Creator Studio first');
       const part = v.programme.segments[e.segment]; if (!part) throw new Error('Choose a scene first');
+      remember(v);
       if (controlId === '/edit/heading') { e.heading = str(value, 300); part.heading = e.heading || 'Untitled scene'; }
       else { e.text = str(value, 4000); part.text = e.text; }
       s.notice = '';
@@ -275,19 +262,18 @@ export async function handleAction(controlId: string, value: unknown, c: Context
     const raw = sourceResult(result);
     const envelope = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
     const prog = programme(envelope.programme ?? raw, src.name);
-    const id = randomUUID(), video: Video = { id, title: prog.title, format: 'show', source: src.name, savedAt: new Date().toISOString(), ...(date(envelope.checkedAt) || date(envelope.retrievedAt) ? { sourceCheckedAt: date(envelope.checkedAt) ?? date(envelope.retrievedAt) } : {}), status: 'draft', programme: prog };
+    const id = randomUUID(), video: Video = { id, title: prog.title, format: 'show', source: src.name, savedAt: new Date().toISOString(), ...(date(envelope.checkedAt) || date(envelope.retrievedAt) ? { sourceCheckedAt: date(envelope.checkedAt) ?? date(envelope.retrievedAt) } : {}), status: 'draft', programme: { ...prog, segments: prog.segments.map(segment => ({ ...segment, sourceApp: src.name, ...(date(envelope.checkedAt) ? { checkedAt: date(envelope.checkedAt) } : {}) })) } };
     addVideo(s, video); setEdit(s, video); s.notice = `Imported ${src.name} programme as a draft. Review it before adding it to your library.`;
-  } else if (action === 'open_video') { const v = selected(s, p.id); setEdit(s, v); s.notice = ''; }
-  else if (action === 'select_scene') setEdit(s, selected(s), Number(p.index));
+  } else if (action === 'open_video') { const v = selected(s, p.id); setEdit(s, v); s.creator!.panel = 'scene'; s.notice = ''; }
+  else if (action === 'select_scene') { setEdit(s, selected(s), Number(p.index)); s.creator!.panel = 'scene'; }
   else if (action === 'make_short') {
     const base = selected(s), index = Number(p.index), part = base.programme.segments[index]; if (!part) throw new Error('Choose a scene first');
-    if (wordCount(part.text) > 120) throw new Error('This scene is longer than the 120-word short limit. Shorten its narration and try again.');
     const title = str(part.heading, 80) || `${base.title} short`;
     const { cue: _cue, break: _break, ...rest } = part;
-    const short: Video = { id: randomUUID(), title, format: 'short', source: `${base.source} · ${base.title}`, savedAt: new Date().toISOString(), ...(base.sourceCheckedAt ? { sourceCheckedAt: base.sourceCheckedAt } : {}), status: 'draft', programme: { title, segments: [{ ...rest, delivery: 'story' }] } };
+    const short: Video = { id: randomUUID(), title, format: 'short', source: base.source, parentId: base.id, savedAt: new Date().toISOString(), ...(base.sourceCheckedAt ? { sourceCheckedAt: base.sourceCheckedAt } : {}), status: 'draft', programme: { title, segments: [{ ...rest, delivery: 'story' }], composition: shortComposition(base, index) } };
     addVideo(s, short); setEdit(s, short); s.notice = 'Short created from one scene. Review it before adding it to your library.';
   } else if (action === 'add_to_library') {
-    const v = selected(s, p.id); if (!v.programme.segments.length) throw new Error('A programme needs at least one scene'); v.status = 'library'; s.selected = v.id; setEdit(s, v); s.notice = 'Added to your local video library. This did not post it outside Vakyartha.';
+    const v = selected(s, p.id); accept(v); s.selected = v.id; setEdit(s, v); s.notice = 'Added to your local video library. This did not post it outside Vakyartha.';
   } else if (action === 'move_to_drafts') {
     const v = selected(s, p.id); v.status = 'draft'; s.selected = v.id; setEdit(s, v); s.notice = `Moved ${v.title} back to drafts.`;
   } else if (action === 'propose_video') {
@@ -345,13 +331,15 @@ export async function handleAction(controlId: string, value: unknown, c: Context
   } else if (action === 'refresh') { /* The host rebuilds saved views without fetching source data. */ }
   else throw new Error(`Unknown Video Studio action: ${action}`);
   checkStateSize(s);
+  c.state = s;
   return { updates: views(s), ...(action === 'add_to_library' ? { focusSurface: 'library' } : action === 'open_video' || action === 'move_to_drafts' ? { focusSurface: 'studio' } : undefined) };
 }
 
 export async function handleQuery(name: string, _params: unknown, c: Context) {
   const s = normalize(c.state);
   if (name !== 'get_creator_context') throw new Error('Unknown Video Studio query');
-  return { expectedRevision: c.appRevision ?? null, selectedSource: SOURCE.get(String(s.source))?.name ?? 'News Desk', topic: s.topic ?? '', savedCount: s.videos!.length, recent: s.videos!.slice(0, 20).map(v => ({ title: v.title, format: v.format, source: v.source, status: v.status })), schema: { programme: { title: 'text', segments: [{ text: 'spoken plain text', delivery: 'opening|headline|story|aside|closing', cue: 'show only: intro on the opening, sting on the first detailed scene, outro on the closing', break: 'short between headlines, story between stories, section between sections', bed: 'true on headline scenes to play the theme quietly under them', kicker: 'section', heading: 'scene title', source: 'actual contributing app or publication', at: 'source timestamp when available', link: 'optional https link to the original report', image: 'optional actual https image', chart: 'optional, only from source numbers: {kind: line, points, labels: [first, last], base} or {kind: bars, bars: [{label, value}], unit}', figures: 'optional, up to six source figures: [{label, value, change}]' }] }, format: 'show or short; a show opens, runs its scenes and closes with the cues above; a short has one or two concise scenes and no cues' }, limits: '80 scenes per show; shorts have at most two scenes and 120 spoken words; 100 local videos; 8 MB total app content; each spoken scene up to 4000 characters' };
+  const selectedProject = s.videos!.find(v => v.id === s.selected), selectedSegment = s.edit?.segment ?? 0;
+  return { expectedRevision: c.appRevision ?? null, selected: selectedProject ? { id: selectedProject.id, title: selectedProject.title, segment: selectedSegment, scene: selectedProject.programme.segments[selectedSegment], clips: selectedProject.programme.composition?.clips.filter(c => c.segment === selectedSegment), proposalTool: 'propose_edit' } : null, selectedSource: SOURCE.get(String(s.source))?.name ?? 'News Desk', topic: s.topic ?? '', savedCount: s.videos!.length, recent: s.videos!.slice(0, 20).map(v => ({ title: v.title, format: v.format, source: v.source, status: v.status })), schema: { programme: { title: 'text', segments: [{ text: 'spoken plain text', delivery: 'opening|headline|story|aside|closing', cue: 'show only: intro on the opening, sting on the first detailed scene, outro on the closing', break: 'short between headlines, story between stories, section between sections', bed: 'true on headline scenes to play the theme quietly under them', kicker: 'section', heading: 'scene title', source: 'actual contributing app or publication', at: 'source timestamp when available', link: 'optional https link to the original report', image: 'optional actual https image', chart: 'optional, only from source numbers: {kind: line, points, labels: [first, last], base} or {kind: bars, bars: [{label, value}], unit}', figures: 'optional, up to six source figures: [{label, value, change}]' }] }, format: 'show or short; a show opens, runs its scenes and closes with the cues above; a short has one or two concise scenes and no cues' }, limits: '80 scenes per show; shorts have at most two scenes and 120 spoken words; 100 local videos; 8 MB total app content; each spoken scene up to 4000 characters' };
 }
 
 const TITLES: Record<string, string> = { library: 'Home', shorts: 'Shorts', playlists: 'You', studio: 'Creator Studio' };
