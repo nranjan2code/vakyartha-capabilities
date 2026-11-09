@@ -100,7 +100,7 @@ const CUE: Record<string, number> = { intro: 5, sting: 5.5, outro: 5.8 };
 const seconds = (p: Programme) => p.composition ? p.composition.duration : Math.max(1, Math.round(p.segments.reduce((sum, x, i) => sum + wordCount(x.text) / 2.5 + (i && x.break ? PAUSE[x.break] ?? 0 : 0) + (x.cue ? CUE[x.cue] ?? 0 : 0), 0)));
 const runtime = (p: Programme) => { const sec = seconds(p); return sec < 60 ? `About ${sec} s` : `About ${Math.round(sec / 60)} min`; };
 /** 74 → "1:14": the estimated length shown on a cover. */
-const clock = (sec: number) => `~${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+const clock = (sec: number) => { const rounded = Math.max(1, Math.round(sec)); return `~${Math.floor(rounded / 60)}:${String(rounded % 60).padStart(2, '0')}`; };
 const day = (v: string) => { const d = new Date(v); return Number.isFinite(d.getTime()) && d.getTime() > 0 ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Unknown date'; };
 const COVERS = [['#1d3b6e', '#e5484d'], ['#0f4c3a', '#f5b400'], ['#3b1d6e', '#38c6d4'], ['#5a2410', '#ff8a3d'], ['#123d57', '#9ad94f']];
 /**
@@ -207,6 +207,7 @@ function selected(s: State, id?: unknown): Video {
 function setEdit(s: State, v: Video, index = 0) {
   const part = v.programme.segments[index]; if (!part) throw new Error('Choose a scene first');
   s.selected = v.id; s.edit = { id: v.id, title: v.title, segment: index, heading: part.heading, text: part.text };
+  if (s.creator) s.creator.cursor = v.programme.composition?.clips.find(c => c.segment === index)?.start ?? 0;
 }
 function addVideo(s: State, video: Video) {
   if (s.videos!.length >= 100) throw new Error('Video Studio holds 100 saved items. Remove one before creating another.');
