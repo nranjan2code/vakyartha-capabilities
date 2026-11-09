@@ -67,7 +67,7 @@ function normalize(raw: State = {}): State {
   const videos = (Array.isArray(raw.videos) ? raw.videos : []).slice(0, 100).flatMap(x => {
     try {
       if (!x || typeof x !== 'object' || typeof x.id !== 'string' || !['draft', 'library'].includes(x.status)) throw new Error('unreadable');
-      return [{ ...retainProject(x), id: x.id.slice(0, 80), title: str(x.title, 80) || 'Untitled show', format: kind(x.format), source: str(x.source, 120) || 'Video Studio', savedAt: date(x.savedAt) ?? new Date(0).toISOString(), ...(date(x.sourceCheckedAt) ? { sourceCheckedAt: date(x.sourceCheckedAt) } : {}), status: x.status as Video['status'], programme: programme(x.programme, str(x.title, 80) || 'Untitled show', false) }];
+      return [{ ...retainProject(x, programme), id: x.id.slice(0, 80), title: str(x.title, 80) || 'Untitled show', format: kind(x.format), source: str(x.source, 120) || 'Video Studio', savedAt: date(x.savedAt) ?? new Date(0).toISOString(), ...(date(x.sourceCheckedAt) ? { sourceCheckedAt: date(x.sourceCheckedAt) } : {}), status: x.status as Video['status'], programme: programme(x.programme, str(x.title, 80) || 'Untitled show', false) }];
     } catch { if (unreadable.length < 100) unreadable.push(x); return []; }
   });
   const selected = videos.some(x => x.id === raw.selected) ? raw.selected : videos[0]?.id;

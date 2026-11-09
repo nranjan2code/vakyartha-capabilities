@@ -12,7 +12,19 @@ const text = (v: unknown, max = 120) => typeof v === 'string' ? v.trim().slice(0
 const number = (v: unknown, fallback = 0) => Number.isFinite(Number(v)) ? Number(v) : fallback;
 const snapshot = (v: Video, name?: string): Snapshot => ({ title: v.title, programme: structuredClone(v.programme), at: new Date().toISOString(), ...(name ? { name } : {}) });
 export function normalizeCreator(raw?: Partial<CreatorState>): CreatorState { return { panel: text(raw?.panel) || 'scene', clip: text(raw?.clip, 80), cursor: Math.max(0, number(raw?.cursor)), command: {}, asset: text(raw?.asset, 80), assetKind: text(raw?.assetKind), assetTitle: text(raw?.assetTitle), assetDuration: Math.max(.1, Math.min(14400, number(raw?.assetDuration, 10))), checkpoint: text(raw?.checkpoint, 60), target: Math.max(1, Math.min(600, number(raw?.target, 45))) }; }
-export function retainProject(x: Video) { return { ...(x.proposal ? { proposal: structuredClone(x.proposal) } : {}), ...(x.accepted ? { accepted: structuredClone(x.accepted) } : {}), ...(x.parentId ? { parentId: text(x.parentId, 80) } : {}), history: { past: (x.history?.past ?? []).slice(-12), future: (x.history?.future ?? []).slice(-12), checkpoints: (x.history?.checkpoints ?? []).slice(-8) } }; }
+export function retainProject(x: Video, validate: (raw: unknown, title: string, imported?: boolean) => Programme) {
+  const read = (raw: Snapshot): Snapshot => {
+    if (!raw || typeof raw !== 'object' || !Number.isFinite(Date.parse(raw.at))) throw Error('Unreadable project snapshot');
+    const title = text(raw.title, 80) || x.title;
+    return { title, programme: validate(raw.programme, title, false), at: raw.at, ...(raw.name ? { name: text(raw.name, 60) } : {}) };
+  };
+  const history = (raw: Snapshot[] | undefined, limit: number) => {
+    if (raw !== undefined && !Array.isArray(raw)) throw Error('Unreadable project history');
+    return (raw ?? []).slice(-limit).map(read);
+  };
+  if (x.proposal && (!Number.isInteger(x.proposal.segment) || !x.programme.segments[x.proposal.segment])) throw Error('Unreadable scene proposal');
+  return { ...(x.proposal ? { proposal: { segment: x.proposal.segment, heading: text(x.proposal.heading, 300), text: text(x.proposal.text, 4000) } } : {}), ...(x.accepted ? { accepted: read(x.accepted) } : {}), ...(x.parentId ? { parentId: text(x.parentId, 80) } : {}), history: { past: history(x.history?.past, 12), future: history(x.history?.future, 12), checkpoints: history(x.history?.checkpoints, 8) } };
+}
 export function remember(v: Video) { if (v.status === 'library' && !v.accepted) v.accepted = snapshot(v); const h = v.history ??= { past: [], future: [], checkpoints: [] }; h.past.push(snapshot(v)); h.past = h.past.slice(-12); h.future = []; }
 const wordCount = (p: Programme) => p.segments.reduce((n, s) => n + s.text.split(/\s+/).filter(Boolean).length, 0);
 export function accept(v: Video) {
@@ -27,7 +39,7 @@ export function composition(v: Video): Composition {
   v.programme.segments.forEach((s, segment) => {
     const duration = Math.max(3, s.text.split(/\s+/).filter(Boolean).length / 2.5);
     const add = (kind: ClipKind, track: string, src?: string) => clips.push({ id: randomUUID(), label: s.heading || kind, kind, track, start, duration, in: 0, segment, ...(src ? { src } : {}), volume: 1, fadeIn: 0, fadeOut: 0, loop: false, muted: false, fit: 'contain', x: 50, y: 50 });
-    if (s.text) { add('narration', 'voice'); add('caption', 'captions'); }
+    add('narration', 'voice'); add('caption', 'captions');
     add(s.image ? 'image' : s.chart ? 'chart' : s.figures?.length ? 'figures' : 'title', 'visual', s.image);
     start += duration;
   });
@@ -119,9 +131,15 @@ export async function creatorAction(controlId: string, value: unknown, c: Contex
     v.programme.segments.splice(i, 1); p.clips = p.clips.filter(c => c.segment !== i).map(c => ({ ...c, ...(c.segment !== undefined && c.segment > i ? { segment: c.segment - 1 } : {}) })); editScene(s, v, Math.min(i, v.programme.segments.length - 1));
   } else if (action === 'scene_up' || action === 'scene_down') {
     const j = i + (action === 'scene_up' ? -1 : 1); if (!v.programme.segments[j]) return true;
-    const a = p.clips.filter(c => c.segment === i), b = p.clips.filter(c => c.segment === j), at = Math.min(...a.map(c => c.start)), bt = Math.min(...b.map(c => c.start));
+    const a = p.clips.filter(c => c.segment === i), b = p.clips.filter(c => c.segment === j);
+    if (!a.length || !b.length) throw Error('Both scenes need timeline clips before reordering');
+    const first = i < j ? a : b, second = i < j ? b : a, at = Math.min(...first.map(c => c.start)), bt = Math.min(...second.map(c => c.start)), end = Math.max(...second.map(c => c.start + c.duration)), firstEnd = Math.max(...first.map(c => c.start + c.duration));
+    if (firstEnd > bt + .001) throw Error('These scenes overlap. Arrange their timeline clips before reordering');
+    const gap = bt - firstEnd, secondLength = end - bt;
     [v.programme.segments[i], v.programme.segments[j]] = [v.programme.segments[j]!, part];
-    for (const c of a) { c.segment = j; c.start = Math.max(0, c.start + bt - at); } for (const c of b) { c.segment = i; c.start = Math.max(0, c.start + at - bt); } editScene(s, v, j);
+    for (const c of first) c.start += secondLength + gap;
+    for (const c of second) c.start += at - bt;
+    for (const c of a) c.segment = j; for (const c of b) c.segment = i; editScene(s, v, j);
   } else if (action === 'prepared_timings') {
     if (!Array.isArray(args.timings)) throw Error('No measured speech timing was returned');
     for (const row of args.timings as Rec[]) {

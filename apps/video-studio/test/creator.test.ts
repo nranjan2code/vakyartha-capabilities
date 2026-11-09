@@ -54,8 +54,26 @@ test('scene proposals are saved without modifying working or reviewed content', 
 
 test('measured narration ripples linked title and caption clips without stretching source video', async () => {
   const c = context(); await act(c, 'new_project'); await act(c, 'add_scene');
-  const p = c.state.videos![0]!.programme.composition!, second = p.clips.find(c => c.kind === 'narration')!;
+  const p = c.state.videos![0]!.programme.composition!, second = p.clips.find(c => c.kind === 'narration' && c.segment === 1)!;
   await act(c, 'prepared_timings', { timings: [{ segment: 1, duration: 8 }] });
   const after = c.state.videos![0]!.programme.composition!.clips.filter(c => c.segment === 1);
   assert.ok(after.every(c => c.duration === 8)); assert.equal(second.start, 3);
+});
+
+
+test('empty project narration has a timed slot and unequal scene reorder preserves non-overlap', async () => {
+  const c = context(); await act(c, 'new_project'); await field(c, '/edit/text', 'The opening now has narration.');
+  assert.ok(c.state.videos![0]!.programme.composition!.clips.some(c => c.kind === 'narration' && c.segment === 0));
+  await act(c, 'add_scene'); await act(c, 'prepared_timings', { timings: [{ segment: 1, duration: 8 }] });
+  await act(c, 'scene_up');
+  const clips = c.state.videos![0]!.programme.composition!.clips;
+  assert.ok(clips.filter(c => c.segment === 0).every(c => c.start === 0 && c.duration === 8));
+  assert.ok(clips.filter(c => c.segment === 1).every(c => c.start === 8 && c.duration === 3));
+});
+
+test('invalid accepted snapshots remain recoverable as unreadable records', async () => {
+  const c = context(); await act(c, 'new_project'); await act(c, 'add_to_library');
+  c.state.videos![0]!.accepted!.programme.segments = [];
+  await act(c, 'refresh');
+  assert.equal(c.state.unreadable!.length, 1); assert.equal(c.state.videos!.length, 0);
 });
