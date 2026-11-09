@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.0.3 (2026-11-09)
+
+- Document Desk 1.1.0 ships in releases (no longer development builds only).
 
 - Document Desk: categories (one per document, with optional rules by words, shared subfolder or kind; the person's own filing always wins; bulk filing of search results; a Categories view; category filters in the Library and the assistant's tools). Reads Excel, PowerPoint, OpenDocument text, sheets and slides, EPUB, RTF and saved emails as well; needs a Vakyartha that accepts these extensions (ADR-090).
 - Document Desk: questions about the library's content reach its search without naming the app (`exports.routeKeywords` from titles, headings and tags; needs a Vakyartha with ADR-091). New read-only `get_document_outline`; `search_documents` can stay inside one document, a kind or tags, returns kind, pages and date, and exact matches name their section; `read_document` starts at a section or a PDF page; `list_documents` filters by kind or title words and sorts. The reader skill uses them.
