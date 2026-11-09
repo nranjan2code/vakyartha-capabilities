@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { parseComposition, type Composition } from './composition.ts';
-import { creatorAction, creatorView, sourceResult, normalizeCreator, retainProject, remember, accept, shortComposition, type CreatorState, type Snapshot, type ProjectHistory } from './creator.ts';
+import { creatorAction, creatorView, composition, sourceResult, normalizeCreator, retainProject, remember, accept, shortComposition, type CreatorState, type Snapshot, type ProjectHistory } from './creator.ts';
 
 export type Format = 'show' | 'short';
 export interface Segment { sourceApp?: string; checkedAt?: string; text: string; delivery: 'opening' | 'headline' | 'story' | 'aside' | 'closing'; cue?: 'intro' | 'sting' | 'outro'; break?: 'short' | 'story' | 'section'; bed?: true; breaking?: true; chart?: Record<string, unknown>; figures?: Record<string, unknown>[]; kicker: string; heading: string; image?: string; source?: string; at?: string; link?: string }
@@ -258,7 +258,7 @@ export async function handleAction(controlId: string, value: unknown, c: Context
     const id = randomUUID(), video: Video = { id, title: prog.title, format: 'show', source: src.name, savedAt: new Date().toISOString(), ...(date(envelope.checkedAt) || date(envelope.retrievedAt) ? { sourceCheckedAt: date(envelope.checkedAt) ?? date(envelope.retrievedAt) } : {}), status: 'draft', programme: { ...prog, segments: prog.segments.map(segment => ({ ...segment, sourceApp: src.name, ...(date(envelope.checkedAt) ? { checkedAt: date(envelope.checkedAt) } : {}) })) } };
     addVideo(s, video); setEdit(s, video); s.notice = `Imported ${src.name} programme as a draft. Review it before adding it to your library.`;
   } else if (action === 'open_video') { const v = selected(s, p.id); setEdit(s, v); s.creator!.panel = 'scene'; s.notice = ''; }
-  else if (action === 'select_scene') { setEdit(s, selected(s), Number(p.index)); s.creator!.panel = 'scene'; }
+  else if (action === 'select_scene') { const v = selected(s); if (!v.programme.composition && v.status === 'library' && !v.accepted) v.accepted = { title: v.title, programme: structuredClone(v.programme), at: v.savedAt }; composition(v); setEdit(s, v, Number(p.index)); s.creator!.panel = 'scene'; }
   else if (action === 'make_short') {
     const base = selected(s), index = Number(p.index), part = base.programme.segments[index]; if (!part) throw new Error('Choose a scene first');
     const title = str(part.heading, 80) || `${base.title} short`;
