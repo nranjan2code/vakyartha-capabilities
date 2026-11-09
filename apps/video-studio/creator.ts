@@ -2,6 +2,19 @@ import { randomUUID } from 'node:crypto';
 import { parseComposition, type Composition, type CompositionClip, type ClipKind } from './composition.ts';
 import type { State, Video, Programme, Context, Segment } from './server.ts';
 
+/** Decode the documented text and MCP envelopes without interpreting source instructions. */
+export function sourceResult(raw: unknown, depth = 0): unknown {
+  if (depth > 4) throw Error('Source reply has too many envelopes');
+  if (typeof raw === 'string') { if (raw.length > 1000000) throw Error('Source reply is too large'); try { return sourceResult(JSON.parse(raw), depth + 1); } catch { throw Error('The selected source did not return a programme'); } }
+  if (!raw || typeof raw !== 'object') return raw;
+  const r = raw as Record<string, unknown>;
+  if (r.isError === true) throw Error('The selected source could not be read');
+  if ('programme' in r || 'segments' in r) return r;
+  if (typeof r.text === 'string') return sourceResult(r.text, depth + 1);
+  if (Array.isArray(r.content)) { const block = r.content.find((b: Rec) => b && typeof b.text === 'string'); if (block) return sourceResult(block.text, depth + 1); }
+  return raw;
+}
+
 export interface Snapshot { title: string; programme: Programme; at: string; name?: string }
 export interface ProjectHistory { past: Snapshot[]; future: Snapshot[]; checkpoints: Snapshot[] }
 export interface CreatorState { panel: string; clip: string; cursor: number; command: Record<string, unknown>; asset: string; assetKind: string; assetTitle: string; assetDuration: number; checkpoint: string; target: number }
@@ -97,9 +110,8 @@ export async function creatorAction(controlId: string, value: unknown, c: Contex
   }
   if (action.startsWith('append_source_')) {
     const source = sources.find(x => x.id === action.slice(14)); if (!source) throw Error('Choose a declared source');
-    const v = selected(s); const raw = await c.callTool(source.tool, { ...source.args });
-    let envelope: Rec = raw && typeof raw === 'object' ? raw as Rec : {};
-    if (Array.isArray(envelope.content)) { const block = envelope.content.find((b: Rec) => typeof b.text === 'string'); if (block) envelope = JSON.parse(block.text); }
+    const v = selected(s); const raw = sourceResult(await c.callTool(source.tool, { ...source.args }));
+    const envelope: Rec = raw && typeof raw === 'object' ? raw as Rec : {};
     const imported = validate(envelope.programme ?? envelope, source.name), p = composition(v), offset = v.programme.segments.length;
     if (offset + imported.segments.length > 80) throw Error('A project holds at most 80 scenes');
     remember(v); v.programme.segments.push(...imported.segments.map(x => ({ ...x, sourceApp: source.name, ...(typeof envelope.checkedAt === 'string' && Number.isFinite(Date.parse(envelope.checkedAt)) ? { checkedAt: envelope.checkedAt } : {}), source: x.source || source.name })));

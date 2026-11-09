@@ -77,3 +77,12 @@ test('invalid accepted snapshots remain recoverable as unreadable records', asyn
   await act(c, 'refresh');
   assert.equal(c.state.unreadable!.length, 1); assert.equal(c.state.videos!.length, 0);
 });
+
+
+test('real host text envelopes and MCP content carry source programmes without executing prose', async () => {
+  for (const wrap of [(r: unknown) => JSON.stringify(r), (r: unknown) => ({ text: JSON.stringify(r), isError: false }), (r: unknown) => ({ content: [{ type: 'text', text: JSON.stringify(r) }] })]) {
+    const c = context(), source = c.callTool; c.callTool = async (...args) => wrap(await source(...args));
+    await act(c, 'new_project'); await act(c, 'append_source_news');
+    assert.equal(c.state.videos![0]!.programme.segments[1]!.figures![0]!.value, '42');
+  }
+});

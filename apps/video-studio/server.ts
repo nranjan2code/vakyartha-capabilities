@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { parseComposition, type Composition } from './composition.ts';
-import { creatorAction, creatorView, normalizeCreator, retainProject, remember, accept, shortComposition, type CreatorState, type Snapshot, type ProjectHistory } from './creator.ts';
+import { creatorAction, creatorView, sourceResult, normalizeCreator, retainProject, remember, accept, shortComposition, type CreatorState, type Snapshot, type ProjectHistory } from './creator.ts';
 
 export type Format = 'show' | 'short';
 export interface Segment { sourceApp?: string; checkedAt?: string; text: string; delivery: 'opening' | 'headline' | 'story' | 'aside' | 'closing'; cue?: 'intro' | 'sting' | 'outro'; break?: 'short' | 'story' | 'section'; bed?: true; breaking?: true; chart?: Record<string, unknown>; figures?: Record<string, unknown>[]; kicker: string; heading: string; image?: string; source?: string; at?: string; link?: string }
@@ -199,14 +199,6 @@ export function views(raw: State): Update[] {
   ];
 }
 
-function sourceResult(raw: unknown): unknown {
-  if (raw && typeof raw === 'object' && 'programme' in raw) return raw;
-  if (raw && typeof raw === 'object' && Array.isArray((raw as { content?: unknown }).content)) {
-    const textBlock = (raw as { content: { text?: unknown }[] }).content.find(x => typeof x.text === 'string')?.text;
-    if (typeof textBlock === 'string') { try { return sourceResult(JSON.parse(textBlock)); } catch { /* a non-JSON tool message is handled as missing data */ } }
-  }
-  return raw;
-}
 function selected(s: State, id?: unknown): Video {
   const video = s.videos!.find(x => x.id === (typeof id === 'string' ? id : s.selected));
   if (!video) throw new Error('Choose a show or short first');
