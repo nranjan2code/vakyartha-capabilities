@@ -144,6 +144,11 @@ export function view(input: State): Update[] {
 function triageSurface(s: State): Update {
   const open = s.issues!.filter((r) => r.state === 'open');
   const any = s.issues!.length + s.pulls!.length + s.commits!.length > 0;
+  const labelsFor = (labels: string) => labels ? labels.split(', ') : ['No label'];
+  const issueColumns = [
+    { key: 'link', label: 'Issue' }, { key: 'title', label: 'Title' }, { key: 'state', label: 'State' },
+    { key: 'labels', label: 'Labels' }, { key: 'author', label: 'Author' }, { key: 'updated', label: 'Updated' },
+  ];
   const nodes: Node[] = [
     { id: 'root', type: 'stack', props: { gap: 'md' }, children: ['repo-bar', ...(s.problem ? ['triage-problem'] : []), ...(any ? ['repo-line', 'counts', ...(s.issues!.length ? ['issue-charts'] : []), ...(open.length ? ['board-section'] : []), ...(s.issues!.length ? ['issues-section'] : [])] : ['triage-empty'])] },
     { id: 'repo-bar', type: 'stack', props: { direction: 'horizontal', wrap: true, gap: 'sm', align: 'end' }, children: ['repo-input', 'refresh'] },
@@ -157,7 +162,9 @@ function triageSurface(s: State): Update {
       ...(s.issues!.length ? [
         { id: 'issue-charts', type: 'grid', props: { columns: 3, minItemWidth: 'sm', gap: 'md' }, children: ['state-chart', 'label-chart', 'updated-chart'] },
         { id: 'state-chart', type: 'chart', props: { kind: 'pie', title: 'Issues by state', series: { records: '{/byState}', label: 'label', fields: ['issues'] }, height: 'sm' } },
-        { id: 'label-chart', type: 'chart', props: { kind: 'bar', orientation: 'horizontal', title: 'Issues by label', series: { records: '{/byLabel}', label: 'label', fields: ['issues'] }, height: 'sm' } },
+        { id: 'label-chart', type: 'chart', props: { kind: 'bar', orientation: 'horizontal', title: 'Issues by label', series: { records: '{/byLabel}', label: 'label', fields: ['issues'] }, height: 'sm',
+          drilldown: { title: 'View issues by label', records: '{/issues}', match: 'labelKeys', columns: issueColumns },
+        } },
         { id: 'updated-chart', type: 'chart', props: { kind: 'bar', title: 'Issues by last update (UTC day)', series: { records: '{/byDay}', label: 'label', fields: ['issues'] }, height: 'sm' } },
       ] : []),
       ...(open.length ? [
@@ -166,7 +173,7 @@ function triageSurface(s: State): Update {
       ] : []),
       ...(s.issues!.length ? [
         { id: 'issues-section', type: 'section', props: { title: 'Recently updated issues' }, children: ['issues'] },
-        { id: 'issues', type: 'table', props: { rows: '{/issues}', columns: [{ key: 'link', label: 'Issue' }, { key: 'title', label: 'Title' }, { key: 'state', label: 'State' }, { key: 'labels', label: 'Labels' }, { key: 'author', label: 'Author' }, { key: 'updated', label: 'Updated' }], sortable: true, searchable: true, pageSize: 10 } },
+        { id: 'issues', type: 'table', props: { rows: '{/issues}', columns: issueColumns, sortable: true, searchable: true, pageSize: 10 } },
       ] : []),
     ] : [{ id: 'triage-empty', type: 'card', props: { title: 'No repository activity yet', body: '{/emptyHint}' } }]),
   ];
@@ -182,9 +189,9 @@ function triageSurface(s: State): Update {
       ...(open.length ? { cards: open.map((r) => ({ id: r.id, title: `#${r.number} ${r.title}`, column: s.triage![r.id] ?? 'Review', note: `${r.author} · ${r.updatedAt.slice(0, 10)}`, tag: r.labels.slice(0, 60) })) } : {}),
       ...(s.issues!.length ? {
         byState: tally(s.issues!.map((r) => r.state)),
-        byLabel: tally(s.issues!.flatMap((r) => (r.labels ? r.labels.split(', ') : ['No label']))).sort((a, b) => b.issues - a.issues).slice(0, 8),
+        byLabel: tally(s.issues!.flatMap((r) => labelsFor(r.labels))).sort((a, b) => b.issues - a.issues).slice(0, 8),
         byDay: tally(s.issues!.map((r) => r.updatedAt.slice(0, 10))).sort((a, b) => a.label.localeCompare(b.label)),
-        issues: s.issues!.map((r) => ({ ...r, link: `#${r.number}`, updated: when(r.updatedAt) })),
+        issues: s.issues!.map((r) => ({ ...r, labelKeys: labelsFor(r.labels), link: `#${r.number}`, updated: when(r.updatedAt) })),
       } : {}),
     } : { emptyHint: `${SETUP} Then type a public owner/repository and press Refresh. Recent issues, pull requests and commits appear here, with lanes for your own triage.` }),
   };

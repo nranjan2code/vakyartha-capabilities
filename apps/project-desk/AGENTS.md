@@ -5,7 +5,7 @@ Read Building a Vakyartha app (Vakyartha's app-building guide, in the Vakyartha 
 ## Invariants
 
 1. `context.state` is the only owner: `repository`, `repoDraft`, `issues[]`, `pulls[]`, `commits[]`, `triage{issue URL → lane}`, `receipts[]`, `problem`, `checkedAt`. Every run starts with `normalize()`, which drops malformed records and lanes for issues no longer open.
-2. `view(state)` is pure and derives all three surfaces (`triage`, `activity`, `sources`), including chart tallies, from the same records. Regions are emitted only when they have data; empty and failed states say what to do.
+2. `view(state)` is pure and derives all three surfaces (`triage`, `activity`, `sources`), including chart tallies, from the same records. Label drill-down uses exact label membership and stays local to the view. Regions are emitted only when they have data; empty and failed states say what to do.
 3. Source records are validated against the configured repository: positive issue numbers, open/closed state, `https://github.com/<repo>/issues|pull|commit/` URLs, full 40-character SHAs, real timestamps, bounded text.
 4. Only `web__fetch_page` is called, for the three public API URLs. Triage is local; nothing writes to the repository.
 5. `/repoDraft` saves as typed and is validated by Refresh; `/cards` (the board) accepts only known open issues and the three lanes.

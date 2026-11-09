@@ -19,6 +19,8 @@ view → 3 updates (nodes + whole data) → registry lints, applies and commits 
 
 State as in AGENTS.md. Surface data is derived: `/counts`, `/byState`, `/byLabel`, `/byDay`, `/cards`, `/issues`; `/commitDays`, `/timeline`, `/pulls`; `/receipts`.
 
+The label chart opens a paged subset of the retained issue sample using exact label membership. Clearing that filter restores the same sample. Neither action calls the app worker or the repository.
+
 ## Boundaries
 
 Each command runs in its app’s dedicated sandbox instance with a 30 s deadline; the API is reached only through the governed tool. At most 30 records per response; 24 receipts.

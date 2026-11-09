@@ -19,6 +19,8 @@ view → 3 updates (nodes + whole data) → registry lints, applies and commits 
 
 `load(month)` returns `total`, `months[]`, the month's `rows[]`, `categories[]` (spending by category), `daily[]` (net by date) and `monthly[]` (money in and out for the latest 12 months). Surface data: `/totals`, `/budgetUsed`, `/budgetMax`, `/budgetTone`, `/categories`, `/daily`, `/running`, `/monthly`; `/transactions`; `/receipt`, `/ledgerSize`.
 
+The ranked spending chart uses grouped outflows for its bars and retained negative transactions for drill-down. Chart selection and paging require neither a SQL query nor a worker command.
+
 ## Boundaries
 
 Each command runs in its app’s dedicated sandbox instance with a 30 s deadline with a bounded DuckDB snapshot stored in the app record. Limits: 50,000 characters per paste, 200 rows per import, 2,000 in the ledger.

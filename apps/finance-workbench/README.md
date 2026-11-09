@@ -12,7 +12,7 @@ Your own INR transactions, imported as CSV or JSON, with monthly totals, a spend
 
 | View | What it shows |
 | --- | --- |
-| **Overview** | Month, budget and **Import more**; money in, money out, net flow and transaction count; spending against budget (turns amber past 80 % and red past 100 %); spending by category (bars and share pie); net flow by day (coloured by sign); cumulative net flow through the month; money in and out by month (up to 12) once more than one month exists. |
+| **Overview** | Month, budget and **Import more**; money in, money out, net flow and transaction count; spending against budget (turns amber past 80 % and red past 100 %); ranked spending by category with the selected category’s amount and share, plus a drill-down to its outflows; net flow by day (coloured by sign); cumulative net flow through the month; money in and out by month (up to 12) once more than one month exists. |
 | **Ledger** | Month and the exact searchable, sortable transactions. |
 | **Import** | The import box, the format with an example, the last import receipt, and **Delete all transactions** (asks first). |
 

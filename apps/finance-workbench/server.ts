@@ -178,12 +178,17 @@ function overviewSurface(s: State, l: Ledger): Update {
         budget
           ? { id: 'budget-progress', type: 'progress', props: { label: 'Spending against budget', value: '{/budgetUsed}', max: '{/budgetMax}', unit: '₹', tone: '{/budgetTone}' } }
           : { id: 'budget-none', type: 'text', props: { content: 'Set a monthly budget to track spending against it.', variant: 'caption' } },
-        { id: 'charts', type: 'grid', props: { columns: 2, minItemWidth: 'md', gap: 'md' }, children: [...(l.categories.length ? ['spending-chart', 'share-chart'] : []), 'flow-chart', 'running-chart', ...(l.monthly.length > 1 ? ['trend-chart'] : [])] },
-        ...(l.categories.length ? [{ id: 'share-chart', type: 'chart', props: { kind: 'pie', title: 'Share of spending', series: { records: '{/categories}', label: 'label', fields: ['amount'] }, height: 'md' } }] : []),
-        { id: 'running-chart', type: 'chart', props: { kind: 'area', title: 'Cumulative net flow this month · INR', series: { records: '{/running}', label: 'date', fields: ['cumulative'] }, height: 'md' } },
+        { id: 'charts', type: 'grid', props: { columns: 2, minItemWidth: 'md', gap: 'md' }, children: [...(l.categories.length ? ['spending-chart'] : []), 'flow-chart', 'running-chart', ...(l.monthly.length > 1 ? ['trend-chart'] : [])] },
+        { id: 'running-chart', type: 'chart', props: { kind: 'area', title: 'Cumulative net flow this month · INR', series: { records: '{/running}', label: 'date', fields: ['cumulative'] }, xScale: 'time', height: 'md' } },
         ...(l.monthly.length > 1 ? [{ id: 'trend-chart', type: 'chart', props: { kind: 'bar', title: 'Money in and out by month · INR', series: { records: '{/monthly}', label: 'label', fields: ['moneyIn', 'moneyOut'] }, height: 'md' } }] : []),
-        ...(l.categories.length ? [{ id: 'spending-chart', type: 'chart', props: { kind: 'bar', orientation: 'horizontal', title: 'Spending by category · INR', series: { records: '{/categories}', label: 'label', fields: ['amount'] }, height: 'md' } }] : []),
-        { id: 'flow-chart', type: 'chart', props: { kind: 'bar', colorBy: 'sign', title: 'Net flow by day · INR (not a balance)', series: { records: '{/daily}', label: 'date', fields: ['net'] }, height: 'md' } },
+        ...(l.categories.length ? [{ id: 'spending-chart', type: 'chart', props: {
+          kind: 'bar', orientation: 'horizontal', showShare: true, title: 'Spending by category · INR',
+          series: { records: '{/categories}', label: 'label', fields: ['amount'], names: ['Spent (INR)'] }, height: 'md',
+          drilldown: { title: 'View spending transactions', records: '{/spendingRows}', match: 'category', columns: [
+            { key: 'date', label: 'Date' }, { key: 'description', label: 'Description' }, { key: 'category', label: 'Category' }, { key: 'amount', label: 'Amount (INR)' },
+          ] },
+        } }] : []),
+        { id: 'flow-chart', type: 'chart', props: { kind: 'bar', colorBy: 'sign', title: 'Net flow by day · INR (not a balance)', series: { records: '{/daily}', label: 'date', fields: ['net'] }, xScale: 'time', height: 'md' } },
       ] : [{ id: 'month-empty', type: 'text', props: { content: '{/monthEmpty}', variant: 'caption' } }]),
     ] : [
       { id: 'fin-empty', type: 'card', props: { title: 'No transactions yet', body: 'Import your own records as CSV or JSON: positive amounts are money in, negative amounts are money out. Totals, a budget and charts appear here. Nothing leaves this computer.' }, children: ['start-import'] },
@@ -196,6 +201,9 @@ function overviewSurface(s: State, l: Ledger): Update {
       totals: [{ label: 'Money in', value: money(income) }, { label: 'Money out', value: money(spent) }, { label: 'Net flow', value: money(income - spent) }, { label: 'Transactions', value: String(l.rows.length) }],
       ...(budget ? { budgetUsed: spent / 100, budgetMax: budget / 100, budgetTone: spent > budget ? 'danger' : spent > budget * 0.8 ? 'warning' : 'success' } : {}),
       categories: l.categories, daily: l.daily,
+      spendingRows: l.rows.filter(row => row.paise < 0).map(row => ({
+        date: row.date, description: row.description, category: row.category, amount: money(row.paise),
+      })),
       running: l.daily.reduce<{ date: string; cumulative: number }[]>((acc, d) => [...acc, { date: d.date, cumulative: Math.round(((acc.at(-1)?.cumulative ?? 0) + d.net) * 100) / 100 }], []),
       ...(l.monthly.length > 1 ? { monthly: l.monthly } : {}),
     } : { monthEmpty: `No transactions in ${monthName(s.month!)}. Choose another month or import more.` }),

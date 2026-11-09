@@ -5,7 +5,7 @@ Read Building a Vakyartha app (Vakyartha's app-building guide, in the Vakyartha 
 ## Invariants
 
 1. DuckDB `ledger(id VARCHAR PRIMARY KEY, date VARCHAR, description VARCHAR, category VARCHAR, paise BIGINT)` is the only transaction owner. `context.state` holds `month`, `budget` (as typed), `importText`, `lastImport {at, count}` and `confirmClear`; `normalize()` accepts untrusted and version-1 state.
-2. Operations that need ledger values read the selected month with `load()` and `view(state, ledger)` derives all three surfaces from that one read. Import-text drafts retain the committed import view without SQL: totals, charts and the table use the same rows. Regions are emitted only when they apply; empty months and an empty ledger say what to do.
+2. The spending chart and its drill-down come from the selected month’s ledger read. Match exact categories and include only outflows. Operations that need ledger values read the selected month with `load()` and `view(state, ledger)` derives all three surfaces from that one read. Import-text drafts retain the committed import view without SQL: totals, charts and the table use the same rows. Regions are emitted only when they apply; empty months and an empty ledger say what to do.
 3. Money is integer paise end to end; `paise()` parses decimal strings exactly. Charts receive rupees as `paise / 100` from SQL.
 4. Imports are validated as a batch (`records()`), checked for existing IDs, and inserted in one transaction. No external tool, network or credential.
 5. Fields save as they change (`/month`, `/budget`, `/importText`); an invalid budget is kept as typed and shown with a hint rather than failing the run.

@@ -26,6 +26,8 @@ registry → lint, apply on the previous snapshot, commit state + database + sur
 
 State: `watchlist[]` (active list), `groups{name:symbols[]}`, `group`, `groupDraft`, `watchDraft`, `holdings[]` (`qty`, `cost` in paise), `holdingDraft`, `alerts[]`, `alertDraft`, `triggered[]`, `symbol`, `symbolDraft`, `months`, `benchmark`, `research{symbol}`, `historyFor{}`, `quotes{symbol}` (with `basis` live or close), `indices[]` (with group), `indexGroup`, `segment`, `movers`, `mood`, `active`, `period`, `indexMovers`, `searchDraft`, `results[]`, `indexNames[]`, `study`, `studyDraft`, `compareSet[]`, `compareMonths`, `comparison`, `receipts[]` (≤ 60), `problem`, `checkedAt`. DuckDB: `prices(symbol, date, open, high, low, close, volume)`, primary key `(symbol, date)`.
 
+Instrument passes one ordered history to its linked price, volume, returns and drawdown charts. The comparison and session drill-down run locally in the renderer. The marker list intersects retained corporate-action dates with the displayed sessions.
+
 ## Boundaries
 
 Each command runs in its app’s dedicated sandbox instance with a 30 s deadline with at most 16 governed reads through the tool mailbox. The database is a bounded snapshot stored with the app record. Limits: 10 named watchlists with 30 symbols each, 50 holdings, 40 alerts, 80 history rows per chunk (EQ series only), 120 indices per group, 60 receipts.

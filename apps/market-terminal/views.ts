@@ -383,6 +383,14 @@ function instrument(s: State, a: Analysis): Update {
   const long = a.rows.some((x) => x.sma50 !== null);
   const sma = a.rows.filter((x) => (long ? x.sma50 !== null : x.sma20 !== null)).map((x) => ({ date: x.date, close: x.close, sma20: x.sma20, ...(long ? { sma50: x.sma50 } : {}) }));
   const first = a.rows[0], last = a.rows.at(-1), watching = s.watchlist!.includes(symbol);
+  const sessions = new Set(a.rows.map(row => row.date));
+  const markers = (r.actions ?? []).filter(event => sessions.has(event.exDate) && event.purpose).slice(0, 400)
+    .map(event => ({ at: event.exDate, label: event.purpose, tone: 'info' }));
+  const linked = { xScale: 'time', linkGroup: 'instrument-sessions', maxWidth: a.rows.length < 20 ? 'md' : 'lg' };
+  const fields = [
+    { key: 'date', label: 'Session' }, { key: 'open', label: 'Open (INR)' }, { key: 'high', label: 'High (INR)' },
+    { key: 'low', label: 'Low (INR)' }, { key: 'close', label: 'Close (INR)' }, { key: 'volume', label: 'Volume (shares)' },
+  ];
   const nodes: Node[] = [
     { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: ['in-bar', 'in-selection-note', ...(s.problem ? ['in-problem'] : []), ...(q ? ['in-quote'] : []), ...(has || r.range || r.versus || r.volume || r.actions?.length || r.news?.length ? ['in-tabs'] : []), ...(!q && !has ? ['in-empty'] : [])] },
     ...tabbed('in-tabs', [['Price', has ? ['in-price'] : []], ['Indicators', has ? ['in-charts'] : []], ['Benchmark and range', r.range || r.versus || r.volume ? ['in-context'] : []], ['Events and news', r.actions?.length || r.news?.length ? ['in-events'] : []], ['Daily data', has ? ['in-ohlcv'] : []]]),
@@ -409,8 +417,9 @@ function instrument(s: State, a: Analysis): Update {
       { id: 'q-basis', type: 'text', props: { content: '{/quote/asOf}', variant: 'caption' } },
     ] : []),
     ...(has ? [
-      { id: 'in-price', type: 'stack', props: { gap: 'sm' }, children: ['in-risk', 'in-interpretation', 'in-candles'] },
-      { id: 'in-candles', type: 'chart', props: { kind: 'candlestick', title: '{/ohlcTitle}', series: { records: '{/history}', label: 'date', fields: ['open', 'high', 'low', 'close'] }, xScale: 'time', yScale: 'auto', height: 'md', maxWidth: a.rows.length < 20 ? 'md' : 'lg' } },
+      { id: 'in-price', type: 'stack', props: { gap: 'sm' }, children: ['in-risk', 'in-interpretation', 'in-candles', 'in-vol-chart'] },
+      { id: 'in-candles', type: 'chart', props: { ...linked, kind: 'candlestick', title: '{/ohlcTitle}', series: { records: '{/history}', label: 'date', fields: ['open', 'high', 'low', 'close'] }, yScale: 'auto', height: 'md',
+        compare: true, markers: '{/markers}', drilldown: { records: '{/history}', match: 'date', columns: fields, title: 'View session records' } } },
       { id: 'in-risk', type: 'grid', props: { columns: 4, minItemWidth: 'sm', gap: 'sm' }, children: ['r-return', 'r-vol', 'r-drawdown', 'r-sessions'] },
       { id: 'r-return', type: 'stat', props: { label: 'Price return', value: '{/stats/priceReturn}', trend: '{/stats/returnTrend}' } },
       { id: 'r-vol', type: 'stat', props: { label: 'Annualised volatility', value: '{/stats/volatility}' } },
@@ -442,11 +451,11 @@ function instrument(s: State, a: Analysis): Update {
       ] : []),
     ] : []),
     ...(has ? [
-      { id: 'in-charts', type: 'grid', props: { columns: 2, minItemWidth: 'md', gap: 'md' }, children: [...(sma.length ? ['in-sma'] : []), 'in-vol-chart', 'in-returns', 'in-drawdown'] },
+      { id: 'in-charts', type: 'grid', props: { columns: 2, minItemWidth: 'md', gap: 'md' }, children: [...(sma.length ? ['in-sma'] : []), 'in-returns', 'in-drawdown'] },
       ...(sma.length ? [{ id: 'in-sma', type: 'chart', props: { kind: 'line', title: '{/smaTitle}', series: { records: '{/sma}', label: 'date', fields: '{/smaFields}' }, xScale: 'time', yScale: 'auto', height: 'sm' } }] : []),
-      { id: 'in-vol-chart', type: 'chart', props: { kind: 'bar', title: 'Daily volume · shares', series: { records: '{/history}', label: 'date', fields: ['volume'] }, xScale: 'time', height: 'sm' } },
-      { id: 'in-returns', type: 'chart', props: { kind: 'bar', colorBy: 'sign', title: 'Daily return (%)', series: { records: '{/returns}', label: 'date', fields: ['returnPct'] }, xScale: 'time', height: 'sm' } },
-      { id: 'in-drawdown', type: 'chart', props: { kind: 'line', title: 'Drawdown from closing peak (%)', series: { records: '{/history}', label: 'date', fields: ['drawdownPct'] }, xScale: 'time', height: 'sm' } },
+      { id: 'in-vol-chart', type: 'chart', props: { ...linked, kind: 'bar', title: 'Daily volume · shares', series: { records: '{/history}', label: 'date', fields: ['volume'] }, height: 'sm' } },
+      { id: 'in-returns', type: 'chart', props: { ...linked, kind: 'bar', missing: 'gap', colorBy: 'sign', title: 'Daily return (%)', series: { records: '{/history}', label: 'date', fields: ['returnPct'] }, height: 'sm' } },
+      { id: 'in-drawdown', type: 'chart', props: { ...linked, kind: 'line', title: 'Drawdown from closing peak (%)', series: { records: '{/history}', label: 'date', fields: ['drawdownPct'] }, height: 'sm' } },
     ] : []),
     ...(r.actions?.length || r.news?.length ? [
       { id: 'in-events', type: 'split', props: { ratio: '1:1', gap: 'md' }, children: [...(r.actions?.length ? ['in-actions'] : []), ...(r.news?.length ? ['in-news'] : [])] },
@@ -473,9 +482,9 @@ function instrument(s: State, a: Analysis): Update {
     ...(q ? { quote: { title: `${symbol} · last`, last: inr(q.last), change: pct(q.changePct), trend: trend(q.changePct), previous: inr(q.previous), open: q.open != null ? inr(q.open) : '—', range: `${inr(q.low)} – ${inr(q.high)}`, low: q.low, high: q.high, lastN: q.last, lowText: inr(q.low), highText: inr(q.high), volume: count(q.volume), asOf: `NSE · ${q.basis === 'live' ? 'Last trade' : 'Close'} · ${q.asOf} · delayed` } } : {}),
     ...(has ? {
       ohlcTitle: `${symbol} · daily OHLC (INR)`, historyWindow: s.historyFor![symbol] ?? `${first!.date} – ${last!.date}`,
-      history: a.rows, returns: a.rows.filter((x) => x.returnPct !== null).map((x) => ({ date: x.date, returnPct: Number(x.returnPct!.toFixed(3)) })),
+      history: a.rows, markers,
       ...(sma.length ? { sma, smaFields: long ? ['close', 'sma20', 'sma50'] : ['close', 'sma20'], smaTitle: `Close with ${long ? '20- and 50-session' : '20-session'} averages · INR` } : {}),
-      interpretation: `${pct(a.priceReturn)} unadjusted close-to-close from ${first!.date} to ${last!.date} over ${a.sessions} sessions; dividends excluded.`,
+      interpretation: `${pct(a.priceReturn)} unadjusted close-to-close from ${first!.date} to ${last!.date} over ${a.sessions} NSE sessions. Dividends excluded. Corporate action markers appear on matching saved sessions.`,
       stats: { priceReturn: pct(a.priceReturn), returnTrend: trend(a.priceReturn ?? 0), volatility: a.sessions >= 3 && a.volatility != null ? `${a.volatility.toFixed(2)}%` : 'Needs 3 sessions', maxDrawdown: pct(a.maxDrawdown), sessions: `${a.sessions} · ${count(a.averageVolume)}` },
     } : {}),
     ...(rg ? { range: { position: rg.position, label: `${inr(rg.low)} (${rg.lowDate}) → ${inr(rg.high)} (${rg.highDate})`, low: rg.low, high: rg.high, close: rg.close, lowText: inr(rg.low), highText: inr(rg.high), note: `Close ${inr(rg.close)} sits ${rg.position.toFixed(0)}% of the way from the 52-week low to the high: ${pct(rg.fromHigh)} from the high, ${pct(rg.fromLow)} above the low. Unadjusted closes.`, tone: rg.position >= 80 ? 'success' : rg.position <= 20 ? 'danger' : 'info' } } : {}),

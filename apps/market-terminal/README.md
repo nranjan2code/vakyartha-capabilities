@@ -64,7 +64,7 @@ Daily stock OHLCV lives in the app's DuckDB table `prices`; quotes, indices, bre
 
 Watchlist supports up to ten named lists with up to thirty symbols each. **Save as** copies the current list; the chips switch lists without reading NSE. Delete appears only when another list remains. Refresh uses the active list, holdings and alerts. `get_market_summary` accepts an optional saved watchlist name and returns available names and missing quotes.
 
-Price, volume, return, drawdown and index-history charts use Projection’s `xScale: "time"`: missing sessions and weekends retain their real date gaps. They use the same canonical history as the detail table.
+Price and volume share the selected date and zoom with returns and drawdown. Use the price chart to compare two saved dates or select a session to inspect its exact OHLC and volume. Corporate-action markers appear on matching saved dates. Prices are unadjusted. The first daily return is a gap. Index history also uses real date spacing.
 
 **Export CSV** sits beside the Portfolio holding controls. It exports the displayed holdings, exact two-decimal INR amounts, price basis/time and partial-price coverage. It excludes charges and taxes. The shared host saves through Rust to Downloads, never overwrites a file or symlink, and reports the actual collision-safe filename. Browser development requests a download without claiming a confirmed save. The header radio’s arrow chooses this app’s voice; Default uses Settings → Voice.
 

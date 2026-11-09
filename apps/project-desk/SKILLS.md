@@ -10,7 +10,7 @@ This app ships no skills of its own; the assistant reaches it through its declar
 - `app-maintainer`: changing the package, its surfaces and these documents; bumping its version and running the tests.
 - `app-debugger`: finding why an action, refresh or view does not behave as expected.
 - `app-admin`: reviewing Access, tool and destination rules, and Background operation.
-- `interactive-ui` and `surface-design`: any chart, table or form built from the app's data.
+- `interactive-ui` and `surface-design`: retain the bounded issue sample when linking chart labels to issue records.
 
 ## Requires
 

@@ -10,7 +10,7 @@ Open the header **Access** shield, finish **Web pages** setup inside the panel a
 
 | View | What it shows |
 | --- | --- |
-| **Triage** | Repository field and **Refresh**; counts for open and closed issues, open pull requests and commits in the sample; charts of issues by state (pie), by label and by last-update day; a board of open issues in Review, Next and Watch lanes (drag, or use the keyboard); the issue table with numbers, labels, authors and update times. |
+| **Triage** | Repository field and **Refresh**; counts for open and closed issues, open pull requests and commits in the sample; charts of issues by state (pie), by label (select a bar to view matching issues) and by last-update day; a board of open issues in Review, Next and Watch lanes (drag, or use the keyboard); the issue table with numbers, labels, authors and update times. |
 | **Activity** | Commits per day; recent commits as a timeline with author and short SHA links, beside the open pull requests table. |
 | **Sources** | The latest 24 reads with URL, retrieval time, rows and status. |
 
