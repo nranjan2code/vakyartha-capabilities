@@ -86,3 +86,17 @@ test('real host text envelopes and MCP content carry source programmes without e
     assert.equal(c.state.videos![0]!.programme.segments[1]!.figures![0]!.value, '42');
   }
 });
+
+
+test('a timeline rendered from an older programme accepts its displayed clip id', async () => {
+  const c = context();
+  c.state.videos = [{ id: 'old', title: 'Saved show', source: 'News Desk', savedAt: '2026-11-08T12:00:00Z', status: 'library', format: 'show', programme: { title: 'Saved show', segments: [{ text: 'Retained narration.', heading: 'Opening', delivery: 'story', kicker: '' }] } }];
+  const studio = views(c.state).find(view => view.surface === 'studio')!;
+  const timeline = studio.nodes.find(node => node.type === 'mediatrack')!;
+  const shown = (timeline.props!.clips as { id: string }[])[0]!;
+  await field(c, '/creator/command', { op: 'select', id: shown.id });
+  assert.equal(c.state.creator!.clip, shown.id);
+  await field(c, '/creator/command', { op: 'move', id: shown.id, start: 1 });
+  assert.equal(c.state.videos![0]!.programme.composition!.clips.find(clip => clip.id === shown.id)!.start, 1);
+  assert.equal(c.state.videos![0]!.accepted!.programme.composition, undefined);
+});

@@ -48,10 +48,11 @@ export function accept(v: Video) {
 }
 export function composition(v: Video): Composition {
   if (v.programme.composition) return v.programme.composition;
+  if (v.status === 'library' && !v.accepted) v.accepted = { title: v.title, programme: structuredClone(v.programme), at: v.savedAt };
   let start = 0; const clips: CompositionClip[] = [];
   v.programme.segments.forEach((s, segment) => {
     const duration = Math.max(3, s.text.split(/\s+/).filter(Boolean).length / 2.5);
-    const add = (kind: ClipKind, track: string, src?: string) => clips.push({ id: randomUUID(), label: s.heading || kind, kind, track, start, duration, in: 0, segment, ...(src ? { src } : {}), volume: 1, fadeIn: 0, fadeOut: 0, loop: false, muted: false, fit: 'contain', x: 50, y: 50 });
+    const add = (kind: ClipKind, track: string, src?: string) => clips.push({ id: `scene-${segment}-${kind}`, label: s.heading || kind, kind, track, start, duration, in: 0, segment, ...(src ? { src } : {}), volume: 1, fadeIn: 0, fadeOut: 0, loop: false, muted: false, fit: 'contain', x: 50, y: 50 });
     add('narration', 'voice'); add('caption', 'captions');
     add(s.image ? 'image' : s.chart ? 'chart' : s.figures?.length ? 'figures' : 'title', 'visual', s.image);
     start += duration;
@@ -116,7 +117,7 @@ export async function creatorAction(controlId: string, value: unknown, c: Contex
     if (offset + imported.segments.length > 80) throw Error('A project holds at most 80 scenes');
     remember(v); v.programme.segments.push(...imported.segments.map(x => ({ ...x, sourceApp: source.name, ...(typeof envelope.checkedAt === 'string' && Number.isFinite(Date.parse(envelope.checkedAt)) ? { checkedAt: envelope.checkedAt } : {}), source: x.source || source.name })));
     const temp = composition({ ...v, programme: imported });
-    for (const clip of temp.clips) p.clips.push({ ...clip, start: clip.start + p.duration, segment: clip.segment === undefined ? undefined : clip.segment + offset });
+    for (const clip of temp.clips) p.clips.push({ ...clip, id: randomUUID(), start: clip.start + p.duration, segment: clip.segment === undefined ? undefined : clip.segment + offset });
     duration(p); editScene(s, v, offset); ui.panel = 'scene'; s.notice = `Added ${source.name} as retained source material. Existing edits and library version are unchanged.`; return true;
   }
   if (!['add_scene', 'duplicate_scene', 'delete_scene', 'scene_up', 'scene_down', 'undo_edit', 'redo_edit', 'save_checkpoint', 'restore_checkpoint', 'attach_clip', 'duplicate_clip', 'split_clip', 'delete_clip', 'close_gap', 'portrait', 'landscape', 'toggle_captions', 'toggle_loop', 'prepared_timings'].includes(action)) return false;
