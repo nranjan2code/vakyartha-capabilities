@@ -22,6 +22,8 @@ Front-desk appointment booking for one clinic. Everything stays on this computer
 
 ## Limits
 
+Visit types shows an empty-state message when the selected period has no visits; a pie appears only when there are counts to compare.
+
 Up to 40 doctors, 3,000 patients, 20,000 appointments and 300 waiting-list entries. Notes are for the front desk, not a medical record. Reminder messages are written for you to send; none are sent: the app has no network or messaging access.
 
 ## Runs in the sandbox

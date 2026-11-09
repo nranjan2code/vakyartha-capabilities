@@ -24,6 +24,7 @@ Surfaces: **today** (Schedule), **book**, **patients**, **doctors**, **insights*
 
 ## Boundaries
 
+- **Empty charts.** Insights derives the visit-type pie only from nonempty visit counts; otherwise it emits a caption, with no synthetic slices.
 - **Sandboxed like every app.** The registry runs this module in the shared sandbox worker pool with the same revision, checkpoint and receipt path as any app. Queries and renders never write. There is no tool call or database.
 - **Time.** All dates are `YYYY-MM-DD` and times `HH:MM` on the clinic's clock. The only clock read is `context.now()`.
 - **Host actions.** `file.save` (CSV) and the header listen are declared, never performed here.

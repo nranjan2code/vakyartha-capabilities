@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Clinic Desk shows an explicit empty state for visit types when the selected period has no visits.
 - Market Terminal links price, volume, returns and drawdown by saved session and adds date comparisons and corporate-action marks. Finance Workbench opens the outflows behind a spending category. Project Desk opens the issue records behind a label. These views need the shared chart inspection support in Vakyartha.
 
 ## 1.0.3 (2026-11-09)

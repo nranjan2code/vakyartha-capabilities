@@ -14,6 +14,8 @@ These skills are installed, updated and removed with the app. While the app is i
 - `app-admin`: reviewing Access, tool and destination rules, and Background operation.
 - `interactive-ui` and `surface-design`: any chart, table or form built from the app's data.
 
+Visit-type charts need actual counts. Empty periods show a caption instead of a pie.
+
 ## Requires
 
 Nothing outside Vakyartha. It calls no tools and reaches no network.

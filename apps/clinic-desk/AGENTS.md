@@ -10,6 +10,7 @@
 - Status changes follow the `NEXT` table. Cancelled and no-show appointments free the slot.
 - Surfaces use chips for doctor choices (no placeholder option); a blank doctor pick is ignored, never an error. Waiting-list entries are removed when that patient books. Reminders are exported text only.
 - Patients match by digits of the phone plus name. Deleting a patient is blocked while upcoming appointments exist.
+- Insights emits the visit-type pie only for nonempty counts; empty periods show a caption.
 - Spoken text (`/spoken/brief`) and the CSV come from the same records as the visible list. CSV cells starting with `=`, `@`, tab or a sign before a non-digit are prefixed with an apostrophe.
 
 ## Intelligence, programme and assistant

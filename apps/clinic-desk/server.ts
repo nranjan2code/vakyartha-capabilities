@@ -1104,7 +1104,9 @@ function insightsSurface(s: State, nowDate: Date): Update {
     { id: "mix", type: "grid", props: { columns: 3, minItemWidth: "md", gap: "md" }, children: ["m-hours", "m-days", "m-kinds"] },
     ...chartBox("m-hours", "Busiest hours", { id: "m-hours-c", type: "chart", props: { kind: "bar", labels: "{/hours/labels}", series: "{/hours/series}", height: "sm" } }),
     ...chartBox("m-days", "No-show rate by weekday (%)", { id: "m-days-c", type: "chart", props: { kind: "bar", labels: "{/weekdays/labels}", series: "{/weekdays/series}", height: "sm" } }),
-    ...chartBox("m-kinds", "Visit types", { id: "m-kinds-c", type: "chart", props: { kind: "pie", labels: "{/kinds/labels}", series: "{/kinds/series}", height: "sm" } }),
+    ...chartBox("m-kinds", "Visit types", r.kinds.length
+      ? { id: "m-kinds-c", type: "chart", props: { kind: "pie", labels: "{/kinds/labels}", series: "{/kinds/series}", height: "sm" } }
+      : caption("m-kinds-empty", "No visits in this period.")),
     panel("by-doctor", "By doctor", ["docs"]),
     { id: "docs", type: "table", props: { columns: [{ key: "name", label: "Doctor" }, { key: "total", label: "Visits", align: "end" }, { key: "completed", label: "Completed", align: "end" }, { key: "noShow", label: "No-shows", align: "end" }, { key: "cancelled", label: "Cancelled", align: "end" }, { key: "util", label: "Slots used", align: "end" }], rows: "{/doctorRows}" } },
   ];
