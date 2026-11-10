@@ -43,7 +43,17 @@ Fields save as you type; buttons validate and apply them, so a half-typed symbol
 
 ## Refresh, budget and schedule
 
-A run may make 16 governed reads. **Refresh** reads every live index group, the movers, end-of-day breadth and India VIX, live quotes for the first 12 tracked symbols (watchlist order, then holdings and alerts) and the latest close for the rest in one read, then checks alerts. **Analyse** makes up to 10 reads (quote, history in 3-month chunks, 52-week, benchmark, corporate actions, volume, news). **Refresh movers** makes 4, **Explore** 3–4, **Compare** 1. A five-minute refresh, matching how often NSE updates its live snapshot, is declared but off until you choose **Start & keep running** under **Background**; it runs only while the app and computer are awake. The session label uses weekday market hours; exchange holidays are not known to it.
+A run may make 16 governed reads, and each source is read only when it can have changed:
+
+| Kind | What | Read |
+| --- | --- | --- |
+| Live | Every index group, the movers, delayed quotes for the first 12 tracked symbols (watchlist order, then holdings and alerts) | Through the session (weekdays from the pre-open), at most once a minute, and once more after the close, when the values are final |
+| End of day | Breadth and India VIX, the latest close for the remaining symbols, most active, index rankings, index studies and comparisons, 52-week range, benchmark comparison, corporate actions, volume | Once after each evening's publication (about 18:30 India time); a result still a session behind is tried again after 30 minutes |
+| Fixed | The index list | Weekly |
+
+The **Refresh** button always reads the live values again. The startup and scheduled refresh read only what is due, so they make no reads overnight or at the weekend once the closing values are saved. **Open** shows saved research at once and reads only a quote that can have moved. **Analyse** reads the quote, the latest month of history and news, plus any end-of-day study that is due (up to 10 reads). **Refresh movers** reads the stock movers and up to 3 end-of-day rankings, **Explore** up to 4, **Compare** 1; repeating one with a current result reads nothing. A failed read is never treated as current. Exchange holidays are not known to the app. A five-minute refresh, matching how often NSE updates its live snapshot, is declared but off until you choose **Start & keep running** under **Background**; it runs only while the app and computer are awake. The session label uses weekday market hours.
+
+The Sources ledger shows how long each read took, from asking to the reply, including any wait behind the four reads the host keeps in flight. Reads that were not needed are not made and do not appear.
 
 ## Data
 

@@ -14,9 +14,9 @@
 
 ```text
 field edit (batched by host) → handleAction(bindPath) → save draft or filter → render
-Refresh / trigger → all indices + movers + mood + bulk closes + ≤12 live quotes, read together → checkAlerts → recordIntraday (market hours) → receipts, problem → render
-Open → research saved today for this window → render (focus Instrument), no reads; otherwise as Analyse
-Analyse → quote + history (latest month merged into a saved window that still covers it, else chunks; DuckDB transaction) + 52-week, vs benchmark, actions, volume (each reused when read earlier the same India day; vs benchmark also by benchmark and window) + News Desk, read together → render (focus Instrument)
+Refresh / trigger → all indices + movers + ≤12 live quotes (live) + mood + bulk closes (daily), each only when due and read together; the Refresh button forces the live ones → checkAlerts → recordIntraday (market hours, when something was read) → receipts with durations, problem → render
+Open → research saved since the last publication for this window → a quote only if it can have moved → render (focus Instrument); otherwise as Analyse
+Analyse → quote + history (latest month merged into a saved window that still covers it, else chunks; DuckDB transaction), always read; 52-week, vs benchmark (also by benchmark and window), actions, volume, each only when due; News Desk; read together → render (focus Instrument)
 Refresh movers / Explore / Compare / Search / Add watch / Save holding → their reads → render
 render → analyze(prices, symbol) → view(state, analysis) → 8 updates (nodes + whole data)
 registry → lint, apply on the previous snapshot, commit state + database + surfaces atomically
@@ -24,9 +24,19 @@ registry → lint, apply on the previous snapshot, commit state + database + sur
 
 ## Data
 
-State: `watchlist[]` (active list), `groups{name:symbols[]}`, `group`, `groupDraft`, `watchDraft`, `holdings[]` (`qty`, `cost` in paise), `holdingDraft`, `alerts[]`, `alertDraft`, `triggered[]`, `symbol`, `symbolDraft`, `months`, `benchmark`, `research{symbol}`, `historyFor{}`, `quotes{symbol}` (with `basis` live or close), `indices[]` (with group), `indexGroup`, `segment`, `movers`, `mood`, `active`, `period`, `indexMovers`, `searchDraft`, `results[]`, `indexNames[]`, `study`, `studyDraft`, `compareSet[]`, `compareMonths`, `comparison`, `receipts[]` (≤ 60), `problem`, `checkedAt`. DuckDB: `prices(symbol, date, open, high, low, close, volume)`, primary key `(symbol, date)`.
+State: `watchlist[]` (active list), `groups{name:symbols[]}`, `group`, `groupDraft`, `watchDraft`, `holdings[]` (`qty`, `cost` in paise), `holdingDraft`, `alerts[]`, `alertDraft`, `triggered[]`, `symbol`, `symbolDraft`, `months`, `benchmark`, `research{symbol}`, `historyFor{}`, `quotes{symbol}` (with `basis` live or close), `indices[]` (with group), `indexGroup`, `segment`, `movers`, `mood`, `active`, `period`, `indexMovers`, `searchDraft`, `results[]`, `indexNames[]`, `study`, `studyDraft`, `compareSet[]`, `compareMonths`, `comparison`, `receipts[]` (≤ 60, each with `ms`), `readAt{request}` (≤ 300 marks: `at`, source `day`, `slot`), `problem`, `checkedAt`. DuckDB: `prices(symbol, date, open, high, low, close, volume)`, primary key `(symbol, date)`.
 
 Instrument passes one ordered history to its linked price, volume, returns and drawdown charts. The comparison and session drill-down run locally in the renderer. The marker list intersects retained corporate-action dates with the displayed sessions.
+
+## Freshness
+
+`fresh(mark, tier, now)` decides whether a saved value is current, from the India clock alone:
+
+- `live`: in the session (weekdays 09:00–15:35) for one minute; outside it, when read after the latest weekday 15:35, so one read after the close keeps the final values.
+- `daily`: when read after the latest weekday 18:30 and the source's own session day, if it names one, is not older than that day. A read is never repeated within 30 minutes, which bounds retries when a publication is late or the day is an exchange holiday.
+- `fixed`: for seven days.
+
+`read()` keys a mark by tool and exact arguments, writes it only on success, clears it on failure and removes other marks of the same `slot`. Stock history is not marked: Analyse always reads its latest month.
 
 ## Boundaries
 

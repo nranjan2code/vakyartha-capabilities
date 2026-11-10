@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Market Terminal reads each source only when it can have changed: live values through the session and once after the close, end-of-day values once after each evening's publication, the index list weekly. The scheduled and startup refresh make no reads while the market is closed and the closing values are saved; repeating an index study, comparison or ranking with a current result reads nothing; the Refresh button still reads live values. The Sources ledger shows how long each read took.
 - Clinic Desk shows an explicit empty state for visit types when the selected period has no visits.
 - Market Terminal links price, volume, returns and drawdown by saved session and adds date comparisons and corporate-action marks. Finance Workbench opens the outflows behind a spending category. Project Desk opens the issue records behind a label. These views need the shared chart inspection support in Vakyartha.
 

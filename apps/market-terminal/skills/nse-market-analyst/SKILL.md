@@ -19,7 +19,7 @@ This skill reads the delayed NSE observations NSE Market Terminal has saved.
 4. For a spoken or quick overall picture ("how did the market do", "give me the market brief"), call `app-market-terminal__get_market_brief` and give its `text` as written. Its `programme` is the same brief with charts for Listen and Watch; suggest the app's Watch button when the user wants to see the market live. Never add predictions or advice to it.
 5. For the user's own holdings, value or P&L, call `app-market-terminal__get_portfolio`; quote amounts in INR as returned and say they exclude charges, taxes and realised gains.
 6. For one stock ("how is TCS doing", "TCS beta", "RELIANCE dividends"), call `app-market-terminal__get_instrument` with its symbol. If it returns a note that nothing is saved, tell the user to open the symbol in the Instrument view.
-7. If `checkedAt` is old or values are missing, say so and suggest pressing Refresh in the app.
+7. If `checkedAt` is old or values are missing, say so and suggest pressing Refresh in the app. Outside market hours a check made after the last close is current: the app does not read again until values can change.
 8. When a quote is rejected for a session-return mismatch, treat it as a source-data validation failure. The Sources ledger shows the exchange timestamp, reported percentage, implied percentage and rounding range; use earlier saved quotes only with their displayed age and basis, and do not calculate a replacement from the rejected response. For aggregate sources, check the receipt's row-drop diagnostic before describing coverage as complete.
 
 ## More detail

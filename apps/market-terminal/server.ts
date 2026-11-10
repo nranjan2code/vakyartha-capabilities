@@ -18,7 +18,11 @@ export interface Quote { symbol: string; last: number; previous: number; changeP
 export interface Index { label: string; group: Group; last: number; previous: number; changePct: number; open: number | null; high: number | null; low: number | null; exchangeAt: string }
 export interface Holding { symbol: string; qty: number; cost: number }
 export interface Alert { id: string; symbol: string; kind: 'above' | 'below' | 'move'; value: number; createdAt: string; triggeredAt?: string; triggeredValue?: number }
-export interface Receipt { subject: string; tool: string; fetchedAt: string; sourceAt: string; rows: number; status: string }
+export interface Receipt { subject: string; tool: string; fetchedAt: string; sourceAt: string; rows: number; status: string; /** Milliseconds from request to reply, including any wait behind other reads. */ ms?: number }
+/** How often a source changes: `live` through the session, `daily` once after the close, `fixed` rarely. */
+export type Tier = 'live' | 'daily' | 'fixed';
+/** The last successful read of one request: when, the source's own session day if it names one, and the single saved value it replaced. */
+export interface Mark { at: string; day?: string; slot?: string }
 export type Movers = ReturnType<typeof parseMovers>;
 export type Mood = ReturnType<typeof parseMood>;
 export interface Research {
@@ -36,7 +40,7 @@ export interface State {
   active?: { byValue?: ReturnType<typeof parseActive>; byVolume?: ReturnType<typeof parseActive> }; period?: string; indexMovers?: ReturnType<typeof indexMovers>;
   searchDraft?: string; searchQuery?: string; searchMessage?: string; results?: ReturnType<typeof parseSearch>; indexNames?: string[]; study?: IndexStudy; studyDraft?: string;
   compareSet?: string[]; compareMonths?: string; comparison?: ReturnType<typeof compareIndices>;
-  receipts?: Receipt[]; problem?: string; checkedAt?: string; triggered?: string[];
+  receipts?: Receipt[]; problem?: string; checkedAt?: string; triggered?: string[]; readAt?: Record<string, Mark>;
   /** Today's readings (India time) of the headline indices and live watchlist quotes, one point per refresh, for live charts. */
   intraday?: Intraday;
   // Version 2 fields, read once by normalize().
@@ -48,7 +52,7 @@ export interface Context {
 }
 
 const DEFAULT_WATCH = ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'BHARTIARTL', 'ITC'];
-export const MAX_WATCH = 30, MAX_HOLDINGS = 50, MAX_ALERTS = 40, LIVE_QUOTES = 12;
+export const MAX_WATCH = 30, MAX_HOLDINGS = 50, MAX_ALERTS = 40, LIVE_QUOTES = 12, MAX_MARKS = 300;
 export const BENCHMARKS = ['Nifty 50', 'Nifty Bank', 'Nifty Next 50', 'Nifty Midcap 100', 'Nifty IT', 'Nifty 500'];
 export const SEGMENTS = [{ label: 'NIFTY 50', value: 'NIFTY' }, { label: 'NIFTY BANK', value: 'BANKNIFTY' }, { label: 'NIFTY NEXT 50', value: 'NIFTYNEXT50' }, { label: 'All securities', value: 'ALL' }];
 export const moverSegment = (value: string) => SEGMENTS.find((s) => s.value === value || s.label === value)?.value ?? (value === 'allSec' ? 'ALL' : value);
@@ -127,9 +131,17 @@ export function normalize(s: State): State {
     compareSet, compareMonths: choice(s.compareMonths, ['3', '6', '12'], '6'), ...(obj(s.comparison) ? { comparison: s.comparison } : {}),
     receipts: (Array.isArray(s.receipts) ? s.receipts : []).filter((r) => r && typeof r.tool === 'string').slice(0, 60),
     problem: typeof s.problem === 'string' ? s.problem.slice(0, 800) : undefined, checkedAt: typeof s.checkedAt === 'string' ? s.checkedAt : undefined,
-    triggered: (Array.isArray(s.triggered) ? s.triggered : []).filter((id) => alerts.some((a) => a.id === id)),
+    triggered: (Array.isArray(s.triggered) ? s.triggered : []).filter((id) => alerts.some((a) => a.id === id)), readAt: marksOf(s.readAt),
     ...((d) => d ? { intraday: d } : {})(intradayOf(s.intraday)),
   };
+}
+function marksOf(raw: unknown): Record<string, Mark> {
+  const out: Record<string, Mark> = Object.create(null);
+  for (const [k, v] of Object.entries(obj(raw) ?? {}).slice(-MAX_MARKS)) {
+    const m = obj(v);
+    if (k.length <= 400 && m && typeof m.at === 'string' && !Number.isNaN(Date.parse(m.at))) out[k] = { at: m.at, ...(typeof m.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(m.day) ? { day: m.day } : {}), ...(typeof m.slot === 'string' ? { slot: m.slot.slice(0, 60) } : {}) };
+  }
+  return out;
 }
 function intradayOf(raw: unknown): Intraday | undefined {
   const o = obj(raw), day = str(o?.day, 10);
@@ -170,66 +182,122 @@ export const reason = (e: unknown) => String((e as Error)?.message ?? e)
   .replace(/\b(error|refused):\s*(?=(error|refused):)/gi, '').replace(/^\s*error:\s*/i, '').replace(/\s+/g, ' ').trim().slice(0, 400);
 export const SETUP = 'If a read is blocked, review Access in the app header.';
 
-type Parsed = { sourceAt: string; rows: number; status?: string; commit(): Promise<void> | void };
-/** One tool read: parse and commit on success, record a receipt either way. Returns the failure, if any. */
-async function read(ctx: Context, tool: string, args: Record<string, unknown>, subject: string, parse: (raw: Record<string, unknown>) => Parsed) {
-  const s = ctx.state, fetchedAt = new Date().toISOString();
+// --- freshness ---------------------------------------------------------------------
+// Sources change at different speeds, so a read is repeated only when its source can
+// have changed. Live values move through the session and are final after the close;
+// daily values are published once, in the evening after a session; fixed lists change
+// rarely. Exchange holidays are not known here: on one, a daily read that returns an
+// older session is simply tried again after DAILY_RETRY.
+
+const IST = 5.5 * 3600_000, MINUTE = 60_000, DAY_MS = 86400_000;
+/** India-time minutes of the day: live values start, live values are final, daily values are published. */
+export const LIVE_FROM = 9 * 60, LIVE_UNTIL = 15 * 60 + 35, DAILY_AT = 18 * 60 + 30;
+export const LIVE_FOR = MINUTE, DAILY_RETRY = 30 * MINUTE, FIXED_FOR = 7 * DAY_MS;
+const weekend = (shifted: number) => { const d = new Date(shifted).getUTCDay(); return d === 0 || d === 6; };
+/** The latest weekday instant at this India-time minute, at or before now. */
+export function lastWeekdayAt(now: number, minute: number) {
+  let t = Math.floor((now + IST) / DAY_MS) * DAY_MS + minute * MINUTE;
+  if (t > now + IST) t -= DAY_MS;
+  while (weekend(t)) t -= DAY_MS;
+  return t - IST;
+}
+/** Live values can change now: weekdays from the pre-open until shortly after the close. */
+export function liveNow(now: number) {
+  const t = now + IST, m = Math.floor((t % DAY_MS) / MINUTE);
+  return !weekend(t) && m >= LIVE_FROM && m < LIVE_UNTIL;
+}
+/** Whether a successful read is still current for how often its source changes. */
+export function fresh(mark: Mark | undefined, tier: Tier, now = Date.now()) {
+  const at = Date.parse(mark?.at ?? '');
+  if (!mark || Number.isNaN(at) || at > now) return false;
+  if (tier === 'fixed') return now - at < FIXED_FOR;
+  if (tier === 'live') return liveNow(now) ? now - at < LIVE_FOR : at >= lastWeekdayAt(now, LIVE_UNTIL);
+  if (now - at < DAILY_RETRY) return true;
+  const published = lastWeekdayAt(now, DAILY_AT);
+  return at >= published && (!mark.day || mark.day >= istDay(published));
+}
+const markKey = (tool: string, args: Record<string, unknown>) => `${tool} ${JSON.stringify(args)}`.slice(0, 400);
+
+type Parsed = { sourceAt: string; rows: number; status?: string; /** The session day the source says this is, for daily reads. */ day?: string; commit(): Promise<void> | void };
+/** Reuse a saved value while it is fresh. `have` says the value is still saved; `slot` names a single saved value that another request replaces. */
+type Keep = { tier: Tier; have: boolean; slot?: string };
+/** A read that was not needed: neither a success nor a failure. */
+export const SKIPPED = '';
+/**
+ * One tool read: parse and commit on success, record a receipt either way. Returns the
+ * failure, if any. With `keep`, a value that is saved and still fresh is not read again
+ * (`SKIPPED`); without it the read always happens.
+ */
+async function read(ctx: Context, tool: string, args: Record<string, unknown>, subject: string, parse: (raw: Record<string, unknown>) => Parsed, keep?: Keep) {
+  const s = ctx.state, started = Date.now(), fetchedAt = new Date(started).toISOString(), key = markKey(tool, args), marks = (s.readAt ??= {});
+  if (keep?.have && fresh(marks[key], keep.tier, started)) return SKIPPED;
   try {
     const parsed = parse(decode(await ctx.callTool(tool, args)));
     await parsed.commit();
-    s.receipts!.unshift({ subject, tool, fetchedAt, sourceAt: parsed.sourceAt, rows: parsed.rows, status: parsed.status ?? 'Validated' });
+    if (keep?.slot) for (const [k, m] of Object.entries(marks)) if (m.slot === keep.slot) delete marks[k];
+    delete marks[key];
+    marks[key] = { at: fetchedAt, ...(parsed.day ? { day: parsed.day } : {}), ...(keep?.slot ? { slot: keep.slot } : {}) };
+    for (const k of Object.keys(marks).slice(0, -MAX_MARKS)) delete marks[k];
+    s.receipts!.unshift({ subject, tool, fetchedAt, sourceAt: parsed.sourceAt, rows: parsed.rows, status: parsed.status ?? 'Validated', ms: Date.now() - started });
     return undefined;
   } catch (e) {
     const message = reason(e);
-    s.receipts!.unshift({ subject, tool, fetchedAt, sourceAt: '', rows: 0, status: `Failed: ${message}` });
+    delete marks[key];
+    s.receipts!.unshift({ subject, tool, fetchedAt, sourceAt: '', rows: 0, status: `Failed: ${message}`, ms: Date.now() - started });
     return `${subject}: ${message}`;
   } finally { s.receipts = s.receipts!.slice(0, 60); }
 }
-function settle(s: State, failures: (string | undefined)[], note?: string) {
-  const failed = failures.filter(Boolean) as string[];
+/** Records the outcome of the reads that were made; when none was needed, the last check stands. */
+function settle(s: State, results: (string | undefined)[], note?: string) {
+  const made = results.filter((r) => r !== SKIPPED), failed = made.filter(Boolean) as string[];
+  if (!made.length) return;
   s.checkedAt = new Date().toISOString();
-  s.problem = failed.length ? `${failed.length} of ${failures.length} reads failed; earlier observations are kept. First: ${failed[0]}` : note;
+  s.problem = failed.length ? `${failed.length} of ${made.length} reads failed; earlier observations are kept. First: ${failed[0]}` : note;
 }
-const readQuote = (ctx: Context, symbol: string) => read(ctx, 'nse-cmmkt__cm_get_stock_quote', { symbol }, symbol, (raw) => {
+const readQuote = (ctx: Context, symbol: string, reuse = false) => read(ctx, 'nse-cmmkt__cm_get_stock_quote', { symbol }, symbol, (raw) => {
   const q = quote(raw, symbol);
   return { sourceAt: `${q.exchangeAt} IST`, rows: 1, commit() { ctx.state.quotes![symbol] = { symbol, last: q.last, previous: q.previous, changePct: q.changePct, open: q.open, high: q.high, low: q.low, volume: q.volume, asOf: `${q.exchangeAt} IST`, basis: 'live', fetchedAt: new Date().toISOString() }; } };
-});
+}, reuse ? { tier: 'live', have: ctx.state.quotes![symbol]?.basis === 'live' } : undefined);
 /** Every symbol the person tracks, watchlist first: live quotes for the first twelve, latest closes for the rest. */
 export const tracked = (s: State) => [...new Set([...s.watchlist!, ...s.holdings!.map((h) => h.symbol), ...s.alerts!.map((a) => a.symbol)])];
 
-/** Indices, movers, breadth and every tracked quote; also the scheduled refresh. At most 16 reads. */
-export async function refreshMarket(ctx: Context) {
+/**
+ * Indices, movers, breadth and every tracked quote, each read only when its source can
+ * have changed; also the startup and scheduled refresh. `force` (the Refresh button)
+ * reads the live values regardless. At most 16 reads.
+ */
+export async function refreshMarket(ctx: Context, force = false) {
   const s = (ctx.state = normalize(ctx.state));
   const all = tracked(s), live = all.slice(0, LIVE_QUOTES), rest = all.slice(LIVE_QUOTES, LIVE_QUOTES + 50);
   // Independent reads run together; the host keeps a few in flight and admits each one.
-  const failures = await Promise.all([
+  const results = await Promise.all([
     read(ctx, 'nse-cmmkt__cm_get_live_indices', { group: 'all', nameFilter: '' }, 'all indices', (raw) => {
       const r = allIndices(raw);
       return { sourceAt: r.sourceAt, rows: r.rows.length, ...(r.dropped ? { status: `Validated with ${r.dropped} row(s) dropped. First: ${r.diagnostics[0]}` } : {}), commit() { s.indices = r.rows; } };
-    }),
-    readMovers(ctx),
+    }, force ? undefined : { tier: 'live', have: s.indices!.length > 0 }),
+    readMovers(ctx, !force),
     read(ctx, 'nse__get_market_mood', { date: 'today' }, 'market mood', (raw) => {
       const m = parseMood(raw);
-      return { sourceAt: `${m.date} (end of day)`, rows: m.benchmarks.length, commit() { s.mood = m; } };
-    }),
+      return { sourceAt: `${m.date} (end of day)`, rows: m.benchmarks.length, day: m.date, commit() { s.mood = m; } };
+    }, { tier: 'daily', have: !!s.mood }),
     ...(rest.length ? [read(ctx, 'nse__get_bulk_quote', { symbols: rest }, `${rest.length} closes`, (raw) => {
-      const closes = bulk(raw, rest);
-      return { sourceAt: `${Object.values(closes)[0]?.date ?? '—'} close`, rows: Object.keys(closes).length, commit() {
+      const closes = bulk(raw, rest), date = Object.values(closes)[0]?.date;
+      return { sourceAt: `${date ?? '—'} close`, rows: Object.keys(closes).length, ...(date ? { day: date } : {}), commit() {
         for (const c of Object.values(closes)) s.quotes![c.symbol] = { ...c, asOf: `${c.date} close`, basis: 'close', fetchedAt: new Date().toISOString() };
       } };
-    })] : []),
-    ...live.map((symbol) => readQuote(ctx, symbol)),
+    }, { tier: 'daily', have: rest.every((symbol) => !!s.quotes![symbol]), slot: 'closes' })] : []),
+    ...live.map((symbol) => readQuote(ctx, symbol, !force)),
   ]);
   checkAlerts(s);
-  if (session().tone === 'success') recordIntraday(s);
-  settle(s, failures);
+  if (session().tone === 'success' && results.some((r) => r !== SKIPPED)) recordIntraday(s);
+  settle(s, results);
   return render(ctx);
 }
-const readMovers = (ctx: Context) => read(ctx, 'nse-cmmkt__nse_get_market_movers', { indexName: ctx.state.segment === 'ALL' ? 'allSec' : ctx.state.segment, limit: 15 }, `movers ${ctx.state.segment}`, (raw) => {
+const readMovers = (ctx: Context, reuse = false) => read(ctx, 'nse-cmmkt__nse_get_market_movers', { indexName: ctx.state.segment === 'ALL' ? 'allSec' : ctx.state.segment, limit: 15 }, `movers ${ctx.state.segment}`, (raw) => {
   const m = parseMovers(raw);
   if (moverSegment(m.segment) !== ctx.state.segment) throw new Error(`NSE movers identity mismatch: requested ${ctx.state.segment}, received ${m.segment}`);
   return { sourceAt: m.at, rows: m.gainers.length + m.losers.length, commit() { ctx.state.movers = m; } };
-});
+}, reuse ? { tier: 'live', have: !!ctx.state.movers && moverSegment(ctx.state.movers.segment) === ctx.state.segment, slot: 'movers' } : undefined);
 
 /** Marks alerts whose condition the latest quote meets; a triggered alert stays until re-armed. */
 export function checkAlerts(s: State) {
@@ -243,12 +311,10 @@ export function checkAlerts(s: State) {
   s.triggered = fired;
 }
 
-/** Research read earlier the same India day is reused: daily sources publish once a day. */
-const sameDay = (at: string | undefined, now = Date.now()) => !!at && istDay(Date.parse(at)) === istDay(now);
-/** Open shows saved research without any read when it is from today for the chosen window. */
-export const savedForToday = (s: State, symbol: string) => {
+/** Open shows saved research without any read when nothing has been published since it was read, for the chosen window. */
+export const savedForToday = (s: State, symbol: string, now = Date.now()) => {
   const r = s.research![symbol];
-  return !!r && r.window === s.months && sameDay(r.at) && !!s.historyFor![symbol] && !!s.quotes![symbol];
+  return !!r && r.window === s.months && !!r.at && fresh({ at: r.at }, 'daily', now) && !!s.historyFor![symbol] && !!s.quotes![symbol];
 };
 const monthsAgo = (months: number) => { const d = new Date(); d.setUTCMonth(d.getUTCMonth() - months); return d.toISOString().slice(0, 10); };
 
@@ -282,17 +348,16 @@ async function readHistory(ctx: Context, symbol: string, months: number, savedMo
 async function fetchInstrument(ctx: Context) {
   const s = ctx.state, symbol = s.symbol!, months = WINDOWS[s.months!]!;
   await initialize(ctx.database);
-  const prior = s.research![symbol] ?? {}, today = sameDay(prior.at), versusKey = `${s.benchmark}:${Math.max(3, months)}`;
+  const prior = s.research![symbol] ?? {}, versusKey = `${s.benchmark}:${Math.max(3, months)}`;
   const r: Research = { ...prior, window: s.months, at: new Date().toISOString() };
   const from = new Date(Date.now() - 2 * 365 * 86400_000).toISOString().slice(0, 10), until = new Date().toISOString().slice(0, 10);
-  const skip = Promise.resolve(undefined);
   const failures = await Promise.all([
     readQuote(ctx, symbol),
     readHistory(ctx, symbol, months, WINDOWS[prior.window ?? ''] ?? 0),
-    today && prior.range ? skip : read(ctx, 'nse__get_52_week_high_low', { symbol }, `${symbol} 52-week`, (raw) => { const v = range52(raw, symbol); return { sourceAt: `close ${v.close}`, rows: 1, commit() { r.range = v; } }; }),
-    today && prior.versus && prior.versusKey === versusKey ? skip : read(ctx, 'nse__get_stock_vs_index', { symbol, indexName: s.benchmark, months: Math.max(3, months), date: 'today' }, `${symbol} vs ${s.benchmark}`, (raw) => { const v = versus(raw, symbol); return { sourceAt: `${v.from} – ${v.to}`, rows: v.observations, commit() { r.versus = v; r.versusKey = versusKey; } }; }),
-    today && prior.actions ? skip : read(ctx, 'nse__get_corporate_actions', { symbol, fromDate: from, toDate: until }, `${symbol} actions`, (raw) => { const v = corporateActions(raw, symbol); return { sourceAt: `${from} – ${until}`, rows: v.length, commit() { r.actions = v; } }; }),
-    today && prior.volume ? skip : read(ctx, 'nse__get_volume_analysis', { symbol, days: 30 }, `${symbol} volume`, (raw) => { const v = volumeProfile(raw, symbol); return { sourceAt: `${v.days} sessions`, rows: v.days, commit() { r.volume = v; } }; }),
+    read(ctx, 'nse__get_52_week_high_low', { symbol }, `${symbol} 52-week`, (raw) => { const v = range52(raw, symbol); return { sourceAt: `close ${v.close}`, rows: 1, commit() { r.range = v; } }; }, { tier: 'daily', have: !!prior.range }),
+    read(ctx, 'nse__get_stock_vs_index', { symbol, indexName: s.benchmark, months: Math.max(3, months), date: 'today' }, `${symbol} vs ${s.benchmark}`, (raw) => { const v = versus(raw, symbol); return { sourceAt: `${v.from} – ${v.to}`, rows: v.observations, day: v.to, commit() { r.versus = v; r.versusKey = versusKey; } }; }, { tier: 'daily', have: !!prior.versus && prior.versusKey === versusKey, slot: `versus ${symbol}` }),
+    read(ctx, 'nse__get_corporate_actions', { symbol, fromDate: from, toDate: until }, `${symbol} actions`, (raw) => { const v = corporateActions(raw, symbol); return { sourceAt: `${from} – ${until}`, rows: v.length, commit() { r.actions = v; } }; }, { tier: 'daily', have: !!prior.actions }),
+    read(ctx, 'nse__get_volume_analysis', { symbol, days: 30 }, `${symbol} volume`, (raw) => { const v = volumeProfile(raw, symbol); return { sourceAt: `${v.days} sessions`, rows: v.days, commit() { r.volume = v; } }; }, { tier: 'daily', have: !!prior.volume }),
     // News is optional: a missing News Desk is noted in the ledger but is not a market failure.
     read(ctx, 'app-news-desk__get_latest_articles', { query: symbol, limit: 6 }, `${symbol} news`, (raw) => {
       const stories = Array.isArray(raw.stories) ? raw.stories.slice(0, 6) : [];
@@ -308,12 +373,13 @@ async function fetchInstrument(ctx: Context) {
 async function studyIndex(ctx: Context) {
   const s = ctx.state, label = s.studyDraft!.trim();
   if (!label) throw new Error('Choose an index to explore');
-  const study: IndexStudy = { label, ...(s.study?.label.toLowerCase() === label.toLowerCase() ? s.study : {}), at: new Date().toISOString() };
+  const saved = s.study?.label.toLowerCase() === label.toLowerCase() ? s.study : undefined;
+  const study: IndexStudy = { label, ...saved, at: new Date().toISOString() };
   const failures = await Promise.all([
-    s.indexNames!.length ? Promise.resolve(undefined) : read(ctx, 'nse__get_index_snapshot', { date: 'today', filter: '' }, 'index list', (raw) => { const names = indexNames(raw); return { sourceAt: 'end of day', rows: names.length, commit() { s.indexNames = names; } }; }),
-    read(ctx, 'nse__get_index_performance', { indexName: label, date: 'today' }, `${label} performance`, (raw) => { const v = indexPerformance(raw); return { sourceAt: v.date, rows: v.horizons.length, commit() { study.performance = v; study.label = v.label; } }; }),
-    read(ctx, 'nse__get_index_history', { indexName: label, months: 12, endDate: 'today' }, `${label} history`, (raw) => { const v = indexHistory(raw); return { sourceAt: `${v.bars[0]!.date} – ${v.bars.at(-1)!.date}`, rows: v.bars.length, commit() { study.bars = v.bars; } }; }),
-    read(ctx, 'nse__get_index_valuation', { indexName: label, months: 24, date: 'today' }, `${label} valuation`, (raw) => { const v = valuation(raw); return { sourceAt: `${v.from} – ${v.to}`, rows: 3, commit() { study.valuation = v; } }; }),
+    read(ctx, 'nse__get_index_snapshot', { date: 'today', filter: '' }, 'index list', (raw) => { const names = indexNames(raw); return { sourceAt: 'end of day', rows: names.length, commit() { s.indexNames = names; } }; }, { tier: 'fixed', have: s.indexNames!.length > 0 }),
+    read(ctx, 'nse__get_index_performance', { indexName: label, date: 'today' }, `${label} performance`, (raw) => { const v = indexPerformance(raw); return { sourceAt: v.date, rows: v.horizons.length, day: v.date, commit() { study.performance = v; study.label = v.label; } }; }, { tier: 'daily', have: !!saved?.performance, slot: 'study performance' }),
+    read(ctx, 'nse__get_index_history', { indexName: label, months: 12, endDate: 'today' }, `${label} history`, (raw) => { const v = indexHistory(raw); return { sourceAt: `${v.bars[0]!.date} – ${v.bars.at(-1)!.date}`, rows: v.bars.length, day: v.bars.at(-1)!.date, commit() { study.bars = v.bars; } }; }, { tier: 'daily', have: !!saved?.bars, slot: 'study history' }),
+    read(ctx, 'nse__get_index_valuation', { indexName: label, months: 24, date: 'today' }, `${label} valuation`, (raw) => { const v = valuation(raw); return { sourceAt: `${v.from} – ${v.to}`, rows: 3, day: v.to, commit() { study.valuation = v; } }; }, { tier: 'daily', have: !!saved?.valuation, slot: 'study valuation' }),
   ]);
   s.study = study;
   settle(s, failures);
@@ -353,7 +419,7 @@ export async function handleAction(controlId: string, value: unknown, ctx: Conte
   }
   const symbolArg = payload(value, 'symbol');
   switch (action) {
-    case 'refresh_market': return refreshMarket(ctx);
+    case 'refresh_market': return refreshMarket(ctx, true);
     case 'add_watch': {
       const added = symbolArg ? [one(symbolArg)] : symbols(s.watchDraft);
       const next = [...new Set([...s.watchlist!, ...added])];
@@ -414,8 +480,9 @@ export async function handleAction(controlId: string, value: unknown, ctx: Conte
     case 'open_instrument': {
       const symbol = symbolArg ? one(symbolArg) : one(s.symbolDraft);
       s.symbol = s.symbolDraft = symbol;
-      // Open shows today's saved research at once; Analyse always reads again.
+      // Open shows saved research at once, with only a quote that can have moved; Analyse reads what can have changed.
       if (action === 'fetch_instrument' || !savedForToday(s, symbol)) await fetchInstrument(ctx);
+      else { settle(s, [await readQuote(ctx, symbol, true)]); checkAlerts(s); }
       return render(ctx, 'instrument');
     }
     case 'save_holding': {
@@ -462,14 +529,14 @@ export async function handleAction(controlId: string, value: unknown, ctx: Conte
         if (!SEGMENTS.some((x) => x.value === segment)) throw new Error('Choose an offered movers index');
         s.segment = segment;
       }
-      settle(s, [await readMovers(ctx)]);
+      settle(s, [await readMovers(ctx, true)]);
       return render(ctx);
     }
     case 'refresh_movers': {
       const failures = await Promise.all([
         readMovers(ctx),
-        ...(([['byValue', 'value'], ['byVolume', 'volume']] as const).map(([key, sortBy]) => read(ctx, 'nse__get_top_by_volume', { date: 'today', n: 15, sortBy }, `most active by ${sortBy}`, (raw) => { const v = parseActive(raw); return { sourceAt: v.date, rows: v.rows.length, commit() { s.active![key] = v; } }; }))),
-        read(ctx, 'nse__get_index_movers', { date: 'today', period: s.period, n: 8, scope: 'all' }, `index movers ${s.period}`, (raw) => { const v = indexMovers(raw); return { sourceAt: v.base ? `${v.base} – ${v.date}` : v.date, rows: v.gainers.length + v.losers.length, commit() { s.indexMovers = v; } }; }),
+        ...(([['byValue', 'value'], ['byVolume', 'volume']] as const).map(([key, sortBy]) => read(ctx, 'nse__get_top_by_volume', { date: 'today', n: 15, sortBy }, `most active by ${sortBy}`, (raw) => { const v = parseActive(raw); return { sourceAt: v.date, rows: v.rows.length, day: v.date, commit() { s.active![key] = v; } }; }, { tier: 'daily', have: !!s.active![key] }))),
+        read(ctx, 'nse__get_index_movers', { date: 'today', period: s.period, n: 8, scope: 'all' }, `index movers ${s.period}`, (raw) => { const v = indexMovers(raw); return { sourceAt: v.base ? `${v.base} – ${v.date}` : v.date, rows: v.gainers.length + v.losers.length, day: v.date, commit() { s.indexMovers = v; } }; }, { tier: 'daily', have: !!s.indexMovers, slot: 'index movers' }),
       ]);
       settle(s, failures);
       return render(ctx);
@@ -477,7 +544,7 @@ export async function handleAction(controlId: string, value: unknown, ctx: Conte
     case 'study_index': if (payload(value, 'label')) s.studyDraft = payload(value, 'label'); await studyIndex(ctx); return render(ctx, payload(value, 'label') ? 'indices' : undefined);
     case 'compare_indices': {
       if (s.compareSet!.length < 2) throw new Error('Choose 2 to 10 indices to compare');
-      const failure = await read(ctx, 'nse__compare_indices', { indexNames: s.compareSet, months: Number(s.compareMonths), date: 'today' }, 'index comparison', (raw) => { const v = compareIndices(raw); return { sourceAt: `${v.from} – ${v.to}`, rows: v.rows.length, commit() { s.comparison = v; } }; });
+      const failure = await read(ctx, 'nse__compare_indices', { indexNames: s.compareSet, months: Number(s.compareMonths), date: 'today' }, 'index comparison', (raw) => { const v = compareIndices(raw); return { sourceAt: `${v.from} – ${v.to}`, rows: v.rows.length, day: v.to, commit() { s.comparison = v; } }; }, { tier: 'daily', have: !!s.comparison, slot: 'comparison' });
       settle(s, [failure]);
       return render(ctx);
     }

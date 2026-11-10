@@ -30,4 +30,6 @@ Use the existing field controls for portfolio, watchlist and alert drafts. These
 
 ## Interaction and refresh cost
 
+Each source is read only when it can have changed: live values through the session and once after the close, end-of-day values once after each evening's publication, the index list weekly. The Refresh button always reads live values; the startup and scheduled refresh read only what is due. The Sources ledger shows how long each read took.
+
 The shared Apps host retains its header and assistant dock across view changes and reconciles only changed canonical views after actions or background refresh. Local search and paging stay in the surface. Field handlers save normalized drafts without external reads. Return all views affected by a domain change, including spoken projections. Prefer a focused update for a draft with no other consumers and preserve saved computed values. Keep SQL and source calls for operations that need them. Each app retains its own contained worker across successful commands. Keep running controls hosted scheduling and restart eligibility. Durable state belongs in host checkpoints. Measure saved-data clicks, draft saves, source refresh and cold open separately before claiming a latency improvement.

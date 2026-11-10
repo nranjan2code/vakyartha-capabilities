@@ -28,6 +28,8 @@ const ist = (iso: string | undefined) => {
   const d = new Date(iso ?? '');
   return Number.isFinite(d.getTime()) ? `${d.toLocaleString('en-GB', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false })} IST` : '';
 };
+/** A read's duration: "420 ms", "1.3 s"; unknown for reads recorded before durations were kept. */
+const took = (ms: unknown) => (typeof ms === 'number' && Number.isFinite(ms) && ms >= 0 ? (ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`) : '—');
 const replaceAll = (value: Record<string, unknown>) => [{ op: 'replace' as const, path: '/' as const, value }];
 /** "2026-10-30" as "30 Oct"; other text unchanged. */
 const day = (iso: string) => /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', { timeZone: 'UTC', day: 'numeric', month: 'short' }) : iso;
@@ -681,11 +683,12 @@ function sources(s: State): Update {
     { id: 'src-checked', type: 'stat', props: { label: 'Last market refresh', value: '{/stats/checked}' } },
     { id: 'ledger-section', type: 'section', props: { title: 'Source ledger', description: 'The latest 60 reads. A failed read keeps earlier observations and never counts as fresh data.' }, children: [receipts.length ? 'receipts' : 'no-receipts'] },
     receipts.length
-      ? { id: 'receipts', type: 'table', props: { rows: '{/receipts}', columns: [{ key: 'tool', label: 'Tool' }, { key: 'subject', label: 'Subject' }, { key: 'sourceAt', label: 'Source time' }, { key: 'fetched', label: 'Retrieved' }, { key: 'rows', label: 'Rows', align: 'end' }, { key: 'status', label: 'Status' }], searchable: true, sortable: true, pageSize: 12 } }
+      ? { id: 'receipts', type: 'table', props: { rows: '{/receipts}', columns: [{ key: 'tool', label: 'Tool' }, { key: 'subject', label: 'Subject' }, { key: 'sourceAt', label: 'Source time' }, { key: 'fetched', label: 'Retrieved' }, { key: 'took', label: 'Took', align: 'end' }, { key: 'rows', label: 'Rows', align: 'end' }, { key: 'status', label: 'Status' }], searchable: true, sortable: true, pageSize: 12 } }
       : { id: 'no-receipts', type: 'text', props: { content: `Nothing read yet. ${SETUP}`, variant: 'caption' } },
     { id: 'methods-section', type: 'section', props: { title: 'Methods and limits' }, children: ['methods'] },
     { id: 'methods', type: 'accordion', props: { items: [
-      { title: 'Quotes and refresh', body: `Refresh reads every live index group, the movers for the chosen segment, end-of-day breadth and India VIX, and the tracked symbols: live delayed quotes for the first ${LIVE_QUOTES} (watchlist order, then holdings and alerts) and the latest close for the rest. NSE refreshes its live snapshot about every 5 minutes; the optional schedule under Manage matches that. Exchange holidays are not known to the session label.` },
+      { title: 'Quotes and refresh', body: `Each source is read only when it can have changed. Live values (every index group, the movers for the chosen segment, delayed quotes for the first ${LIVE_QUOTES} tracked symbols in watchlist order, then holdings and alerts) are read through the session and once more after the close, when they are final. End-of-day values (breadth, India VIX, closes for the remaining symbols, most active, index rankings, index studies and comparisons, 52-week range, benchmark comparison, corporate actions and volume) are read once after each evening's publication. The index list is read weekly. The Refresh button always reads the live values again. NSE refreshes its live snapshot about every 5 minutes; the optional schedule under Manage matches that. Exchange holidays are not known here, so on a holiday an end-of-day read is tried again every 30 minutes until the next session publishes.` },
+      { title: 'Read timings', body: 'Took is the time from asking for a read to receiving its reply, including any wait behind the four reads the host keeps in flight. Reads that were not needed are not made and do not appear in the ledger.' },
       { title: 'Risk and returns', body: 'Volatility is the sample standard deviation of daily simple returns × √252. Drawdown is measured from the running closing peak. Moving averages start at their twentieth or fiftieth observation, never zero-filled. Prices are unadjusted for dividends and corporate actions.' },
       { title: 'Portfolio', body: 'Holdings are kept on this computer. Value, day change and P&L are computed in whole paise from the latest quote and that quote’s previous close; realised gains, charges and taxes are not included.' },
       { title: 'Benchmarks, breadth and valuation', body: 'Comparisons, beta, correlation, breadth, India VIX percentiles and index valuation percentiles are NSE’s published calculations, shown with their dates and methods. They are descriptive statistics, not forecasts or advice.' },
@@ -694,7 +697,7 @@ function sources(s: State): Update {
   ];
   const data = {
     stats: { tracked: String(tracked(s).length), reads: String(receipts.length), failed: String(failed), failTone: failed ? 'warning' : 'neutral', checked: s.checkedAt ? ist(s.checkedAt) : '—' },
-    ...(receipts.length ? { receipts: receipts.map((r) => ({ ...r, tool: r.tool.replace(/^[^_]+__/, ''), sourceAt: r.sourceAt || '—', fetched: ist(r.fetchedAt) })) } : {}),
+    ...(receipts.length ? { receipts: receipts.map((r) => ({ ...r, tool: r.tool.replace(/^[^_]+__/, ''), sourceAt: r.sourceAt || '—', fetched: ist(r.fetchedAt), took: took(r.ms) })) } : {}),
   };
   return { surface: 'sources', nodes, data: replaceAll(data) };
 }

@@ -1273,7 +1273,11 @@
           "items": [
             {
               "title": "Quotes and refresh",
-              "body": "Refresh reads every live index group, the movers for the chosen segment, end-of-day breadth and India VIX, and the tracked symbols: live delayed quotes for the first 12 (watchlist order, then holdings and alerts) and the latest close for the rest. NSE refreshes its live snapshot about every 5 minutes; the optional schedule under Manage matches that. Exchange holidays are not known to the session label."
+              "body": "Each source is read only when it can have changed. Live values (every index group, the movers for the chosen segment, delayed quotes for the first 12 tracked symbols in watchlist order, then holdings and alerts) are read through the session and once more after the close, when they are final. End-of-day values (breadth, India VIX, closes for the remaining symbols, most active, index rankings, index studies and comparisons, 52-week range, benchmark comparison, corporate actions and volume) are read once after each evening's publication. The index list is read weekly. The Refresh button always reads the live values again. NSE refreshes its live snapshot about every 5 minutes; the optional schedule under Manage matches that. Exchange holidays are not known here, so on a holiday an end-of-day read is tried again every 30 minutes until the next session publishes."
+            },
+            {
+              "title": "Read timings",
+              "body": "Took is the time from asking for a read to receiving its reply, including any wait behind the four reads the host keeps in flight. Reads that were not needed are not made and do not appear in the ledger."
             },
             {
               "title": "Risk and returns",
