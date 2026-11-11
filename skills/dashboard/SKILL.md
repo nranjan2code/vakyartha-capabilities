@@ -4,6 +4,7 @@ description: Build an operational or enterprise dashboard from supplied records 
 
 compatibility: Uses supplied records and governed domain tools; Vakyartha owns presentation.
 metadata:
+  presentation-support: "true"
 
   category: reports
   author: Vakyartha
