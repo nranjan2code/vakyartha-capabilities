@@ -15,6 +15,7 @@ One read, then one page. The page is built from the records the read returns, so
 1. **read**: Read the saved market summary. Pass `watchlist` only when the user names a saved list.
    - tool: app-market-terminal__get_market_summary
    - effect: read
+   - done: has /indices
 2. **show**: Show the market: the indices, the watchlist quotes, the top gainers and the top losers. Lead with what moved most, and give the page a control that reads the market again.
    - kind: show
    - from: read

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Market report reads are checked on returned indices, avoiding a closing generation while retaining the host refresh call. Removed superseded app change notes from the analyst procedure.
+
 - Market Terminal adds the `nse-market-report` skill: a market report is one read and then one page built from the returned records, with a control that reads the market again. `nse-market-analyst` answers specific questions in text and no longer describes page layout.
 
 - Market Terminal reads each source only when it can have changed: live values through the session and once after the close, end-of-day values once after each evening's publication, the index list weekly. The scheduled and startup refresh make no reads while the market is closed and the closing values are saved; repeating an index study, comparison or ranking with a current result reads nothing; the Refresh button still reads live values. The Sources ledger shows how long each read took.

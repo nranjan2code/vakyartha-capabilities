@@ -20,3 +20,5 @@ These skills are installed, updated and removed with the app. While the app is i
 - app:news-desk
 - integration:nse-cmmkt
 - integration:nse
+
+The market-report procedure ends its saved-summary read as soon as `indices` is returned, then builds its page from that result. The host retains the read call for Refresh; no closing generation is needed for the read. The analyst skill keeps specific-question guidance; app control behavior is owned by these app documents.

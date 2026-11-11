@@ -25,17 +25,3 @@ This skill reads the delayed NSE observations NSE Market Terminal has saved.
 ## More detail
 
 For the app's other skills, background operation, access review, package updates or what a refresh costs, read `references/app-operation.md` with read_skill_file.
-
-## Applying criteria (3.4.7)
-
-A selected mover segment is a draft until Show movers or Refresh movers succeeds. Read the saved snapshot's segment and timestamp, not the pending picker, when interpreting results. Show movers needs only the stock-movers read; Refresh movers additionally reads traded value/volume and index rankings. A failed or mismatched response retains earlier data with its earlier identity. All securities uses `allSec` at the tool boundary. Instrument, Explore and Compare apply criteria only through their explicit buttons; a saved comparison states its actual dates. Queries remain read-only and cannot apply these drafts.
-
-## Transient controls (3.4.8)
-
-Use Clear search to dismiss symbol matches. Editing the query invalidates old matches; a result heading names the query actually read. Search failures/empty matches are local messages, not market freshness. Clear fields abandons only the holding/alert draft. Opening an alert for a new symbol requires a fresh threshold. These local actions make no source/model calls and never delete saved holdings or alerts.
-
-Removing a holding also clears a draft for that symbol; drafts for other holdings remain intact.
-
-## 3.4.9 direct movers selection
-
-Overview and Movers share action buttons for the four stock-mover segments. Clicking a choice calls `show_movers` with its validated segment and reads that segment in the same action; no separate Show movers submission remains. Both chart projections and the programme rebuild from the accepted source result. Failed reads retain accurately labelled earlier observations and the existing failure message. Access rules are unchanged. The earlier 3.4.7/3.4.8 draft-and-submit guidance is superseded for these two movers selectors. Other multi-field forms retain their existing submission behavior.
