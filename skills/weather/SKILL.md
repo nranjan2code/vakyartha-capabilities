@@ -39,7 +39,7 @@ This connector uses the free public API and supports no paid key or subscription
    - arguments: {"name":{"item":""},"count":{"value":3}}
    - effect: read
    - done: has /results/0/latitude
-5. **forecast**: Read requested relative-day weather. Use daily temperature_2m_max and temperature_2m_min for daily ranges.
+5. **forecast**: Read relative-day weather. Use daily temperature_2m_max and temperature_2m_min for ranges.
    - tool: open-meteo__weather_forecast
    - needs: request, geocode
    - each: geocode ""
