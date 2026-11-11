@@ -1,6 +1,6 @@
 {
   "id": "news-desk",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "News Desk",
   "description": "Publisher feeds grouped into stories and ranked by freshness, coverage and your follows: top stories, sections, full coverage, followed topics, saved articles and feed health.",
   "author": "Vakyartha",
