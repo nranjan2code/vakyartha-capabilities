@@ -28,7 +28,7 @@ This connector uses the free public API and supports no paid key or subscription
    - kind: ask
    - needs: scope
    - when: {"step":"scope","pointer":"/place","oneOf":["missing"]}
-3. **request**: Extract requested places, including the answer if asked, forecast days and mode. Tomorrow needs at least two days; seven days means seven. Use forecast for current or future weather, archive for past dates, air for air quality, marine for waves, and other for specialist questions.
+3. **request**: Extract places (including a clarification), day count and mode. Tomorrow needs two days. Use forecast for current/future weather, archive for past dates, air for air quality, marine for waves, and other for specialist reads.
    - needs: place
    - output: {"type":"object","properties":{"places":{"type":"array","items":{"type":"string"},"minItems":1,"maxItems":8},"days":{"type":"integer","minimum":1,"maximum":16},"mode":{"enum":["forecast","archive","air","marine","other"]}},"required":["places","days","mode"],"additionalProperties":false}
 4. **geocode**: Resolve each place. Retain the returned full coordinates, name, admin1 and country. The host supplies the place name. If results are ambiguous, ask which place before using its coordinates.
