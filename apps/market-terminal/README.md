@@ -67,6 +67,7 @@ Daily stock OHLCV lives in the app's DuckDB table `prices`; quotes, indices, bre
 - **Tool** `app-market-terminal__get_instrument`: one symbol's saved quote, DuckDB analytics, 52-week range, benchmark comparison, corporate actions, volume profile and news.
 - **Feed** `market_feed`: the stored quotes, for apps with an `app-feed` trigger.
 - **Skill** `nse-market-analyst`: published to the skill catalog for the assistant.
+- **Skill** `nse-market-report`: a market report as one page built from the saved snapshot, published to the skill catalog for the assistant.
 - Reads `app-news-desk__get_latest_articles` for an instrument's news; a missing News Desk is a ledger entry, not a market failure.
 - In-process only; no network listener. Governed by the policies in Settings → Integrations.
 

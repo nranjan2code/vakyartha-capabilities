@@ -248,6 +248,11 @@
         "name": "nse-market-analyst",
         "description": "Analyze Indian market indices, price movements, and market breadth from NSE Market Terminal",
         "path": "skills/nse-market-analyst/SKILL.md"
+      },
+      {
+        "name": "nse-market-report",
+        "description": "Show the Indian market now as one page from NSE Market Terminal's saved snapshot",
+        "path": "skills/nse-market-report/SKILL.md"
       }
     ]
   },
