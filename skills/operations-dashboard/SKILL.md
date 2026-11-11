@@ -4,16 +4,25 @@ description: Create a service or delivery dashboard for backlog, throughput, agi
 
 compatibility: Works with issue trackers, ticketing systems, delivery logs, and canvas projection.
 metadata:
-  requires: "skill:interactive-ui skill:surface-design"
-  loads-with: "interactive-ui"
-  requires-canvas: "true"
+
   category: reports
   author: Vakyartha
   version: "1.0.0"
-allowed-tools: vak_render vak_update vak_submit use_skill
+allowed-tools: use_skill
 ---
 
 # Operations & Service Delivery Dashboards
+
+## Steps
+
+1. **scope**: Identify the operational population, reporting period, units, queue definitions and available supplied records.
+2. **analyze**: Calculate supported throughput, backlog, cycle time and SLA measures with explicit denominators and missingness. Distinguish stocks from flows.
+   - needs: scope
+3. **check**: Verify arithmetic, source coverage and interpretation. Do not claim an operational action, cross-filter or source refresh without its receipt.
+   - needs: analyze
+
+## Domain guidance
+
 
 Operational methodology for monitoring workload queues, incident response, team throughput, ticket aging, SLA compliance and service bottlenecks.
 
@@ -21,8 +30,6 @@ Operational methodology for monitoring workload queues, incident response, team 
 
 - **Purpose**: Use this skill when asked to evaluate team delivery performance, track customer support ticket queues, monitor incident resolution SLAs, or audit operational backlogs.
 - **Skill chaining**:
-  - Load `dashboard` and `interactive-ui` for metric strips, queue mappings and interactive filter controls.
-  - The required `surface-design` skill governs visual layout, bar/line charts and spoken audio briefings.
   - Load `task-tracker` when the primary focus is managing individual tasks and assignees rather than aggregate operational metrics.
 
 ## Operational Metrics & Throughput Rules

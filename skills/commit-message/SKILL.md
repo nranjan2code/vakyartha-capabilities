@@ -4,12 +4,24 @@ description: Author standard Git commit messages, pull request descriptions, and
 
 compatibility: Compatible with Git version control systems, GitHub, GitLab, and changelog tools.
 metadata:
+  output: text
   category: writing
   author: Vakyartha
   version: "1.0.0"
 ---
 
 # Git Commit Messages & Pull Request Descriptions
+
+## Steps
+
+1. **inspect**: Read the supplied diff and change evidence. Identify the concrete behavior change and relevant validation; do not infer unseen changes.
+2. **draft**: Write the requested commit message or PR description using the observed final change, repository conventions and actual checks.
+   - needs: inspect
+3. **check**: Verify the title and body make no unsupported scope, testing or issue-closure claims. Keep the requested format and length.
+   - needs: draft
+
+## Domain guidance
+
 
 Guidance for writing clear, concise, conventional Git commit messages and comprehensive pull request descriptions grounded strictly in actual changes.
 

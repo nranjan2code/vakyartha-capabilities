@@ -9,6 +9,23 @@ allowed-tools: use_skill read_skill_file app-document-desk__search_documents app
 
 # Answer from the person's documents
 
+## Steps
+
+1. **search**: Search the library using the person's terms, or list documents for metadata/count/latest questions. Preserve exact names and matching scope.
+   - tool: app-document-desk__search_documents app-document-desk__list_documents
+   - effect: read
+   - rounds: 2
+2. **read**: For content questions, find the relevant outline and read the actual passage, continuing only while the answer may continue. Otherwise SKIP.
+   - tool: app-document-desk__get_document_outline app-document-desk__read_document
+   - needs: search
+   - optional: true
+   - effect: read
+   - rounds: 4
+3. **answer**: Answer only from read passages or returned library metadata, citing title and section/page. Say when a document is empty, failed or does not contain the answer.
+   - needs: search, read
+
+## Domain guidance
+
 Use this when the person asks about something in their own files: a clause in a contract, a figure in a report, what a note says, which document mentions a name.
 
 1. Search first. Call search_documents with the person's own key words. Keep names, numbers and exact terms they used. Use mode exact for a precise string (an invoice number, a name) and mode regex only for a real pattern (dates, codes). Put a phrase that must appear in "quotes"; put -word before a word to leave out documents that contain it. When the question names one document ("my lease"), search it alone with document once you know its id; narrow by category (the person's own, such as Home or Health), kind (pdf, word, sheet...) or tags when that helps.

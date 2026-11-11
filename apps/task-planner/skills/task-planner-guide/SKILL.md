@@ -8,6 +8,16 @@ metadata:
 
 # Task planning guide
 
+## Steps
+
+1. **extract**: Identify the person's tasks, fixed commitments and explicitly supplied deadlines, priorities, durations and recurrence. Do not invent missing commitments.
+2. **plan**: Prepare feasible next actions or a day plan with realistic transition time. Keep proposals distinct from saved tasks and calendar bookings.
+   - needs: extract
+3. **guide**: Explain the relevant Task Planner controls accurately. The assistant cannot save a task or create external calendar events through this guide.
+   - needs: plan
+
+## Domain guidance
+
 Use this only when the person asks to organize personal work or make a realistic plan. Task Planner itself works without this skill, a model call, integrations or network access.
 
 1. Preserve the person's intent. Split a task only when the next actions are meaningfully distinct; keep a short task title verb-led and put context in notes. Dictated words arrive as text in the selected field; do not claim an audio recording or transcript file was saved.

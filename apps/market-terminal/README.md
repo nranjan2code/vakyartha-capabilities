@@ -67,7 +67,6 @@ Daily stock OHLCV lives in the app's DuckDB table `prices`; quotes, indices, bre
 - **Tool** `app-market-terminal__get_instrument`: one symbol's saved quote, DuckDB analytics, 52-week range, benchmark comparison, corporate actions, volume profile and news.
 - **Feed** `market_feed`: the stored quotes, for apps with an `app-feed` trigger.
 - **Skill** `nse-market-analyst`: published to the skill catalog for the assistant.
-- **Skill** `nse-market-report`: a market report as one page built from the saved snapshot, published to the skill catalog for the assistant.
 - Reads `app-news-desk__get_latest_articles` for an instrument's news; a missing News Desk is a ledger entry, not a market failure.
 - In-process only; no network listener. Governed by the policies in Settings → Integrations.
 
@@ -128,4 +127,5 @@ Removing a holding also clears a draft for that symbol; drafts for other holding
 
 Overview and Movers share action buttons for the four stock-mover segments. Clicking a choice calls `show_movers` with its validated segment and reads that segment in the same action; no separate Show movers submission remains. Both chart projections and the programme rebuild from the accepted source result. Failed reads retain accurately labelled earlier observations and the existing failure message. Access rules are unchanged. The earlier 3.4.7/3.4.8 draft-and-submit guidance is superseded for these two movers selectors. Other multi-field forms retain their existing submission behavior.
 
-The market-report procedure ends its saved-summary read as soon as `indices` is returned, then builds its page from that result. The host retains the read call for Refresh; no closing generation is needed for the read. The analyst skill keeps specific-question guidance; app control behavior is owned by these app documents.
+
+The app exports one market assistant skill for tool selection and the meaning of returned values. It declares no rendering steps or presentation dependency; Vakyartha owns presentation for every domain.

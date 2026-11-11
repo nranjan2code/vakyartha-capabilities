@@ -7,10 +7,21 @@ metadata:
   category: decisions
   author: Vakyartha
   version: "1.0.0"
-allowed-tools: vak_render vak_update vak_submit use_skill
+allowed-tools: use_skill
 ---
 
 # Structured Tradeoff & Options Comparison
+
+## Steps
+
+1. **criteria**: Identify the options, required constraints, evidence dates and decision criteria. Distinguish supplied weights from assumptions.
+2. **compare**: Compare each option against the same criteria using the supplied evidence. Retain unknowns and distinguish measured facts from estimates.
+   - needs: criteria
+3. **conclude**: Check any weighted arithmetic and explain the recommendation and tradeoffs. Identify evidence that could change it; do not invent current prices or capabilities.
+   - needs: compare
+
+## Domain guidance
+
 
 Systematic evaluation framework for comparing products, frameworks, architecture choices, vendors and competing strategic approaches.
 
@@ -19,8 +30,6 @@ Systematic evaluation framework for comparing products, frameworks, architecture
 - **Purpose**: Use this skill when asked to evaluate alternatives, decide between competing options, weigh tradeoffs, or prepare an objective recommendation.
 - **Skill chaining**:
   - Load `decision-eval` (or `decision-chain` for dependent questions) to score the options against the user's constraints with `decision_score` on the local decision model.
-  - Load `interactive-ui` when rendering an interactive comparison matrix, weighted scoring model, or bound criteria sliders.
-  - The required `surface-design` skill governs table layout, comparison cards, typography and spoken harmony.
   - Load `research-brief` if comprehensive background investigation across external sources is needed before comparison.
 
 ## Comparison Methodology

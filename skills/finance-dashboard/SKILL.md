@@ -4,16 +4,25 @@ description: Build a business income, expense, cash-flow or budget-versus-actual
 
 compatibility: Works with general ledger exports, financial spreadsheets, and canvas projection.
 metadata:
-  requires: "skill:interactive-ui skill:surface-design"
-  loads-with: "interactive-ui"
-  requires-canvas: "true"
+
   category: reports
   author: Vakyartha
   version: "1.0.0"
-allowed-tools: vak_render vak_update vak_submit use_skill
+allowed-tools: use_skill
 ---
 
 # Financial Performance & Variance Dashboards
+
+## Steps
+
+1. **basis**: Identify periods, currency, accounting basis, entity and supplied ledgers or statements. Distinguish cash flow, balances and profit.
+2. **reconcile**: Reconcile the supplied figures and calculate justified variance with explicit sign and denominator. Never mix incompatible periods or currencies.
+   - needs: basis
+3. **interpret**: Check arithmetic and explain the financial changes and evidence limits. Do not claim compliance, export or external changes without receipts.
+   - needs: reconcile
+
+## Domain guidance
+
 
 Rigorous financial analysis methodology for constructing income statements, expense breakdowns, cash-flow overviews and budget-versus-actual variance dashboards.
 
@@ -21,8 +30,6 @@ Rigorous financial analysis methodology for constructing income statements, expe
 
 - **Purpose**: Use this skill when asked to analyze business financial statements, monitor operational budgets, evaluate department spending, or prepare executive financial reviews.
 - **Skill chaining**:
-  - Load `dashboard` and `interactive-ui` for multi-metric financial displays, variance mappings and filter forms.
-  - The required `surface-design` skill governs financial table formatting, chart types and spoken summaries.
   - For personal budgeting, household savings or vacation spending, use `budget-helper` instead.
 
 ## Accounting Invariants & Basis Discipline

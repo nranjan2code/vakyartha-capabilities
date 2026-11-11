@@ -4,14 +4,25 @@ description: Prepare a daily, weekly or monthly status/performance report from s
 
 compatibility: Works with text chat, markdown reports, and interactive canvas surfaces.
 metadata:
-  requires: "skill:interactive-ui skill:surface-design"
+
   category: reports
   author: Vakyartha
   version: "1.0.0"
-allowed-tools: vak_render vak_update vak_submit use_skill
+allowed-tools: use_skill
 ---
 
 # Periodic Status & Performance Reporting
+
+## Steps
+
+1. **period**: Resolve the exact reporting period, timezone, comparison period and supplied evidence. Keep incomplete periods distinct.
+2. **analyze**: Compare like-for-like measures, retain source records and calculate changes using stated denominators. Missing baseline data stays missing.
+   - needs: period
+3. **synthesize**: Explain the significant changes, limitations and supported next actions. Do not claim recurring delivery or publication has been configured.
+   - needs: analyze
+
+## Domain guidance
+
 
 Framework for drafting structured daily, weekly, monthly and quarterly status reports, progress reviews and operational retrospectives.
 
@@ -19,8 +30,6 @@ Framework for drafting structured daily, weekly, monthly and quarterly status re
 
 - **Purpose**: Use this skill when generating recurring performance reports, sprint recaps, management briefings or team updates from supplied records or notes.
 - **Skill chaining**:
-  - Load `dashboard` and `interactive-ui` if an interactive visual canvas with charts and KPI strips is requested.
-  - The required `surface-design` principles govern visual and spoken layout when a canvas is rendered.
   - For simple text or email summaries, provide clean Markdown without forcing unnecessary UI surfaces.
 
 ## Period Definition & Boundary Discipline

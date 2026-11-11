@@ -102,7 +102,7 @@
     },
     "toolPurposes": {
       "nse-cmmkt__cm_get_live_indices": {
-        "reason": "Refresh the market overview’s exchange index levels.",
+        "reason": "Refresh the market overview\u2019s exchange index levels.",
         "optional": false
       },
       "nse-cmmkt__cm_get_stock_quote": {
@@ -114,7 +114,7 @@
         "optional": false
       },
       "nse__get_market_mood": {
-        "reason": "Refresh the exchange’s market breadth and descriptive statistics.",
+        "reason": "Refresh the exchange\u2019s market breadth and descriptive statistics.",
         "optional": false
       },
       "nse__get_bulk_quote": {
@@ -122,7 +122,7 @@
         "optional": false
       },
       "nse__get_stock_history": {
-        "reason": "Load a selected instrument’s historical prices for analysis.",
+        "reason": "Load a selected instrument\u2019s historical prices for analysis.",
         "optional": true
       },
       "nse__search_symbols": {
@@ -130,7 +130,7 @@
         "optional": true
       },
       "nse__get_52_week_high_low": {
-        "reason": "Read the selected instrument’s published 52-week range.",
+        "reason": "Read the selected instrument\u2019s published 52-week range.",
         "optional": true
       },
       "nse__get_stock_vs_index": {
@@ -150,7 +150,7 @@
         "optional": true
       },
       "nse__get_index_movers": {
-        "reason": "Inspect the selected index’s contributors.",
+        "reason": "Inspect the selected index\u2019s contributors.",
         "optional": true
       },
       "nse__get_index_performance": {
@@ -158,11 +158,11 @@
         "optional": true
       },
       "nse__get_index_history": {
-        "reason": "Chart the selected index’s source price history.",
+        "reason": "Chart the selected index\u2019s source price history.",
         "optional": true
       },
       "nse__get_index_valuation": {
-        "reason": "Inspect the selected index’s published valuation history.",
+        "reason": "Inspect the selected index\u2019s published valuation history.",
         "optional": true
       },
       "nse__compare_indices": {
@@ -248,11 +248,6 @@
         "name": "nse-market-analyst",
         "description": "Analyze Indian market indices, price movements, and market breadth from NSE Market Terminal",
         "path": "skills/nse-market-analyst/SKILL.md"
-      },
-      {
-        "name": "nse-market-report",
-        "description": "Show the Indian market now as one page from NSE Market Terminal's saved snapshot",
-        "path": "skills/nse-market-report/SKILL.md"
       }
     ]
   },

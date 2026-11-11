@@ -33,3 +33,5 @@ Field/action dependency map:
 | Create/select task, append attempt, accept result | All four views, including speech and export |
 
 Local table search, sort and paging remain projector interactions without a model, source read or package handler. No independent draft performs an external read or SQL.
+
+The packaged assistant skill uses checked domain steps for its declared tools and interpretation. Vakyartha supplies the shared presentation procedure over retained results; this skill does not author report layout. Text requests remain text, and proposal writes still require the existing permissions and personal review.

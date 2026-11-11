@@ -4,12 +4,22 @@ description: Summarize documents, articles, meeting notes or discussions into cl
 
 compatibility: Universal summarization across text chat and structured document views.
 metadata:
+  output: text
   category: writing
   author: Vakyartha
   version: "1.0.0"
 ---
 
 # Text & Document Summarization
+
+## Steps
+
+1. **extract**: Read the supplied material and identify the central claim, supporting evidence, decisions and material caveats.
+2. **summarize**: Write the requested length and format using only the source. Keep attribution, uncertainty and disagreement; do not invent missing details.
+   - needs: extract
+
+## Domain guidance
+
 
 Systematic approach to condensing complex documents, transcripts, research papers and discussions into high-fidelity summaries.
 

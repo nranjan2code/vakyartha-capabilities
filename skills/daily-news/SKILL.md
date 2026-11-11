@@ -9,10 +9,31 @@ metadata:
   category: live-data
   author: Vakyartha
   version: "1.0.0"
-allowed-tools: read_skill_file use_skill vak_render vak_update vak_submit app-news-desk__get_latest_articles app-news-desk__get_bulletin app-news-desk__get_story_coverage
+allowed-tools: read_skill_file use_skill app-news-desk__get_latest_articles app-news-desk__get_bulletin app-news-desk__get_story_coverage brave-search__brave_web_search web__fetch_page
 ---
 
 # Daily News Digest & Headline Reviews
+
+## Steps
+
+1. **scope**: Identify the requested date, region and topics; retain event, publication and retrieval times separately.
+2. **read**: Read saved stories, the requested bulletin or story coverage from News Desk. Use the query matching the request and preserve publisher links and timestamps.
+   - tool: app-news-desk__get_latest_articles app-news-desk__get_bulletin app-news-desk__get_story_coverage
+   - needs: scope
+   - optional: true
+   - effect: read
+   - rounds: 2
+3. **web**: Only for requested reporting missing from saved stories, search accessible reporting or read supplied/source URLs. Otherwise SKIP. Do not invent headlines.
+   - tool: brave-search__brave_web_search web__fetch_page
+   - needs: scope, read
+   - optional: true
+   - effect: read
+   - rounds: 3
+4. **synthesize**: Cluster reports about the same event, identify conflicts and separate confirmed facts, announcements, opinion and rumor. Attribute each story and state retrieval gaps.
+   - needs: read, web
+
+## Domain guidance
+
 
 Methodology for compiling accurate, sourced daily news digests, executive media briefings and topic-focused headline roundups.
 
@@ -21,8 +42,6 @@ Methodology for compiling accurate, sourced daily news digests, executive media 
 - **Purpose**: Use this skill when asked to summarize today's news, compile a morning briefing on a specific industry, or produce an interactive headline dashboard.
 - **Skill chaining**:
   - Load `research-brief` when a specific developing news story requires in-depth multi-source investigation and evidence analysis.
-  - Load `interactive-ui` when an interactive news canvas with topic tabs or source filters is requested.
-  - The required `surface-design` skill governs card layout, source typography and spoken audio briefings.
 
 ## News Gathering & Source Discipline
 

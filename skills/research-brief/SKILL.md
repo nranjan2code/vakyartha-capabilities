@@ -9,10 +9,25 @@ metadata:
   category: writing
   author: Vakyartha
   version: "1.0.0"
-allowed-tools: vak_render vak_update vak_submit use_skill
+allowed-tools: use_skill brave-search__brave_web_search web__fetch_page
 ---
 
 # Sourced Research Briefs
+
+## Steps
+
+1. **scope**: Identify the research question, timeframe, needed evidence and supplied source URLs. Keep factual scope separate from assumptions.
+2. **sources**: Search the question or read supplied and discovered source URLs. Prefer primary evidence; retain actual source links, publication dates and claim passages.
+   - tool: brave-search__brave_web_search web__fetch_page
+   - needs: scope
+   - optional: true
+   - effect: read
+   - rounds: 4
+3. **synthesize**: Answer from the source passages actually read. Attribute factual claims, explain conflicting evidence and distinguish event, publication and retrieval dates. State what could not be verified.
+   - needs: scope, sources
+
+## Domain guidance
+
 
 Framework for synthesizing complex technical, market or academic questions into rigorous, evidence-backed research briefs with explicit source attribution.
 
@@ -20,8 +35,6 @@ Framework for synthesizing complex technical, market or academic questions into 
 
 - **Purpose**: Use this skill when asked to investigate a topic, synthesize market or technical information, compare competing research findings, or compile an evidence brief.
 - **Skill chaining**:
-  - Load `interactive-ui` when structured evidence matrices, comparison tables or editable criteria are needed.
-  - The required `surface-design` principles govern visual layout, data tables and spoken summaries when a canvas is rendered.
   - Load `compare-options` if the research culminates in evaluating specific products, vendors or architectural approaches against defined requirements.
 
 ## Research Methodology & Source Discipline

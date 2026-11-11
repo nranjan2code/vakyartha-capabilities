@@ -4,6 +4,7 @@ description: Compose, explain, and safely execute terminal, shell, and command-l
 
 compatibility: Operates with macOS, Linux, and Windows shells (zsh, bash, sh, PowerShell).
 metadata:
+  output: text
   enhances: "integration:sandbox-execution"
   category: code
   author: Vakyartha
@@ -12,6 +13,20 @@ allowed-tools: run_command
 ---
 
 # Shell & Terminal Commands
+
+## Steps
+
+1. **plan**: Resolve the requested shell, platform, command scope and side effects. For explanation or command-only requests, prepare the command without execution.
+2. **execute**: Only execute when the person requested execution and the scope is established; otherwise SKIP. Use the contained command tool, respect approval and inspect exit status, stdout and stderr.
+   - tool: run_command
+   - needs: plan
+   - optional: true
+   - effect: external
+3. **verify**: Explain the requested command or observed result. Never describe unexecuted commands as successful; retain failure evidence and avoid automatic mutation retries.
+   - needs: plan, execute
+
+## Domain guidance
+
 
 Guidance for authoring, reviewing, explaining and executing command-line operations safely across modern operating systems.
 

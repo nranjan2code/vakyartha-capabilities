@@ -8,6 +8,17 @@ metadata:
 ---
 # News Desk Reader
 
+## Steps
+
+1. **read**: Read saved stories, the requested bulletin or story coverage using the matching query. Retain publisher links, publication times and ranking reasons.
+   - tool: app-news-desk__get_latest_articles app-news-desk__get_bulletin app-news-desk__get_story_coverage
+   - effect: read
+   - rounds: 2
+2. **interpret**: Attribute the returned reporting and distinguish publication time from retrieval and event time. A grouping does not prove agreement. Preserve an explicitly requested bulletin script.
+   - needs: read
+
+## Domain guidance
+
 This skill reads the ranked stories News Desk has gathered from the user's chosen publisher feeds.
 
 ## Procedures & Rules

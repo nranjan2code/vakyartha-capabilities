@@ -7,10 +7,21 @@ metadata:
   category: writing
   author: Vakyartha
   version: "1.0.0"
-allowed-tools: vak_render vak_update vak_submit use_skill
+allowed-tools: use_skill
 ---
 
 # Meeting Minutes & Action Item Extraction
+
+## Steps
+
+1. **extract**: Read the supplied meeting record; separate decisions, action items, questions and background.
+2. **resolve**: Associate only explicitly stated owners, due dates and commitments. Keep unresolved ownership or dates visibly unknown.
+   - needs: extract
+3. **check**: Check every action and decision against the source. Summarize without claiming a task was saved or a message sent.
+   - needs: resolve
+
+## Domain guidance
+
 
 Framework for distilling unstructured meeting notes, transcripts and discussion logs into clear decisions, assigned action items and open questions.
 
@@ -18,8 +29,6 @@ Framework for distilling unstructured meeting notes, transcripts and discussion 
 
 - **Purpose**: Use this skill when asked to extract action items from a meeting, draft meeting minutes, record formal decisions, or prepare post-meeting follow-ups.
 - **Skill chaining**:
-  - Load `interactive-ui` when generating an interactive action register with checkboxes, owner filters and status updates.
-  - The required `surface-design` skill governs table layout, decision cards and spoken summaries.
   - Use `summarize` when the user wants a narrative summary of a document or meeting without an action item focus.
   - Load `task-tracker` when the extracted actions need to be folded into a broader multi-week project backlog.
 

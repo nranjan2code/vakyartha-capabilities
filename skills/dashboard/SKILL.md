@@ -2,20 +2,29 @@
 name: dashboard
 description: Build an operational or enterprise dashboard from supplied records or available governed data tools, with metrics, trends and detail views.
 
-compatibility: Requires interactive-ui and surface-design capabilities for canvas projection.
+compatibility: Uses supplied records and governed domain tools; Vakyartha owns presentation.
 metadata:
-  requires: "skill:interactive-ui skill:surface-design"
-  loads-with: "interactive-ui"
-  requires-canvas: "true"
+
   category: reports
   author: Vakyartha
   version: "1.0.0"
-allowed-tools: vak_render vak_update vak_submit use_skill
+allowed-tools: use_skill
 ---
 
 # Decision-focused dashboards
 
-Use for an overview from supplied records or successful governed reads. Load enabled domain procedures for their metric definitions and interactive-ui for mapped data, criteria and submitted actions. Required surface-design owns composition; no fixed tiers, metric count, chart count or column count is required.
+## Steps
+
+1. **scope**: Identify the decision, reporting window, timezone, population, units and available supplied records. Ask for essential missing data rather than fabricate observations.
+2. **analyze**: Retain complete relevant records and source freshness. Separate source facts, user criteria and checked derived results. Missing periods are missing comparisons.
+   - needs: scope
+3. **check**: Check source values, arithmetic, coverage and requested actions. Explain the central finding and limits. A report does not establish scheduling or an external update.
+   - needs: analyze
+
+## Domain guidance
+
+
+Use for an overview from supplied records or successful governed reads. Load enabled domain procedures for their metric definitions for source access and metric definitions. Vakyartha owns presentation.
 
 Resolve the decision, reporting window, timezone, population, units and source freshness. Separate source facts, editable criteria and checked derived results. Include only measures and views answering the question. Missing prior periods are missing comparisons, not invented baselines. A small summary may be sufficient; retain exact detail records when inspection matters.
 

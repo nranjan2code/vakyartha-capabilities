@@ -4,18 +4,27 @@ description: Design diagrams of any domain on the canvas: flowcharts, system arc
 
 compatibility: Projection diagram component; desktop canvas, channels and spoken projection.
 metadata:
-  requires: "skill:interactive-ui skill:surface-design"
-  loads-with: "interactive-ui"
-  requires-canvas: "true"
+
   category: reports
   author: Vakyartha
   version: "1.0.0"
-allowed-tools: read_skill_file use_skill vak_render vak_update vak_submit
+allowed-tools: read_skill_file use_skill
 ---
 
 # Diagrams
 
-Use for a diagram, flowchart, architecture, sequence, schema, state machine, pipeline, decision tree, org chart or concept map, or when a multi-stage process is clearer as a picture. Required surface-design owns the surrounding layout; load interactive-ui when the diagram sits beside forms or filters. `references/diagram-templates.json` holds one example per kind (flowchart, architecture, pipeline, feedback loop, state machine, entity relationship, sequence, mind map, swimlane); read it with read_skill_file when a starting shape helps.
+## Steps
+
+1. **model**: Extract the supplied entities, relationships, boundaries and event order. Mark assumptions and keep names exact.
+2. **structure**: Choose the diagram archetype that expresses those relationships. Name nodes and label edges with actions, data or conditions; check all edge endpoints.
+   - needs: model
+3. **check**: Check the main path and caveats against the source. Explain what the diagram establishes without adding components or relationships.
+   - needs: structure
+
+## Domain guidance
+
+
+Use for a diagram, flowchart, architecture, sequence, schema, state machine, pipeline, decision tree, org chart or concept map, or when a multi-stage process is clearer as a picture. `references/diagram-templates.json` holds one example per kind (flowchart, architecture, pipeline, feedback loop, state machine, entity relationship, sequence, mind map, swimlane); read it with read_skill_file when a starting shape helps.
 
 ## Pick the archetype
 

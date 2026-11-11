@@ -29,3 +29,5 @@ Up to 40 doctors, 3,000 patients, 20,000 appointments and 300 waiting-list entri
 ## Runs in the sandbox
 
 Clinic Desk runs in the shared sandbox like every app. Its logic is pure and internal: it declares no tools, no database and no network.
+
+The packaged assistant skill uses checked domain steps for its declared tools and interpretation. Vakyartha supplies the shared presentation procedure over retained results; this skill does not author report layout. Text requests remain text, and proposal writes still require the existing permissions and personal review.

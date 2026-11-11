@@ -4,6 +4,7 @@ description: Diagnose error messages, stack traces, test failures, and broken co
 
 compatibility: Universal debugging across language runtimes, compilers, test suites, and operating systems.
 metadata:
+  output: text
   enhances: "integration:sandbox-execution"
   category: code
   author: Vakyartha
@@ -11,6 +12,17 @@ metadata:
 ---
 
 # Error Debugging & Root Cause Analysis
+
+## Steps
+
+1. **reproduce**: Identify the exact error, environment, supplied code and reproduction steps. Separate observed evidence from missing context.
+2. **diagnose**: Trace the earliest failing boundary. Rank plausible causes against the actual error and code; avoid unrelated rewrites.
+   - needs: reproduce
+3. **repair**: Give the smallest supported correction and a focused verification command. Report what was verified and what remains untested.
+   - needs: diagnose
+
+## Domain guidance
+
 
 Systematic methodology for diagnosing software failures, interpreting error traces, isolating root causes and verifying targeted fixes.
 

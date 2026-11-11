@@ -15,3 +15,5 @@ Skill names and descriptions are selected first; their supporting text loads wit
 The skills read returned records only. History volume and the 50-stock universe live in the app's database, and `app-maintainer` must keep its schema check and re-read of lost history when the saved shape changes.
 
 When a capability is added or removed, update this list, `exports.skills` in `app.json` and the skill's `allowed-tools`.
+
+The packaged assistant skill uses checked domain steps for its declared tools and interpretation. Vakyartha supplies the shared presentation procedure over retained results; this skill does not author report layout. Text requests remain text, and proposal writes still require the existing permissions and personal review.

@@ -4,6 +4,7 @@ description: Review, improve, and audit source code for correctness, security vu
 
 compatibility: Language-agnostic code review across TypeScript, Rust, Python, Go, C/C++, Swift, shell, and web technologies.
 metadata:
+  output: text
   enhances: "integration:sandbox-execution"
   category: code
   author: Vakyartha
@@ -11,6 +12,17 @@ metadata:
 ---
 
 # Code Review & Quality Inspection
+
+## Steps
+
+1. **scope**: Identify the supplied code, intended behavior and review boundaries. Separate observed implementation from assumptions.
+2. **review**: Inspect correctness, security, resource use and maintainability in priority order. Identify concrete triggers, locations and evidence for each finding.
+   - needs: scope
+3. **verify**: Check each proposed finding against the code and remove speculation. Give severity, impact, location and a scoped correction; state checks that were not run.
+   - needs: review
+
+## Domain guidance
+
 
 Actionable, evidence-backed code review focusing on correctness, security, performance and software engineering hygiene.
 

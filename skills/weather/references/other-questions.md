@@ -1,4 +1,4 @@
-# Other weather questions and layout choice
+# Other weather questions
 
 ## Other questions
 
@@ -17,17 +17,3 @@
 | Height of a place | `open-meteo__elevation` |
 
 Model-specific forecast tools only when the user names a weather model.
-
-## Layout choice
-
-| The question | Layout | Shows |
-|---|---|---|
-| One place; now, today, tonight or tomorrow; one past date; current air quality | Glance card | In the chat |
-| Three or more days, hours, a date range, an outlook | Forecast report | Canvas |
-| Two or more places | Comparison | Canvas |
-| Several candidate places | Which place? | In the chat |
-
-- Glance card: stats with the numbers themselves. No table, no chart, no records.
-- Reports and comparisons: put the tool's `daily` (or `hourly`) object into surface data **exactly as returned**, and map the table, chart and stats to it with the returned field names. Do not rewrite it into rows.
-- Every surface ends with the caption "Source: Open-Meteo (open-meteo.com)".
-- Text only when the user asks for text. For a trip or day plan, give only the weather that matters to it.

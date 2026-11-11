@@ -2,9 +2,10 @@
 
 ## Unreleased
 
-- Market report reads are checked on returned indices, avoiding a closing generation while retaining the host refresh call. Removed superseded app change notes from the analyst procedure.
+- All 29 catalog skills and 11 app skills declare bounded domain steps. Text-only workflows retain their Text output. Vakyartha provides presentation over retained evidence, including market results. Weather binds resolved coordinates and the requested forecast day count without retyping either.
 
-- Market Terminal adds the `nse-market-report` skill: a market report is one read and then one page built from the returned records, with a control that reads the market again. `nse-market-analyst` answers specific questions in text and no longer describes page layout.
+
+- Market Terminal keeps one tool-use skill, `nse-market-analyst`, with checked reads and domain interpretation. Removed the separate report-rendering skill and superseded app change notes; presentation belongs to Vakyartha across all domains.
 
 - Market Terminal reads each source only when it can have changed: live values through the session and once after the close, end-of-day values once after each evening's publication, the index list weekly. The scheduled and startup refresh make no reads while the market is closed and the closing values are saved; repeating an index study, comparison or ranking with a current result reads nothing; the Refresh button still reads live values. The Sources ledger shows how long each read took.
 - Clinic Desk shows an explicit empty state for visit types when the selected period has no visits.

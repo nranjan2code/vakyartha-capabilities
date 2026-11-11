@@ -4,18 +4,45 @@ description: Answer front-desk questions from the user's own Clinic Desk app (wh
 
 compatibility: Requires the Clinic Desk built-in app with at least one doctor set up. Everything it reads stays on this computer.
 metadata:
-  requires: "skill:interactive-ui"
+
   author: Vakyartha
   part-of: app:clinic-desk
-  loads-with: "interactive-ui"
-  requires-read: "true"
-  requires-values: "true"
-  read-tools: "app-clinic-desk__get_clinic_context app-clinic-desk__find_free_slots app-clinic-desk__get_attention_list app-clinic-desk__get_insights"
-  unavailable-message: "Clinic Desk is unavailable. Open Apps, install or enable Clinic Desk and add a doctor in Setup."
-allowed-tools: read_skill_file use_skill vak_render vak_update vak_submit app-clinic-desk__get_clinic_context app-clinic-desk__find_free_slots app-clinic-desk__get_attention_list app-clinic-desk__get_insights app-clinic-desk__prepare_booking
+
+allowed-tools: read_skill_file use_skill app-clinic-desk__get_clinic_context app-clinic-desk__find_free_slots app-clinic-desk__get_attention_list app-clinic-desk__get_insights app-clinic-desk__prepare_booking
 ---
 
 # Clinic front desk
+
+## Steps
+
+1. **action**: Choose write only when the current request explicitly asks for this app proposal or mutation; otherwise choose read. This decision grants no tool authority.
+   - output: {"type":"object","properties":{"action":{"enum":["read","write"]}},"required":["action"],"additionalProperties":false}
+2. **context**: Read the clinic context for the requested date to resolve actual doctor identities, hours, bookings and current revision.
+   - tool: app-clinic-desk__get_clinic_context
+   - effect: read
+3. **detail**: Read requested free slots, attention items or insights using actual doctor IDs. Read free slots before a booking proposal. Otherwise SKIP.
+   - tool: app-clinic-desk__find_free_slots app-clinic-desk__get_attention_list app-clinic-desk__get_insights
+   - needs: context
+   - optional: true
+   - effect: read
+   - rounds: 3
+4. **revision**: Only before an explicitly requested booking proposal, re-read the clinic context for the current expectedRevision. Otherwise SKIP.
+   - tool: app-clinic-desk__get_clinic_context
+   - needs: context, detail, action
+   - when: {"step":"action","pointer":"/action","oneOf":["write"]}
+   - optional: true
+   - effect: read
+5. **proposal**: Only for the person's resolved booking request, fill the Book form using the supplied patient details and a returned free slot. Otherwise SKIP. It does not book the visit.
+   - tool: app-clinic-desk__prepare_booking
+   - needs: context, detail, revision, action
+   - when: {"step":"action","pointer":"/action","oneOf":["write"]}
+   - optional: true
+   - effect: write
+   - arguments: {"expectedRevision":{"step":"revision","pointer":"/expectedRevision"}}
+6. **interpret**: Explain the returned schedule, rule-based attention reasons and estimate limits without medical advice. A successful proposal only prepares the form for personal review and Book.
+   - needs: context, detail, proposal
+
+## Domain guidance
 
 Answers come only from Clinic Desk. Never state a booking, a free time, a doctor's hours or a risk figure from memory, and never give medical advice, diagnosis or triage: send clinical questions to a doctor.
 
@@ -50,4 +77,4 @@ The attention list and insights are rule-based and explainable: quote each `what
 
 ## Presenting
 
-For a schedule or week view, load `interactive-ui`; build tables and charts only from the returned numbers. For reasons behind the attendance estimate, read `references/attendance-estimate.md` and explain it in plain words next to the figure.
+For reasons behind the attendance estimate, read `references/attendance-estimate.md` and explain it in plain words next to the figure.

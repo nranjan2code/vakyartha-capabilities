@@ -1,0 +1,5 @@
+## Exercise relevance is a separate quality check
+
+An optional share experiment is only appropriate when the stated lesson objective teaches a proportional part relative to a whole. Do not add it to unrelated lessons or copy a sample experiment across a course. A valid chart is not evidence of relevance. Omit the lab when its purpose cannot be explained from the objective. During curation, inspect each optional experiment against the actual lesson; the editor can remove it explicitly without rewriting the lesson text. The learner sees optional experiments under Explore, separate from reading and Practice.
+
+Learn is paced as Understand → Example → Try it, using explicit ordinary app actions and persisted readPart. Only the selected reading block is emitted; all other lesson content remains canonical and available through its step. Opening another lesson starts at Understand. Course description is a collapsed About panel. This is presentation/navigation, not an automatic rewrite or learning-completion claim. The shared Listen/Watch controls still narrate the complete lesson.

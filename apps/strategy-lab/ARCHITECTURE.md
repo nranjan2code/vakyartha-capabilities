@@ -25,3 +25,5 @@ Brokered tools only, no network listener, no broker or credentials. Each run mak
 ## Extension points
 
 A new rule is a template in `engine.ts` (`prepare()` signals and `step()` labels) plus its parameters and labels. A chart, table or interaction the views cannot express belongs in Projection, not here. Forecast ranges for position sizing would arrive through a declared tool, never a bundled model.
+
+The packaged assistant skill uses checked domain steps for its declared tools and interpretation. Vakyartha supplies the shared presentation procedure over retained results; this skill does not author report layout. Text requests remain text, and proposal writes still require the existing permissions and personal review.

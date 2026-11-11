@@ -7,10 +7,21 @@ metadata:
   category: writing
   author: Vakyartha
   version: "1.0.0"
-allowed-tools: vak_render vak_update vak_submit use_skill
+allowed-tools: use_skill
 ---
 
 # Voice Notes & Speech Distillation
+
+## Steps
+
+1. **extract**: Read the supplied transcript; remove disfluencies without changing meaning. Identify takeaways, decisions, action items and open questions.
+2. **organize**: Group related ideas and retain explicit owners and dates. Mark uncertainty and unclear speech rather than completing it from guesses.
+   - needs: extract
+3. **check**: Check the synthesis against the transcript and requested form. Do not claim tasks were created or messages sent.
+   - needs: organize
+
+## Domain guidance
+
 
 Framework for transforming raw, rambling voice dictations, audio transcripts, and stream-of-consciousness brainstorms into polished, structured notes, decision logs, and actionable checklists.
 
@@ -18,8 +29,6 @@ Framework for transforming raw, rambling voice dictations, audio transcripts, an
 
 - **Purpose**: Use this skill when the user dictates or provides a spoken brain dump, asks to organize meeting thoughts, or requests a structured note from voice input. For notes they want to keep and revisit, point them to Apps → Voice Desk, which stores notes and action items locally; you do not operate that app.
 - **Skill chaining**:
-  - Load `interactive-ui` when generating an interactive checklist with live checkboxes, owner filters, or note editing forms.
-  - The required `surface-design` skill governs 3-tier liquid layouts, metric strips, container query clamping, and spoken audio summaries.
   - Load `meeting-actions` when processing multi-participant discussions with formal resolutions, motions, or consensus points.
   - Load `task-tracker` when extracted action items need to be merged into a multi-week team backlog or sprint roadmap.
   - Load `write-email` or `summarize` when the user wants an executive memo or email draft derived from their voice notes.
@@ -42,7 +51,6 @@ Apply appropriate structural formatting based on spoken cues:
 - **Paragraph Separation**: Format distinct topics or conversational shifts into clean, readable paragraphs with double spacing.
 - **Bullet & Numbered Lists**: Automatically transform spoken enumerations, sequences of steps, or lists of items (*"first... second..."*, *"a few things: X, Y, Z"*) into standard markdown bullets (`- `) or ordered numbers (`1. `).
 - **Data & Comparison Tables**: When the speaker describes structured attributes, metrics, or entities (e.g. server specs, comparative prices, dates, team allocations), format them into clean markdown tables or Projection `table` components rather than run-on prose.
-- **Interactive Task Registers**: Structure deliverable items with interactive checkboxes bound to canonical state pointers via `interactive-ui`.
 
 ## Core Taxonomy
 
@@ -66,6 +74,6 @@ Structure voice notes into clean, distinct sections:
 
 ## Dual Spoken & Visual Projection
 
-- **Visual Surface**: Lead with the synthesis, then takeaways, decisions and an action checklist. No metric strips or decorative cards for a short note; follow `surface-design` density rules.
+- **Visual Surface**: Lead with the synthesis, then takeaways, decisions and an action checklist. No metric strips or decorative cards for a short note; retain the transcript's meaning.
 - **Spoken Summary**: Provide a concise 1-sentence audible briefing via TTS (*"Saved note on 'Q4 Strategy' with 2 action items assigned to you."*).
 - **Integrity Guarantee**: Never invent deadlines, assignees, or factual claims not present in the speaker's audio.

@@ -4,13 +4,25 @@ description: Author, structure, and polish long-form articles, news analyses, in
 
 compatibility: Works across text chat, long-form canvas surfaces, media attachments, and voice projection.
 metadata:
+  output: text
   category: writing
   author: Vakyartha
   version: "1.0.0"
-allowed-tools: read_skill_file use_skill vak_render vak_update vak_submit
+allowed-tools: read_skill_file use_skill
 ---
 
 # Long-Form Article & Publication Authoring
+
+## Steps
+
+1. **brief**: Identify the requested topic, audience, purpose, length, tone and supplied source material.
+2. **draft**: Draft the article with a clear argument, supporting evidence and appropriate structure. Distinguish supplied facts from original interpretation.
+   - needs: brief
+3. **check**: Check factual claims, source attribution, coherence and requested style. State unsupported changing claims rather than inventing citations or a research receipt.
+   - needs: draft
+
+## Domain guidance
+
 
 Comprehensive, domain-neutral methodology for drafting, structuring, and polishing publication-grade articles, essays, investigative reports, technical guides, whitepapers, and digital features on the Canvas.
 
@@ -18,8 +30,6 @@ Comprehensive, domain-neutral methodology for drafting, structuring, and polishi
 
 - **Purpose**: Use this skill when asked to write, draft, adapt, or structure an article, analysis, long-form essay, opinion piece, whitepaper, guide, newsletter post, or feature story.
 - **Skill chaining**:
-  - The required `surface-design` skill governs typography hierarchy, responsive container clamping (`maxWidth: "md"` or `"lg"`), card structure, and dual visual/spoken presentation.
-  - Load `interactive-ui` via `use_skill` when the article includes interactive controls: section tabs (`tabs`), filterable comparison tables (`table`), or feedback buttons.
   - Load `research-brief` via `use_skill` when investigating complex topics, sourcing literature, or building an evidence matrix.
   - Load `daily-news` via `use_skill` when composing news-driven analyses, daily roundups, or timely event explainers.
   - Load `compare-options` via `use_skill` when authoring comparative reviews, product evaluations, or multi-option analyses.

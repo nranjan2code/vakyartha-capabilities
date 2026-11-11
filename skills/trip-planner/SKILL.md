@@ -4,15 +4,26 @@ description: Use when the user plans a trip, holiday, outing or itinerary.
 
 compatibility: Works with text chat, itinerary tables, travel budgets, and interactive trip canvases.
 metadata:
-  requires: "skill:interactive-ui"
+
   category: everyday
   author: Vakyartha
   version: "1.0.0"
-  loads-with: "interactive-ui"
-allowed-tools: vak_render vak_update vak_submit use_skill
+
+allowed-tools: use_skill
 ---
 
 # Trip & Travel Itinerary Planning
+
+## Steps
+
+1. **constraints**: Identify dates, destinations, travelers, budget, mobility and supplied booking constraints. Mark essential missing information.
+2. **plan**: Build a feasible itinerary with explicit travel and rest time. Treat unverified prices, opening hours and availability as unknown.
+   - needs: constraints
+3. **check**: Check conflicts, geographic feasibility and budget arithmetic. Do not claim current availability, safety, visa eligibility or bookings from memory.
+   - needs: plan
+
+## Domain guidance
+
 
 Methodology for designing practical, well-paced travel itineraries, vacation schedules and trip logistics.
 
@@ -20,8 +31,6 @@ Methodology for designing practical, well-paced travel itineraries, vacation sch
 
 - **Purpose**: Use this skill when asked to plan a vacation, design a city break itinerary, organize day trips, or coordinate travel logistics.
 - **Skill chaining**:
-  - Present the itinerary as an interactive canvas: `interactive-ui` loads with this skill. Render a day-by-day plan the user can edit (days, times, places, costs), with a short text summary. Answer in plain text only when the user asks for text or a single quick fact.
-  - The required `surface-design` skill governs schedule tables, attraction cards, map/location layouts and spoken briefings.
   - Load `budget-helper` when the user requires detailed travel expense tracking, cost category allocation and currency conversions.
 
 ## Travel Planning Methodology

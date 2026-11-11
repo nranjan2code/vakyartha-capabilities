@@ -23,3 +23,5 @@ Document records and their Markdown live in this app's database (up to 512 MB). 
 - Kinds: PDF; Word (.docx), OpenDocument text (.odt) and rich text (.rtf); Excel (.xlsx) and OpenDocument sheets (.ods), CSV and TSV; PowerPoint (.pptx) and OpenDocument slides (.odp), one section per slide; EPUB books; saved emails (.eml), with sender, date and attachment names; Markdown, web pages, JSON and text. Older binary formats (.doc, .xls, .ppt) and images are not read. Up to 4 MB of text per document, 2,000 spreadsheet rows, 5,000 files across shared folders, 8 shared folders.
 - A check reads up to about 100 changed files; more wait for the next check, and Sources says how many.
 - The Documents list shows the 1,000 most recent documents; search covers all of them.
+
+The packaged assistant skill uses checked domain steps for its declared tools and interpretation. Vakyartha supplies the shared presentation procedure over retained results; this skill does not author report layout. Text requests remain text, and proposal writes still require the existing permissions and personal review.

@@ -4,19 +4,25 @@ description: Read official Reserve Bank of India rates, CRR, SLR, rupee referenc
 
 compatibility: Requires the RBI Desk built-in app, refreshed at least once (Web pages integration with fetch_page set to Allow).
 metadata:
-  requires: "skill:interactive-ui"
+
   author: Vakyartha
   part-of: app:rbi-desk
-  loads-with: "interactive-ui"
-  requires-read: "true"
-  requires-canvas: "true"
-  requires-citations: "true"
-  requires-values: "true"
-  unavailable-message: "RBI Desk is unavailable. Open Apps, install or enable RBI Desk, then Refresh."
-allowed-tools: read_skill_file use_skill vak_render vak_update vak_submit app-rbi-desk__get_rbi_briefing app-rbi-desk__get_rbi_rates app-rbi-desk__get_rate_history app-rbi-desk__get_rbi_updates app-rbi-desk__get_forex_reserves app-rbi-desk__find_master_direction
+
+allowed-tools: read_skill_file use_skill app-rbi-desk__get_rbi_briefing app-rbi-desk__get_rbi_rates app-rbi-desk__get_rate_history app-rbi-desk__get_rbi_updates app-rbi-desk__get_forex_reserves app-rbi-desk__find_master_direction
 ---
 
 # RBI rates and notices
+
+## Steps
+
+1. **read**: Read the query matching the requested rates, history, reserves, notices, directions or spoken briefing. Preserve exact values, dateBasis, sourceUrl and coverageNote.
+   - tool: app-rbi-desk__get_rbi_rates app-rbi-desk__get_rate_history app-rbi-desk__get_forex_reserves app-rbi-desk__get_rbi_updates app-rbi-desk__find_master_direction app-rbi-desk__get_rbi_briefing
+   - effect: read
+   - rounds: 3
+2. **interpret**: Answer only from returned RBI evidence. Keep read-on, as-on and week-ending dates distinct, retain stale/coverage limits and do not infer pre-tracking changes or legal meaning from directory titles.
+   - needs: read
+
+## Domain guidance
 
 Answers come only from RBI Desk, which reads rbi.org.in. Never state an RBI rate from memory. RBI Desk does not read RBI speeches or publications; say so if asked.
 
@@ -41,8 +47,6 @@ Answers come only from RBI Desk, which reads rbi.org.in. Never state an RBI rate
 6. For "explain simply", read `references/rates-explained.md` and use its fixed explanation next to the current value.
 7. Reserves: quote total, FCA, gold, SDRs and IMF position from the same returned week, with the RBI source link and published weekly changes. Do not infer missing past weeks. Directory results are titles, dates and links, not the full directions or a legal interpretation.
 
-## Presentation
+## Source interpretation
 
-Show rates on a canvas with `interactive-ui`: the asked rate in a metric strip with its source and date; add a table for the full panel when asked. History uses the returned `days`, with change points or the explicit tracking limit. Reserves use one component table with units and week ending. Updates and directions use linked titles and dates. The spoken summary leads with the answer and its date. Answer in plain text when the user asks for a quick fact in text.
-
-After the data tool returns, call the offered surface-authoring tool to publish the result before finishing. A single rate still gets a stat plus a text node containing its date and RBI link. The final chat sentence accompanies that canvas. Only an explicit text-only request or unavailable data skips this step.
+History uses the returned days and explicit tracking limits. Keep reserve components in their returned units and week ending. Updates and directions retain actual titles, dates and source links. The host owns presentation.

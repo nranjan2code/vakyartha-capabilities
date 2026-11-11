@@ -29,3 +29,5 @@ Surfaces: **today** (Schedule), **book**, **patients**, **doctors**, **insights*
 - **Time.** All dates are `YYYY-MM-DD` and times `HH:MM` on the clinic's clock. The only clock read is `context.now()`.
 - **Host actions.** `file.save` (CSV) and the header listen are declared, never performed here.
 - **Interaction.** The app keeps one retained instance; local paging and search keep long patient lists responsive. Wide and narrow WebKit checks cover the schedule (day list, week and month, and its tabs), booking, walk-in, patients (add, open) and setup, including four doctors switching without placeholder rows. Doctor choices are chips, not dropdowns, so there is no empty "Choose…" entry to mis-pick.
+
+The packaged assistant skill uses checked domain steps for its declared tools and interpretation. Vakyartha supplies the shared presentation procedure over retained results; this skill does not author report layout. Text requests remain text, and proposal writes still require the existing permissions and personal review.

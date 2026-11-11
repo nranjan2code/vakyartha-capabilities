@@ -16,3 +16,5 @@
 2. Run `node --test tests/document-desk.test.ts` in the catalog and the app's checks in Vakyartha.
 3. Regenerate `surface.json` from `surfaceFile()` and keep it equal.
 4. Update README, SKILLS, ARCHITECTURE and the reader skill in the same change.
+
+The packaged assistant skill uses checked domain steps for its declared tools and interpretation. Vakyartha supplies the shared presentation procedure over retained results; this skill does not author report layout. Text requests remain text, and proposal writes still require the existing permissions and personal review.

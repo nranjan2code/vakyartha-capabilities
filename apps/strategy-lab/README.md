@@ -34,3 +34,5 @@ Design rule-based strategies for NSE stocks, test them on up to five years of da
 ## Limits
 
 No intraday data, short selling, leverage, derivatives, dividends added back, taxes or broker connection. Paper accounts trade only on saved end-of-day sessions. Up to 50 stocks, 12 strategies and 6 paper accounts.
+
+The packaged assistant skill uses checked domain steps for its declared tools and interpretation. Vakyartha supplies the shared presentation procedure over retained results; this skill does not author report layout. Text requests remain text, and proposal writes still require the existing permissions and personal review.

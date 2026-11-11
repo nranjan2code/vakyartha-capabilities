@@ -2,7 +2,7 @@
 
 ## Files
 
-- `app.json`: manifest; brokered network with 18 NSE read tools and News Desk's query tool; DuckDB storage; an opt-in five-minute `refreshMarket` trigger; exports `get_market_summary`, feed `market_feed` and skills `nse-market-analyst` and `nse-market-report`.
+- `app.json`: manifest; brokered network with 18 NSE read tools and News Desk's query tool; DuckDB storage; an opt-in five-minute `refreshMarket` trigger; exports `get_market_summary`, feed `market_feed` and skill `nse-market-analyst`.
 - `server.ts`: state types, `normalize`, `symbols`, `paise`, `tracked`, governed `read` with receipts (including source timestamps on arithmetic validation failures and bounded row-drop diagnostics on aggregate reads), `refreshMarket`, `checkAlerts`, instrument research, index study, `handleAction`, `handleQuery`, `surfaceFile()`.
 - `views.ts`: pure `view(state, analysis, now)` and the eight surfaces with `tabbed()` sub-views; `session`, `portfolio` (paise arithmetic), `marketBrief` (the spoken brief), `portfolioCsv` (derived exact-paise CSV) and formatting.
 - `source.ts`: decoding and validation of every NSE tool's documented output (quotes, all index groups, history chunks, movers, breadth and VIX, bulk closes, search, 52-week, benchmark comparison, corporate actions, volume, most active, index movers, performance, history, valuation, comparison, index names). Arithmetic mismatches retain source time and diagnostic inputs without repairing the observation. NSE's own `{"error"}` sentences pass through.
@@ -103,4 +103,5 @@ Removing a holding also clears a draft for that symbol; drafts for other holding
 
 Overview and Movers share action buttons for the four stock-mover segments. Clicking a choice calls `show_movers` with its validated segment and reads that segment in the same action; no separate Show movers submission remains. Both chart projections and the programme rebuild from the accepted source result. Failed reads retain accurately labelled earlier observations and the existing failure message. Access rules are unchanged. The earlier 3.4.7/3.4.8 draft-and-submit guidance is superseded for these two movers selectors. Other multi-field forms retain their existing submission behavior.
 
-The market-report procedure ends its saved-summary read as soon as `indices` is returned, then builds its page from that result. The host retains the read call for Refresh; no closing generation is needed for the read. The analyst skill keeps specific-question guidance; app control behavior is owned by these app documents.
+
+The app exports one market assistant skill for tool selection and the meaning of returned values. It declares no rendering steps or presentation dependency; Vakyartha owns presentation for every domain.

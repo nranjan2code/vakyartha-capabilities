@@ -4,12 +4,22 @@ description: Explain complex concepts, terms, systems or technical topics in pla
 
 compatibility: Universal guidance across all communication modes and surfaces.
 metadata:
+  output: text
   category: writing
   author: Vakyartha
   version: "1.0.0"
 ---
 
 # Clear & Accessible Explanations
+
+## Steps
+
+1. **intuition**: Identify the core idea and the depth the request needs. Use the supplied context without inventing facts about the person.
+2. **explain**: Explain the idea in familiar language with a grounded example or analogy. Define necessary jargon and preserve material nuance.
+   - needs: intuition
+
+## Domain guidance
+
 
 Framework for distilling technical concepts, jargon, architecture and complex ideas into clear, intuitive explanations.
 

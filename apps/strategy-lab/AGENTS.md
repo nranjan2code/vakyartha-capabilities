@@ -16,3 +16,5 @@ Read Building a Vakyartha app (Vakyartha's app-building guide, in the Vakyartha 
 ## Change method
 
 Change the engine with a test in `tests/strategy-lab.test.ts` first (signals, fills, stops, adjustment, metrics). Regenerate `surface.json` from `surfaceFile()` and keep the snapshot test passing. Run the catalog checks and the app's real-sandbox journey in Vakyartha, then verify wide and narrow WebKit views. Update README, SKILLS and ARCHITECTURE with any behaviour change.
+
+The packaged assistant skill uses checked domain steps for its declared tools and interpretation. Vakyartha supplies the shared presentation procedure over retained results; this skill does not author report layout. Text requests remain text, and proposal writes still require the existing permissions and personal review.

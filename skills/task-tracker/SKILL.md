@@ -7,10 +7,21 @@ metadata:
   category: everyday
   author: Vakyartha
   version: "1.0.0"
-allowed-tools: vak_render vak_update vak_submit use_skill
+allowed-tools: use_skill
 ---
 
 # Task Tracking & Work Management
+
+## Steps
+
+1. **extract**: Identify supplied tasks, stable identities, status, owners, due dates and dependencies. Keep unknowns distinct from completed work.
+2. **organize**: Organize the requested task view or update proposal; retain source identifiers and avoid duplicate tasks or invented commitments.
+   - needs: extract
+3. **check**: Check status transitions and dependencies against the supplied record. Claim saved changes only with an authorized mutation receipt.
+   - needs: organize
+
+## Domain guidance
+
 
 Methodology for creating, structuring and managing personal or collaborative work trackers, project task lists, and sprint backlogs.
 
@@ -18,8 +29,6 @@ Methodology for creating, structuring and managing personal or collaborative wor
 
 - **Purpose**: Use this skill when asked to organize tasks, manage a project action list, track team responsibilities, or build an interactive task tracker.
 - **Skill chaining**:
-  - Load `interactive-ui` for reactive checklist bindings, status updates and task creation forms.
-  - The required `surface-design` skill governs card layout, status badges, typography and spoken summaries.
   - Use `plan-my-day` when the goal is scheduling tasks into specific calendar time slots for a single day.
   - Use `operations-dashboard` when measuring high-volume ticket queues, cycle times and team SLAs.
 

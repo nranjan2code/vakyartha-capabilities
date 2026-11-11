@@ -7,10 +7,21 @@ metadata:
   category: everyday
   author: Vakyartha
   version: "1.0.0"
-allowed-tools: vak_render vak_update vak_submit use_skill
+allowed-tools: use_skill
 ---
 
 # Personal Budgeting & Spending Tracking
+
+## Steps
+
+1. **scope**: Identify the supplied income, expense periods, currency, goals and missing essentials. State assumptions without inventing transactions.
+2. **reconcile**: Reconcile totals and allocations from supplied records; distinguish fixed, variable, debt and savings flows. Check that allocations conserve the available income.
+   - needs: scope
+3. **assess**: Explain the actual tradeoffs and unknowns. Keep suggestions within the stated goals and make no unsupported financial forecast.
+   - needs: reconcile
+
+## Domain guidance
+
 
 Framework for building practical personal budgets, tracking household expenses, planning savings goals and managing project or travel costs.
 
@@ -18,8 +29,6 @@ Framework for building practical personal budgets, tracking household expenses, 
 
 - **Purpose**: Use this skill when asked to create a household budget, organize personal spending categories, design a debt payoff plan, or track travel/event expenses.
 - **Skill chaining**:
-  - Load `interactive-ui` when rendering an interactive budget tracker with bound expense inputs and reactive totals.
-  - The required `surface-design` skill governs layout, allocation pie/bar charts, metric cards and spoken summaries.
   - Use `finance-dashboard` when analyzing formal business accounting statements (P&L, cash flow, balance sheets) rather than personal finances.
 
 ## Budget Architecture & Methodology

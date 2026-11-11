@@ -4,12 +4,24 @@ description: Draft, review, or polish emails and messages with clear intent, app
 
 compatibility: Works across text chat, canvas drafts, and governed communication tools.
 metadata:
+  output: text
   category: writing
   author: Vakyartha
   version: "1.0.0"
 ---
 
 # Email & Message Drafting
+
+## Steps
+
+1. **brief**: Identify the recipient, purpose, requested action, tone and supplied facts. Do not invent prior conversations or commitments.
+2. **draft**: Write the email with an informative subject, direct opening and clear next action. Preserve facts, dates and intended tone.
+   - needs: brief
+3. **check**: Check names, commitments, sensitive details and requested length. Return a draft; do not claim it was sent.
+   - needs: draft
+
+## Domain guidance
+
 
 Structured guidance for composing, revising and adapting professional emails, announcements and messages.
 

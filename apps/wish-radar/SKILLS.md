@@ -17,3 +17,5 @@ These skills are installed, updated and removed with the app. While the app is i
 ## Requires
 
 - integration:web
+
+The packaged assistant skill uses checked domain steps for its declared tools and interpretation. Vakyartha supplies the shared presentation procedure over retained results; this skill does not author report layout. Text requests remain text, and proposal writes still require the existing permissions and personal review.

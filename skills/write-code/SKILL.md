@@ -4,6 +4,7 @@ description: Write, set up or explain source code, scripts, functions, config fi
 
 compatibility: Language-agnostic. Uses the Microsoft Learn, AWS Knowledge and Library docs integrations and Sandboxed execution when they are enabled; works without them.
 metadata:
+  output: text
   enhances: "integration:microsoft-learn integration:aws-knowledge integration:context7 integration:github integration:sandbox-execution"
   category: code
   author: Vakyartha
@@ -12,6 +13,28 @@ allowed-tools: use_skill microsoft-learn__microsoft_docs_search microsoft-learn_
 ---
 
 # Writing Code
+
+## Steps
+
+1. **target**: Identify language/version, framework, task and required files. State routine assumptions and avoid broadening the requested change.
+2. **docs**: Read current official documentation for the relevant SDK or library when its tools are offered. Otherwise SKIP and state the unverified version assumptions.
+   - tool: microsoft-learn__microsoft_docs_search microsoft-learn__microsoft_docs_fetch microsoft-learn__microsoft_code_sample_search aws-knowledge__aws___search_documentation aws-knowledge__aws___read_documentation context7__resolve-library-id context7__query-docs
+   - needs: target
+   - optional: true
+   - effect: read
+   - rounds: 4
+3. **implement**: Write the required code file by file using the checked API signatures and repository conventions. Keep secrets in configuration.
+   - needs: target, docs
+4. **verify**: Only when isolated execution is appropriate and requested, run the smallest meaningful compile or test in the contained workspace. Otherwise SKIP. Inspect the exit status and output; do not retry uncertain writes.
+   - tool: run_command
+   - needs: implement
+   - optional: true
+   - effect: external
+5. **deliver**: Give each required file and usage command, with actual verification results and remaining limits. Keep code in ordinary code blocks for a text request.
+   - needs: implement, verify
+
+## Domain guidance
+
 
 Answers that give the user code to use: a script, a function, a service, configuration or a project setup. Work through the steps in order; each step is small and finishes before the next starts.
 

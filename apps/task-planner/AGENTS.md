@@ -12,3 +12,5 @@ Read the Vakyartha app-building and skill-authoring guides before changing this 
 - Preserve a quick capture path, separate calendar browsing, visible empty states, bounded collections, voice summaries from canonical data and honest chart labels.
 - Generate `surface.json` from `surfaceFile()` after UI changes. Update README, SKILLS and ARCHITECTURE with behavior changes. Run the package unit checks and the catalog quick check.
 - Do not assign or edit the app version in source. The owner types it with the catalog version workflow.
+
+The packaged assistant skill uses checked domain steps for its declared tools and interpretation. Vakyartha supplies the shared presentation procedure over retained results; this skill does not author report layout. Text requests remain text, and proposal writes still require the existing permissions and personal review.

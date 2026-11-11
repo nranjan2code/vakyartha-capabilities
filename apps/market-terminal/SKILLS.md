@@ -4,8 +4,7 @@
 
 These skills are installed, updated and removed with the app. While the app is installed they can be turned off in Skills but not uninstalled.
 
-- `nse-market-analyst` (`skills/nse-market-analyst/SKILL.md`): Analyze Indian market indices, price movements, and market breadth from NSE Market Terminal. Needs skill:interactive-ui.
-- `nse-market-report` (`skills/nse-market-report/SKILL.md`): Show the Indian market now as one page from the saved snapshot. A stepped skill: one read, then a page built from the returned records, with a control that reads the market again.
+- `nse-market-analyst` (`skills/nse-market-analyst/SKILL.md`): Analyze Indian market indices, price movements, and market breadth from NSE Market Terminal. Declares checked tool-use steps.
 
 ## Vakyartha skills that apply
 
@@ -21,4 +20,5 @@ These skills are installed, updated and removed with the app. While the app is i
 - integration:nse-cmmkt
 - integration:nse
 
-The market-report procedure ends its saved-summary read as soon as `indices` is returned, then builds its page from that result. The host retains the read call for Refresh; no closing generation is needed for the read. The analyst skill keeps specific-question guidance; app control behavior is owned by these app documents.
+
+The app exports one market assistant skill for tool selection and the meaning of returned values. It declares no rendering steps or presentation dependency; Vakyartha owns presentation for every domain.

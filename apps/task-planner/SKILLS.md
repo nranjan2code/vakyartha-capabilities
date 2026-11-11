@@ -15,3 +15,5 @@ Voice behavior comes from the host: Dictate enters a transcription in the select
 ## Access
 
 No integration tools or external services are required. The package declares no outbound access and no schedule trigger.
+
+The packaged assistant skill uses checked domain steps for its declared tools and interpretation. Vakyartha supplies the shared presentation procedure over retained results; this skill does not author report layout. Text requests remain text, and proposal writes still require the existing permissions and personal review.

@@ -64,4 +64,5 @@ Removing a holding also clears a draft for that symbol; drafts for other holding
 
 Overview and Movers share action buttons for the four stock-mover segments. Clicking a choice calls `show_movers` with its validated segment and reads that segment in the same action; no separate Show movers submission remains. Both chart projections and the programme rebuild from the accepted source result. Failed reads retain accurately labelled earlier observations and the existing failure message. Access rules are unchanged. The earlier 3.4.7/3.4.8 draft-and-submit guidance is superseded for these two movers selectors. Other multi-field forms retain their existing submission behavior.
 
-The market-report procedure ends its saved-summary read as soon as `indices` is returned, then builds its page from that result. The host retains the read call for Refresh; no closing generation is needed for the read. The analyst skill keeps specific-question guidance; app control behavior is owned by these app documents.
+
+The app exports one market assistant skill for tool selection and the meaning of returned values. It declares no rendering steps or presentation dependency; Vakyartha owns presentation for every domain.

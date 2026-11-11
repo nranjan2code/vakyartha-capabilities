@@ -4,14 +4,25 @@ description: Inspect supplied tabular records, CSV or JSON for data quality, tre
 
 compatibility: Works with tabular CSV, JSON, and structured query snapshots.
 metadata:
-  requires: "skill:interactive-ui skill:surface-design"
+
   category: reports
   author: Vakyartha
   version: "1.0.0"
-allowed-tools: read_skill_file use_skill vak_render vak_update vak_submit
+allowed-tools: read_skill_file use_skill
 ---
 
 # Data Quality & Tabular Inspection
+
+## Steps
+
+1. **inspect**: Identify supplied datasets, schema, units, date coverage, nulls, duplicates and potential sampling limits.
+2. **analyze**: Check data quality and calculate only justified summaries, preserving the original records and the distinction between missing and zero.
+   - needs: inspect
+3. **interpret**: Verify arithmetic and explain anomalies, uncertainty and recommended follow-up without asserting unsupported causes.
+   - needs: analyze
+
+## Domain guidance
+
 
 Methodical procedure for auditing, profiling and validating structured datasets, CSV files and JSON records for anomalies, integrity and actionable insights.
 
@@ -19,8 +30,6 @@ Methodical procedure for auditing, profiling and validating structured datasets,
 
 - **Purpose**: Use this skill when inspecting tabular data, reviewing CSV/JSON uploads, auditing dataset hygiene, or computing verified statistical summaries.
 - **Skill chaining**:
-  - Load `interactive-ui` when an interactive audit surface, data table or chart is needed.
-  - The required `surface-design` skill governs canvas layout and visual presentation.
   - Load `dashboard` if the user requires ongoing operational KPIs or executive monitoring rather than a data quality audit.
 
 ## Data Ingestion & Integrity Checks

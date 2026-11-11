@@ -32,3 +32,5 @@
 ## Runtime
 
 This app runs in the sandbox (`runtime.engine: "node26"`) like every other app, with no tools, no database and no network. Keep it that way. Anything that needs an integration or a model belongs in the shared assistant or an integration app. Shared host contract: Access, Background operation, Settings and the shared assistant apply as for every app; there is no app permission store.
+
+The packaged assistant skill uses checked domain steps for its declared tools and interpretation. Vakyartha supplies the shared presentation procedure over retained results; this skill does not author report layout. Text requests remain text, and proposal writes still require the existing permissions and personal review.

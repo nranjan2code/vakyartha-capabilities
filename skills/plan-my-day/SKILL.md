@@ -4,15 +4,26 @@ description: Use when the user wants to plan a day or organise a to-do list into
 
 compatibility: Works with text chat, timeline displays, and interactive daily schedule canvases.
 metadata:
-  requires: "skill:interactive-ui"
+
   category: everyday
   author: Vakyartha
   version: "1.0.0"
-  loads-with: "interactive-ui"
-allowed-tools: vak_render vak_update vak_submit use_skill
+
+allowed-tools: use_skill
 ---
 
 # Daily Planning & Time Blocking
+
+## Steps
+
+1. **constraints**: Identify fixed commitments, time windows, priorities, duration estimates, travel and breaks from the supplied context.
+2. **schedule**: Allocate feasible time blocks without double booking. Distinguish fixed events from suggested blocks and keep uncertain durations explicit.
+   - needs: constraints
+3. **check**: Check that the schedule fits the available day and priorities. Describe calendar changes only if an authorized tool returned a successful receipt.
+   - needs: schedule
+
+## Domain guidance
+
 
 Structured methodology for converting task backlogs, deadlines and daily goals into realistic, time-blocked daily schedules.
 
@@ -20,8 +31,6 @@ Structured methodology for converting task backlogs, deadlines and daily goals i
 
 - **Purpose**: Use this skill when asked to plan an itinerary for the day, organize a to-do list into a schedule, prioritize daily tasks, or time-block a workday.
 - **Skill chaining**:
-  - Present the schedule as an interactive canvas: `interactive-ui` loads with this skill. Render an agenda with editable time blocks, with a short text summary. Answer in plain text only when the user asks for text or a single quick fact.
-  - The required `surface-design` skill governs timeline layout, typography and spoken briefings.
   - Use `task-tracker` when the user needs general multi-day task backlog management rather than hour-by-hour time blocking.
 
 ## Daily Planning Methodology

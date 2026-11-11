@@ -34,3 +34,5 @@ Each completed recurring task remains as a completed record. Completion creates 
 
 Open lists sort late first, then by day, time and priority; undated tasks last, high priority first. Completed lists newest first. Row actions: Complete or Reopen, Tomorrow (late, due today or undated tasks), Edit, Delete with confirmation. Details adds Complete or Reopen, Move to tomorrow and Delete; deleting the open task returns to the list. Clear completed asks first. Empty states show only for empty lists, and tab titles carry their counts.
 
+
+The packaged assistant skill uses checked domain steps for its declared tools and interpretation. Vakyartha supplies the shared presentation procedure over retained results; this skill does not author report layout. Text requests remain text, and proposal writes still require the existing permissions and personal review.

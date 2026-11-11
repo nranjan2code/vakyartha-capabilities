@@ -4,17 +4,50 @@ description: Query official National Stock Exchange of India (NSE) market data v
 
 compatibility: Requires enabled 'nse' (Bhavcopy) or 'nse-cmmkt' (Market Live) vendor integrations.
 metadata:
-  requires: "skill:interactive-ui integration:nse|integration:nse-cmmkt"
+  requires: "integration:nse|integration:nse-cmmkt"
   category: live-data
   author: Vakyartha
   version: "1.0.0"
-  loads-with: "interactive-ui"
-allowed-tools: read_skill_file use_skill vak_render vak_update vak_submit
+
+allowed-tools: read_skill_file use_skill nse__nse_lookup_symbol nse__search_symbols nse__get_stock_history nse__get_ltp_by_date nse__get_bulk_quote nse__get_52_week_high_low nse__moving_average nse__get_volume_analysis nse__get_corporate_actions nse__get_market_mood nse__get_market_breadth nse__get_top_movers nse__get_top_by_volume nse__get_index_snapshot nse__get_index_history nse__get_index_performance nse__get_index_valuation nse__get_index_movers nse__compare_indices nse__compare_stocks nse__get_stock_vs_index nse-cmmkt__nse_get_market_movers nse-cmmkt__nse_get_gainers nse-cmmkt__nse_get_losers nse-cmmkt__cm_get_stock_quote nse-cmmkt__cm_get_index_quote nse-cmmkt__cm_get_live_indices
 ---
 
 # National Stock Exchange of India (NSE) Market Data & MCP
 
-Analytical and operational procedure for querying official National Stock Exchange of India (NSE) market data using vendor Model Context Protocol (MCP) servers and composing verified financial analyses on Vakyartha canvas surfaces.
+## Steps
+
+1. **resolve**: Resolve the requested instrument identity and series when needed; otherwise SKIP.
+   - tool: nse__nse_lookup_symbol nse__search_symbols
+   - optional: true
+   - effect: read
+   - rounds: 3
+2. **history**: Read the requested historical sessions and comparable endpoints; otherwise SKIP.
+   - tool: nse__get_stock_history nse__get_ltp_by_date nse__get_bulk_quote nse__get_52_week_high_low nse__moving_average nse__get_volume_analysis nse__get_corporate_actions
+   - optional: true
+   - effect: read
+   - rounds: 3
+3. **breadth**: Read requested market breadth, mood, movers or volume; otherwise SKIP.
+   - tool: nse__get_market_mood nse__get_market_breadth nse__get_top_movers nse__get_top_by_volume
+   - optional: true
+   - effect: read
+   - rounds: 3
+4. **indices**: Read requested index history, comparison or valuation; otherwise SKIP.
+   - tool: nse__get_index_snapshot nse__get_index_history nse__get_index_performance nse__get_index_valuation nse__get_index_movers nse__compare_indices nse__compare_stocks nse__get_stock_vs_index
+   - optional: true
+   - effect: read
+   - rounds: 3
+5. **live**: Read requested current quotes or session activity; otherwise SKIP.
+   - tool: nse-cmmkt__nse_get_market_movers nse-cmmkt__nse_get_gainers nse-cmmkt__nse_get_losers nse-cmmkt__cm_get_stock_quote nse-cmmkt__cm_get_index_quote nse-cmmkt__cm_get_live_indices
+   - optional: true
+   - effect: read
+   - rounds: 3
+6. **interpret**: Explain only the retained market evidence, exact sessions, units and freshness. Check return endpoints and distinguish price return from total return. Do not invent missing data.
+   - needs: resolve, history, breadth, indices, live
+
+## Domain guidance
+
+
+Analytical and operational procedure for querying official National Stock Exchange of India (NSE) market data using vendor Model Context Protocol (MCP) servers and interpreting verified financial analyses.
 
 ## More detail
 
@@ -22,24 +55,9 @@ For how the NSE servers fit together and which skills chain with this one, read 
 
 ## Tool Selection & Dispatch Procedure
 
-### 1. Identify the Query Scope
+## Tool selection
 
-- **Historical Performance or Multi-Day Windows**:
-  - Questions covering past dates, weekly/monthly returns, moving averages, 52-week ranges, market breadth, corporate actions, or index history require the **`nse`** (Bhavcopy) integration.
-  - Primary tools:
-    - *Equities*: `nse__get_stock_history`, `nse__get_ltp_by_date`, `nse__get_bulk_quote`, `nse__get_52_week_high_low`, `nse__moving_average`, `nse__get_volume_analysis`, `nse__get_corporate_actions`.
-    - *Market & Breadth*: `nse__get_market_mood`, `nse__get_market_breadth`, `nse__get_top_movers`, `nse__get_top_by_volume`.
-    - *Indices & Comparisons*: `nse__get_index_snapshot`, `nse__get_index_history`, `nse__get_index_performance`, `nse__get_index_valuation`, `nse__get_index_movers`, `nse__compare_indices`, `nse__compare_stocks`, `nse__get_stock_vs_index`.
-    - *Symbol Resolution*: `nse__nse_lookup_symbol`, `nse__search_symbols`.
-- **Intraday Quotes & Current Session Activity**:
-  - Questions covering current stock price, today's trading action, live gainers/losers, or immediate index levels require the **`nse-cmmkt`** (Market Live) integration.
-  - Primary tools:
-    - *Market Movers*: `nse-cmmkt__nse_get_market_movers` (primary tool for gainers/losers today), `nse-cmmkt__nse_get_gainers`, `nse-cmmkt__nse_get_losers`.
-    - *Spot Quotes*: `nse-cmmkt__cm_get_stock_quote` (single equity), `nse-cmmkt__cm_get_index_quote` (single index), `nse-cmmkt__cm_get_live_indices` (grouped index levels).
-    - *Segment Watches*: `nse-cmmkt__cm_get_equity_stocks`, `nse-cmmkt__cm_get_sme_stocks`, `nse-cmmkt__cm_get_bond_stocks`, `nse-cmmkt__cm_get_call_auction_stocks`.
-    - *Feed Health*: `nse-cmmkt__cm_get_data_status`, `nse-cmmkt__cm_get_allstocks_status`.
-- **Comprehensive Reviews (History + Spot Quote)**:
-  - When both integrations are enabled, query `nse` for historical baseline figures and `nse-cmmkt` for the current trading day's snapshot.
+Read `references/tool-selection.md` for details.
 
 ### 2. Parameter & Symbol Conventions
 
@@ -71,9 +89,9 @@ For how the NSE servers fit together and which skills chain with this one, read 
 
 ---
 
-## Compose the requested result
+## Evidence retention
 
-Follow required surface-design and enabled interactive-ui. Map related views from the same verified history, retain exact records, use totals:false for price/return columns and show the session, units, freshness and return basis. Keep independent requested outputs separate. A quote cannot supply a candle or a multi-session return. Follow the currently offered integration schemas over reference examples when they differ.
+Retain complete verified records with units, source freshness, exact session endpoints and return basis. A spot quote cannot establish a multi-session return or OHLC history. Follow offered tool schemas over examples.
 
 ## Regulatory & Usage Disclaimer
 

@@ -4,46 +4,91 @@ description: Use when the user asks about weather, a forecast, rain, temperature
 
 compatibility: Requires the Weather (Open-Meteo) integration, enabled in Integrations.
 metadata:
-  requires: "skill:interactive-ui integration:open-meteo"
+  requires: "integration:open-meteo"
   category: live-data
   author: Vakyartha
   version: "1.0.0"
-  loads-with: "interactive-ui"
-  requires-read: "true"
-  requires-canvas: "true"
-  unavailable-message: "Weather is not set up. Open Integrations, install and enable Weather (Open-Meteo), then ask again."
-allowed-tools: read_skill_file use_skill vak_render vak_update vak_submit open-meteo__geocoding open-meteo__weather_forecast open-meteo__weather_archive open-meteo__air_quality open-meteo__marine_weather open-meteo__ensemble_forecast open-meteo__seasonal_forecast open-meteo__climate_projection open-meteo__flood_forecast open-meteo__elevation
+
+allowed-tools: read_skill_file use_skill open-meteo__geocoding open-meteo__weather_forecast open-meteo__weather_archive open-meteo__air_quality open-meteo__marine_weather open-meteo__ensemble_forecast open-meteo__seasonal_forecast open-meteo__climate_projection open-meteo__flood_forecast open-meteo__elevation
 ---
 
 # Weather
 
 Answers come only from the Weather integration (open-meteo.com). Never state weather from memory.
 
-## Access and plans
+## Access
 
-The current Weather connector uses the **free public API only**, with no key or account. Current conditions, forecasts, historical weather, air quality, marine, flood, ensemble, seasonal, climate and elevation tools are available for non-commercial use within service limits. A paid chat model does not purchase weather access.
+This connector uses the free public API and supports no paid key or subscription detection. See `references/api-access.md` for service limits and access differences.
 
-There is **no weather subscription detection or paid-key support** in this connector. Never infer a weather plan from the model, a subscription mentioned in chat, or the presence of an API key. Use only tools currently offered by the integration; discovery cannot enable paid access. Commercial use requires a suitable weather plan and a connector that actually supports it; paying alone does not configure this connector. For service limits and paid plan differences, read `references/api-access.md` when needed.
+## Steps
 
-## Steps, every time, in order
+1. **place**: If no place is named in the request or conversation, ask which place. Otherwise SKIP.
+   - kind: ask
+   - optional: true
+2. **request**: Extract requested place names, forecast days and mode. Tomorrow needs at least two days; seven days means seven. Use forecast for current or future weather, archive for past dates, air for air quality, marine for waves, and other for specialist questions.
+   - needs: place
+   - output: {"type":"object","properties":{"places":{"type":"array","items":{"type":"string"},"minItems":1,"maxItems":8},"days":{"type":"integer","minimum":1,"maximum":16},"mode":{"enum":["forecast","archive","air","marine","other"]}},"required":["places","days","mode"],"additionalProperties":false}
+3. **geocode**: Resolve each place. Retain the returned full coordinates, name, admin1 and country. The host supplies the place name. If results are ambiguous, ask which place before using its coordinates.
+   - tool: open-meteo__geocoding
+   - needs: request
+   - each: request /places
+   - max: 8
+   - arguments: {"name":{"item":""},"count":{"value":3}}
+   - effect: read
+   - done: has /results/0/latitude
+4. **forecast**: Read requested weather. For multi-day comparisons choose daily temperature_2m_max and temperature_2m_min, plus other requested variables. Omit unrelated optional parameters.
+   - tool: open-meteo__weather_forecast
+   - needs: request, geocode
+   - each: geocode ""
+   - max: 8
+   - when: {"step":"request","pointer":"/mode","oneOf":["forecast"]}
+   - arguments: {"latitude":{"item":"/results/0/latitude"},"longitude":{"item":"/results/0/longitude"},"forecast_days":{"step":"request","pointer":"/days"},"timezone":{"value":"auto"}}
+   - effect: read
+   - done: has /latitude
+5. **archive**: Read each place for the requested past dates using daily or hourly fields and local time. State that these are estimates.
+   - tool: open-meteo__weather_archive
+   - needs: request, geocode
+   - each: geocode ""
+   - max: 8
+   - when: {"step":"request","pointer":"/mode","oneOf":["archive"]}
+   - arguments: {"latitude":{"item":"/results/0/latitude"},"longitude":{"item":"/results/0/longitude"},"timezone":{"value":"auto"}}
+   - effect: read
+6. **air**: Read requested air quality or pollen for each place. Check regional coverage and returned units.
+   - tool: open-meteo__air_quality
+   - needs: request, geocode
+   - each: geocode ""
+   - max: 8
+   - when: {"step":"request","pointer":"/mode","oneOf":["air"]}
+   - arguments: {"latitude":{"item":"/results/0/latitude"},"longitude":{"item":"/results/0/longitude"},"timezone":{"value":"auto"}}
+   - effect: read
+7. **marine**: Read requested sea or wave conditions for each place using returned times and units.
+   - tool: open-meteo__marine_weather
+   - needs: request, geocode
+   - each: geocode ""
+   - max: 8
+   - when: {"step":"request","pointer":"/mode","oneOf":["marine"]}
+   - arguments: {"latitude":{"item":"/results/0/latitude"},"longitude":{"item":"/results/0/longitude"},"timezone":{"value":"auto"}}
+   - effect: read
+8. **specialist**: Read each place with the specialist tool that answers the question; use only supported model and time-range parameters. Read references/other-questions.md for tool choice.
+   - tool: open-meteo__ensemble_forecast open-meteo__seasonal_forecast open-meteo__climate_projection open-meteo__flood_forecast open-meteo__elevation
+   - needs: request, geocode
+   - each: geocode ""
+   - max: 8
+   - when: {"step":"request","pointer":"/mode","oneOf":["other"]}
+   - arguments: {"latitude":{"item":"/results/0/latitude"},"longitude":{"item":"/results/0/longitude"}}
+   - effect: read
+9. **interpret**: Explain the requested weather implications using the retained reads. Keep dates, local times, units and missing values distinct. Do not invent observations or infer paid access.
+   - needs: forecast, archive, air, marine, specialist
 
-1. **Find the place.** Call `open-meteo__geocoding`, even for a well-known city:
-   `{"name": "Pune", "count": 3}`
-   Use the first result's `latitude`, `longitude`, `name`, `admin1` and `country`. If two results are different places people could mean, ask which one (`references/layouts.md`, "Which place?"). No place in the question or the conversation: ask for one.
-2. **Read the weather** with those coordinates and `"timezone": "auto"`, so days are the place's own days:
-   - Days: `{"latitude": 18.52, "longitude": 73.86, "timezone": "auto", "forecast_days": 2, "daily": ["temperature_2m_max", "temperature_2m_min", "precipitation_probability_max", "precipitation_sum", "weather_code"]}`
-   - Now: `{"latitude": 18.52, "longitude": 73.86, "timezone": "auto", "forecast_days": 1, "current": ["temperature_2m", "apparent_temperature", "relative_humidity_2m", "weather_code", "wind_speed_10m"]}`
-   In `daily`, index 0 is today and index 1 is tomorrow. `forecast_days` is the number of days needed, at most 16.
-   **Send only needed parameters.** Optional fields are omitted, not filled with empty strings, zeroes, empty arrays or invented dates. For now/today/tomorrow, omit `past_days`, `past_hours`, `forecast_hours`, `start_date`, `end_date`, `start_hour`, `end_hour`, `tilt`, `azimuth` and `models` unless the question specifically needs one. Choose a single time-range method: relative days, relative hours, explicit dates, or explicit hours. Never combine `past_days` with `start_date`/`end_date`.
-3. **Publish the result.** Read `references/layouts.md` with `read_skill_file` (`skill: "weather"`, `path: "references/layouts.md"`). If surface tools are not loaded, call `discover_tools` with `query: "surfaces"`, then use the returned authoring tool on the next step. Publish the matching layout as a surface; the one-place glance card stays inline in chat. Include the place, returned values and units, the returned local observation time, and the source caption in that surface. Only then finish with one short sentence. `respond` alone does not publish a surface. If a text-only response is rejected for missing output, load the surface tools and publish; do not repeat the rejected response or reload an already loaded skill.
+## Tool parameters
 
-## More detail
+Send only needed optional parameters. For now/today/tomorrow, omit past_days, past_hours, forecast_hours, start_date, end_date, start_hour, end_hour, tilt, azimuth and models unless specifically requested. Choose one time-range method: relative days, relative hours, explicit dates or explicit hours. Never combine past_days with start_date/end_date. Daily index zero is today; tomorrow is index one. Coordinates come from geocoding without rounding. If weather tools are unavailable, say: Weather is not set up. Open Integrations, install and enable Weather (Open-Meteo), then ask again.
 
-For a question the steps do not cover, or to choose the layout, read `references/other-questions-and-layout.md` with read_skill_file.
+Read `references/other-questions.md` for specialist tool choice, and `references/weather-codes.md` to interpret weather codes. Presentation is handled by Vakyartha over retained results.
 
 ## Rules for the numbers
 
-- Quote values as returned, with the units from `*_units`, rounded to whole degrees and percent. Name the day or hour, in local time.
+- Quote values as returned, with the units from `*_units`, without rounding retained observations. Name the day or hour, in local time.
 - `null` means no value for that time, never zero.
 - `truncated: true`: ask for less and call again.
 - `weather_code` in words only from `references/weather-codes.md`.

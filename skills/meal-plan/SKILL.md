@@ -4,15 +4,26 @@ description: Use when the user wants meal ideas, a weekly menu, recipes from wha
 
 compatibility: Works with text chat, weekly meal matrices, shopping lists, and interactive recipe canvases.
 metadata:
-  requires: "skill:interactive-ui"
+
   category: everyday
   author: Vakyartha
   version: "1.0.0"
-  loads-with: "interactive-ui"
-allowed-tools: vak_render vak_update vak_submit use_skill
+
+allowed-tools: use_skill
 ---
 
 # Meal Planning & Recipe Coordination
+
+## Steps
+
+1. **constraints**: Identify supplied dietary needs, allergies, preferences, budget, servings and available cooking time. Ask for safety-critical missing constraints.
+2. **plan**: Plan meals and grocery quantities consistent with those constraints. Reuse ingredients where useful; label estimated costs and nutrition.
+   - needs: constraints
+3. **check**: Check servings, grocery arithmetic, dietary restrictions and food safety. Do not invent medical needs or claim clinical suitability.
+   - needs: plan
+
+## Domain guidance
+
 
 Systematic culinary framework for designing balanced weekly meal plans, pantry-driven recipes and organized grocery shopping lists.
 
@@ -20,8 +31,6 @@ Systematic culinary framework for designing balanced weekly meal plans, pantry-d
 
 - **Purpose**: Use this skill when asked to plan meals for the week, invent recipes using on-hand ingredients, reduce food waste, or generate an organized shopping list.
 - **Skill chaining**:
-  - Present the plan as an interactive canvas: `interactive-ui` loads with this skill. Render a meal matrix with recipe details and a grocery checklist, with a short text summary. Answer in plain text only when the user asks for text or a single quick fact.
-  - The required `surface-design` skill governs schedule grids, recipe cards, shopping tables and spoken audio briefings.
   - Load `budget-helper` when planning meals strictly within a constrained grocery budget or tracking per-meal costs.
 
 ## Meal Planning Methodology

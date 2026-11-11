@@ -21,10 +21,8 @@
           "doctor-integrations",
           "doctor-models",
           "folder-workspace",
-          "interactive-ui",
-          "presentable-reply",
+          "presentation",
           "sandbox",
-          "surface-design",
           "system-doctor"
         ],
         "integrations": [

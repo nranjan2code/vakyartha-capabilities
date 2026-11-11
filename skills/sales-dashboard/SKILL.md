@@ -4,16 +4,25 @@ description: Create a sales performance or opportunity-pipeline dashboard with s
 
 compatibility: Works with CRM exports, sales pipeline spreadsheets, and canvas projection.
 metadata:
-  requires: "skill:interactive-ui skill:surface-design"
-  loads-with: "interactive-ui"
-  requires-canvas: "true"
+
   category: reports
   author: Vakyartha
   version: "1.0.0"
-allowed-tools: vak_render vak_update vak_submit use_skill
+allowed-tools: use_skill
 ---
 
 # Sales Performance & Pipeline Dashboards
+
+## Steps
+
+1. **scope**: Identify pipeline stages, period, currency, amount basis and supplied opportunity records. Distinguish bookings, recognized revenue and pipeline.
+2. **analyze**: Calculate supported stage totals, conversion rates and weighted pipeline from stated probabilities. Keep missing amounts and dates explicit.
+   - needs: scope
+3. **check**: Reconcile totals and explain material changes without inventing forecasts. Do not claim CRM changes, exports or messages without receipts.
+   - needs: analyze
+
+## Domain guidance
+
 
 Framework for analyzing sales pipeline health, revenue realization, win rates, quota attainment and deal-level execution.
 
@@ -21,8 +30,6 @@ Framework for analyzing sales pipeline health, revenue realization, win rates, q
 
 - **Purpose**: Use this skill when asked to review sales rep or team performance, analyze pipeline conversion funnels, track quota progress, or build a sales dashboard.
 - **Skill chaining**:
-  - Load `dashboard` and `interactive-ui` for metric mappings, stage charts and filtering.
-  - The required `surface-design` skill governs visual layout, supported charts, detail tables and spoken summaries.
   - Load `periodic-report` if the deliverable is a written weekly or monthly sales briefing rather than an interactive canvas.
 
 ## Sales Pipeline & Revenue Metrics

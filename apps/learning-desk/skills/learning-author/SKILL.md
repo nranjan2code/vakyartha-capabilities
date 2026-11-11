@@ -9,6 +9,33 @@ allowed-tools: use_skill read_skill_file app-learning-desk__get_authoring_contex
 
 # Create something worth learning
 
+## Steps
+
+1. **action**: Choose write only when the current request explicitly asks for this app proposal or mutation; otherwise choose read. This decision grants no tool authority.
+   - output: {"type":"object","properties":{"action":{"enum":["read","write"]}},"required":["action"],"additionalProperties":false}
+2. **context**: Read learner preferences, package limits and current expectedRevision. Resolve the learning goal without inferring age or prior knowledge.
+   - tool: app-learning-desk__get_authoring_context
+   - effect: read
+3. **author**: For an outline request, draft the outline only. For explicit Create course draft, prepare the agreed bounded lessons and checked exercises. List sources only when actually read in this conversation.
+   - needs: context
+4. **revision**: Only before an explicitly requested complete draft save, re-read the current authoring context. Otherwise SKIP.
+   - tool: app-learning-desk__get_authoring_context
+   - needs: context, author, action
+   - when: {"step":"action","pointer":"/action","oneOf":["write"]}
+   - optional: true
+   - effect: read
+5. **propose**: Only for explicit creation of the agreed complete course, save the unreviewed proposal with the current revision. Otherwise SKIP. Never publish or automatically retry a stale/uncertain write.
+   - tool: app-learning-desk__propose_course
+   - needs: author, revision, action
+   - when: {"step":"action","pointer":"/action","oneOf":["write"]}
+   - optional: true
+   - effect: write
+   - arguments: {"expectedRevision":{"step":"revision","pointer":"/expectedRevision"}}
+6. **receipt**: Report the outline or actual proposal receipt and its source/teaching limits. A saved draft requires personal review and is not a published or independently verified course.
+   - needs: author, propose
+
+## Domain guidance
+
 Read get_authoring_context before authoring. It supplies learner preferences, the package contract, limits and expectedRevision. Age/context and prior knowledge are different inputs; do not infer either from a name or writing style. For younger learners establish the adult-guided context and choose appropriate activities. Resolve the learning goal and source scope with the person. Offer a short ordered outline with prerequisites and observable lesson objectives before drafting the course.
 
 Use existing enabled domain/research procedures and governed MCP sources when needed. Skill text grants no tool, network, provider, media or publishing authority. Inspect source material before saying it supports a claim. Preserve source titles and exact links; distinguish further reading from checked evidence. Use original wording or material whose reuse rights are established. Do not reproduce a protected course or infer that publicly readable means reusable. Never invent a citation, source read or factual-review claim. List a source in propose_course only when you read that page in this conversation through a source tool; when none was read, omit sources and say in the reply that the draft has no checked sources. Learning Desk shows listed links as not checked.
@@ -17,7 +44,7 @@ Write one bounded lesson at a time: objective, explanation, worked example, real
 
 Before proposing a complete course, show material uncertainty and let the person review its direction. Re-read get_authoring_context for the current expectedRevision, then call propose_course with that revision and a complete package. A stale response means read again and reconcile; never overwrite another draft or retry an uncertain write automatically. Only a successful receipt means a draft was saved. Tell the learner to inspect it in Review drafts. Do not claim it is published, independently verified or evidence of mastery. Publication into the personal library remains the learner's local action.
 
-interactive-ui and surface-design govern any requested chat surfaces. broadcast-programme governs optional programmes; the app already derives Listen and Watch from saved lesson records. Do not create a separate narration store, model endpoint, skill loader or retrieval database.
+broadcast-programme governs optional programmes; the app already derives Listen and Watch from saved lesson records. Do not create a separate narration store, model endpoint, skill loader or retrieval database.
 
 ## Explicit course-creation controls
 
@@ -25,11 +52,9 @@ The docked assistant offers Create course draft after an outline. Treat that exp
 
 The course studio is the shared assistant panel docked beside Learning Desk, with Outline/Create/Review stages supplied by authorWorkflow. The learning brief is collapsed after submission; creation requests show their action label. The narrow layout places the same panel as a sheet below the app. Stage indicators reflect chosen actions and committed draft receipts, not independent content-quality certification.
 
-## Exercise relevance is a separate quality check
+## Lesson review
 
-An optional share experiment is only appropriate when the stated lesson objective teaches a proportional part relative to a whole. Do not add it to unrelated lessons or copy a sample experiment across a course. A valid chart is not evidence of relevance. Omit the lab when its purpose cannot be explained from the objective. During curation, inspect each optional experiment against the actual lesson; the editor can remove it explicitly without rewriting the lesson text. The learner sees optional experiments under Explore, separate from reading and Practice.
-
-Learn is paced as Understand → Example → Try it, using explicit ordinary app actions and persisted readPart. Only the selected reading block is emitted; all other lesson content remains canonical and available through its step. Opening another lesson starts at Understand. Course description is a collapsed About panel. This is presentation/navigation, not an automatic rewrite or learning-completion claim. The shared Listen/Watch controls still narrate the complete lesson.
+Read `references/lesson-review.md` for details.
 
 ## When you need more
 
