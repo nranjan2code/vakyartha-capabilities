@@ -21,7 +21,7 @@ separate catalog item. Its lifecycle is the app's lifecycle.
 another skill or an integration, an app needs an integration (derived exactly
 from its `entitlements.mcpTools`, `<integration>__<tool>`) or another app's feed
 (`app-<id>__<tool>`). Skills declare theirs in `metadata.requires`, for example
-`"skill:interactive-ui integration:weather"`. A target is an item in this catalog
+`"skill:presentation integration:weather"`. A target is an item in this catalog
 or a built-in that Vakyartha declares.
 
 **Enhances** (optional). Used when present; never blocks anything. Skills declare

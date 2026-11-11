@@ -4,7 +4,7 @@
 
 These skills are installed, updated and removed with the app. While the app is installed they can be turned off in Skills but not uninstalled.
 
-- `rbi` (`skills/rbi/SKILL.md`): Read RBI Desk rates, reserves, Master Directions and notices with source dates. Needs skill:interactive-ui.
+- `rbi` (`skills/rbi/SKILL.md`): Read RBI Desk rates, reserves, Master Directions and notices with source dates.
 
 ## Vakyartha skills that apply
 
@@ -12,7 +12,7 @@ These skills are installed, updated and removed with the app. While the app is i
 - `app-maintainer`: changing the package, its surfaces and these documents; bumping its version and running the tests.
 - `app-debugger`: finding why an action, refresh or view does not behave as expected.
 - `app-admin`: reviewing Access, tool and destination rules, and Background operation.
-- `interactive-ui` and `surface-design`: any chart, table or form built from the app's data.
+- `presentation`: any chart, table or form built from the app's data.
 
 ## Requires
 

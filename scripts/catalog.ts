@@ -30,7 +30,7 @@ export interface Manifest {
   requires: { vakyartha: { min: string; below: string; provides: { skills: string[]; integrations: string[] } } };
   provides: { apps: number; skills: number; integrations: number };
 }
-/** A reference such as skill:interactive-ui. One requirement may list alternatives (any one satisfies it). */
+/** A reference such as skill:presentation. One requirement may list alternatives (any one satisfies it). */
 export interface Ref { kind: Kind; id: string }
 /** What a person is told before adding an item. Derived from the item's own declarations only. */
 export interface Access { network: "none" | "governed tools" | "hosts"; tools: string[]; hosts: string[]; database: boolean; schedule: boolean; files: number; credentials: string[] }
@@ -71,9 +71,9 @@ function procedure(text: string, where: string, present: (path: string) => boole
   if (body.length > MAX_SKILL_BODY) throw new Error(`${where}: body is ${body.length} characters; keep it to ${MAX_SKILL_BODY} and move reference detail to references/`);
   for (const [, file] of body.matchAll(/`(references\/[\w.-]+)`/g)) if (!present(file!)) throw new Error(`${where}: names ${file}, which is missing`);
   // A procedure that always draws loads the canvas grammar in the same step, so a small
-  // model never spends a second round (or draws without it) to fetch interactive-ui.
+  // model never spends a second round (or draws without it) to fetch presentation.
   const fm = frontmatter(text);
-  if (fm["metadata.requires-canvas"] === "true" && !(fm["metadata.loads-with"] ?? "").split(/[\s,]+/).includes("interactive-ui")) throw new Error(`${where}: requires-canvas needs loads-with "interactive-ui"`);
+  if (fm["metadata.requires-canvas"] === "true" && !(fm["metadata.loads-with"] ?? "").split(/[\s,]+/).includes("presentation")) throw new Error(`${where}: requires-canvas needs loads-with "presentation"`);
 }
 
 export function frontmatter(text: string): Record<string, string> {

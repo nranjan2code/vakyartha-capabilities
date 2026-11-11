@@ -28,7 +28,7 @@ The Speeches and Publications RSS feeds embed full documents and exceed the tool
 
 Read-only MCP tools: `app-rbi-desk__get_rbi_rates` (optional `rate`), `get_rate_history` (`rate`, optional `since`), `get_forex_reserves` (optional stored `weeks`), `get_rbi_updates` (feed/tag/query/since/limit), `find_master_direction` (`query`) and `get_rbi_briefing`. Queries use committed state, never refresh a source, and cannot advance the app revision. The app publishes `rbi_updates` for other apps.
 
-The app's `rbi-desk-reader` loads Vakyartha's canonical `rbi` procedure, which owns dispatch, date/source rules, fixed rate explanations and canvas presentation. `interactive-ui` and required `surface-design` provide the same supported components available to any app author. No app-specific renderer is used.
+The app's `rbi-desk-reader` loads Vakyartha's canonical `rbi` procedure, which owns dispatch, date/source rules, fixed rate explanations and canvas presentation. `presentation` provides the same supported components available to any app author. No app-specific renderer is used.
 
 Verification commands: `node --test test/rbi-desk.test.ts`, `node scripts/rbi-desk-check.ts --live`, `node scripts/reference-apps-check.ts --live`, and `node scripts/rbi-outcome.ts --run-local`. Current results and unresolved model outcomes are recorded in `docs/evaluation/EVALUATION.md`; successful app refreshes do not certify every generated chat answer.
 

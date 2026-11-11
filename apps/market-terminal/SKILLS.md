@@ -12,7 +12,7 @@ These skills are installed, updated and removed with the app. While the app is i
 - `app-maintainer`: changing the package, its surfaces and these documents; bumping its version and running the tests.
 - `app-debugger`: finding why an action, refresh or view does not behave as expected.
 - `app-admin`: reviewing Access, tool and destination rules, and Background operation.
-- `interactive-ui` and `surface-design`: preserve the shared date range, unadjusted basis and exact retained session records when presenting the linked charts.
+- `presentation`: preserve the shared date range, unadjusted basis and exact retained session records when presenting the linked charts.
 
 ## Requires
 

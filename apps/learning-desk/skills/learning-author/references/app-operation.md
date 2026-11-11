@@ -4,7 +4,7 @@
 
 This exported learning-author procedure owns the learning method; do not create a parallel copy elsewhere. Use enabled app-operator for app controls/receipts, app-maintainer with app-authoring for package changes, app-debugger with debug-error for failures, and app-admin for execution/usage boundaries. Read their actual procedures when needed; names here do not grant tools or guarantee automatic loading. Enabled research/domain skills and curated MCP sources remain the existing extension mechanism.
 
-Skill names/descriptions are selected first; supporting files load through read_skill_file. interactive-ui and required surface-design own any additional chat interfaces; broadcast-programme owns programme composition. The app's deterministic handlers need no skill/model request per study action. The Review drafts plain-language editor modifies a separate draft buffer; save validates the draft and personal acceptance remains separate. Preserve model/source failures and distinguish proposal mechanics from factual or teaching quality when changing this procedure.
+Skill names/descriptions are selected first; supporting files load through read_skill_file. presentation owns any additional chat interfaces; broadcast-programme owns programme composition. The app's deterministic handlers need no skill/model request per study action. The Review drafts plain-language editor modifies a separate draft buffer; save validates the draft and personal acceptance remains separate. Preserve model/source failures and distinguish proposal mechanics from factual or teaching quality when changing this procedure.
 
 ## Shared Access and package review
 

@@ -4,7 +4,7 @@
 - `app-authoring` and its package template: the method this app follows.
 - `app-maintainer`: changes to this package, keeping old state loading through `normalize()`.
 - `app-debugger` with `debug-error`: a failed run. Start from the status chip, the refresh notice and Sources → Feed health.
-- `interactive-ui` and `surface-design`: compact story previews, compact section/publication/publisher/order dropdowns in Sections, direct top-page section/topic choices, bounded collections and source coverage charts. Following provides compact topic chips with live story counts, an explicit Unfollow action per topic, and discovered topic chips computed across headlines, story clusters and publisher tags. Publisher excerpts and every report belong in Full coverage; preview density never changes the canonical records or source facts. Source/image settings save automatically.
+- `presentation`: compact story previews, compact section/publication/publisher/order dropdowns in Sections, direct top-page section/topic choices, bounded collections and source coverage charts. Following provides compact topic chips with live story counts, an explicit Unfollow action per topic, and discovered topic chips computed across headlines, story clusters and publisher tags. Publisher excerpts and every report belong in Full coverage; preview density never changes the canonical records or source facts. Source/image settings save automatically.
 - `app-maintainer` layout verification: `node scripts/news-desk-check.ts` covers seven views, all source/coverage sub-tabs and navigation/filter/bookmark/topic actions in wide and narrow WebKit. A retained publisher snapshot may be replayed for visual review; no new source read or model outcome is implied.
 
 ## Hosted operation

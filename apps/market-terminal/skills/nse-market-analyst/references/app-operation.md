@@ -4,7 +4,7 @@
 - `app-authoring` and its package template: the method this app follows.
 - `app-maintainer`: changes to this package, keeping old state loading through `normalize()`.
 - `app-debugger` with `debug-error`: a failed run. Start from the header status chip and the Sources ledger.
-- `interactive-ui` and `surface-design`: bindings, record-bound charts and tables.
+- `presentation`: bindings, record-bound charts and tables.
 
 The user can save/switch/delete lists in Watchlist and export the canonical Portfolio CSV with its explicit Export CSV button. Query tools cannot mutate lists, export files or start speech. The host header owns refresh and radio/voice controls.
 

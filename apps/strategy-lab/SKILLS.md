@@ -6,11 +6,11 @@ Skill names and descriptions are selected first; their supporting text loads wit
 - `app-maintainer`: updates that keep saved strategies, results and paper books.
 - `app-debugger` with `debug-error`: diagnosis from the Data view's receipts and sync notices.
 - `app-operator` and `app-admin`: Background operation, schedule and recovery.
-- `interactive-ui` and `surface-design`: presenting the app's results on the canvas from returned records.
+- `presentation`: presenting the app's results on the canvas from returned records.
 
 ## Ships with this app
 
-- `strategy-lab-reader` (`skills/strategy-lab-reader/SKILL.md`): reads `get_strategy_results` and `get_paper_accounts` and explains them with their periods, assumptions and limits. Requires `interactive-ui`.
+- `strategy-lab-reader` (`skills/strategy-lab-reader/SKILL.md`): reads `get_strategy_results` and `get_paper_accounts` and explains them with their periods, assumptions and limits.
 
 The skills read returned records only. History volume and the 50-stock universe live in the app's database, and `app-maintainer` must keep its schema check and re-read of lost history when the saved shape changes.
 
