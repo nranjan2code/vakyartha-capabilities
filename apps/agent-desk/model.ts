@@ -1,6 +1,10 @@
 // Agent Desk's one domain owner: task contracts, their work plans, saved attempts
 // and personal review. Everything else (views, handlers, the worker skill) derives
 // from these records.
+//
+// The prepared requests say what outcome is wanted, never which tools to call or in
+// what order: the skills' plans own that, and a request that names a tool sends a
+// step looking for a tool it was not given.
 
 export const LIMITS = { tasks: 30, attempts: 12, criteria: 8, assignments: 8, stateBytes: 1_500_000 } as const;
 
@@ -151,7 +155,7 @@ const brief = (t: Task) => `Agent Desk task ${t.id}: ${t.goal.slice(0, 1200)}\nC
 export function planRequest(s: State): string {
   const t = current(s);
   if (!t) return 'Create a task contract first.';
-  return `Plan the work for ${brief(t)}\nRead get_task_context for the full supplied inputs, the current plan and the revision. Split the task only where a separate worker with a fresh context earns its cost: an independent judgment against the original evidence, or a piece that needs a smaller context of its own. Length or step count alone is not a reason. Give each assignment one objective, what its result must contain, and its reason. If no split helps, save an empty plan. Then call plan_work with the current expectedRevision; it replaces the saved plan and starts no work. ${RULES}`;
+  return `Plan the work for ${brief(t)}\nSplit the task only where a separate worker with a fresh context earns its cost: an independent judgment against the original evidence, or a piece that needs a smaller context of its own. Length or step count alone is not a reason. Give each assignment one objective, what its result must contain, and its reason. If no split helps, save an empty plan. Save the plan for my review; it replaces the saved plan and starts no work. ${RULES}`;
 }
 
 /** The prepared request that asks the assistant to carry the task out, one worker per planned assignment. */
@@ -161,7 +165,7 @@ export function runRequest(s: State): string {
   const workers = t.plan.length
     ? `The saved plan has ${t.plan.length} ${t.plan.length === 1 ? 'assignment' : 'assignments'} (${t.plan.map(a => a.id).join(', ')}). Carry out each one on its own, as a separate worker that sees only that assignment and the task inputs, and keep each result apart, including failures. Then combine only what the worker results support.`
     : 'There is no work plan, so do the work as one worker.';
-  return `Work on ${brief(t)}\nApproach: ${s.approach}\nRead get_task_context for the full supplied inputs and current revision. ${workers} Report actual sources, exact values, tests and output receipts; calculations from supplied inputs cite the original input name and values. Then read get_task_context again and call propose_attempt with one report per planned assignment and one check per criterion. Record missing evidence as unknown and failures as fail. ${RULES}`;
+  return `Work on ${brief(t)}\nApproach: ${s.approach}\n${workers} Report actual sources, exact values, tests and output receipts; calculations from supplied inputs cite the original input name and values. Save the result as one unreviewed attempt, with one report per planned assignment and one check per criterion. Record missing evidence as unknown and failures as fail. ${RULES}`;
 }
 
 /** Controls for the shared assistant panel. Labels and requests are data; the host owns Send, approvals and the save receipt. */
