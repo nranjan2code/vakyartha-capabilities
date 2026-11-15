@@ -43,6 +43,9 @@ test('a plan is a revision-checked proposal the person can edit, and it starts n
   await assert.rejects(handleAction('', { expectedRevision: 3, taskId: 'task-1', assignments: [{ ...pieces[0], reason: 'faster' }] }, c, 'plan_work'), /reason/);
   await assert.rejects(handleAction('', { expectedRevision: 3, taskId: 'task-1', assignments: Array(9).fill(pieces[0]) }, c, 'plan_work'), /at most 8/);
   assert.equal(task(c).plan.length, 0, 'a refused plan changes nothing');
+  // The host's tool bridge has already checked the revision and removed the field.
+  await handleAction('tool:plan_work', { taskId: 'task-1', assignments: [pieces[0]] }, c, 'plan_work');
+  assert.equal(task(c).plan.length, 1);
   const saved = await handleAction('', { expectedRevision: 3, taskId: 'task-1', assignments: pieces }, c, 'plan_work');
   assert.equal(saved.focusSurface, 'plan');
   assert.equal(task(c).plan.length, 2);

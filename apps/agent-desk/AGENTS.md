@@ -6,7 +6,7 @@ Read the app-building and skill-authoring guides before you change this package.
 
 - `model.ts` defines the state and its validation. `context.state` is the only saved record. `normalize` rejects invalid saved records and never drops them.
 - A task's goal, inputs and criteria are set once, by `create_task`. No action changes them. Plans, attempts and lessons change only while the task is open, and a lesson only after acceptance.
-- Every governed save names an integer `expectedRevision` that equals the current revision. A stale or missing revision changes nothing.
+- Every governed save names an integer `expectedRevision` that equals the current revision. A stale or missing revision changes nothing. The host's tool bridge checks the revision and removes the field before the handler runs, marking the call with a `tool:` control id; the handler checks it for every other caller.
 - Each report copies its assignment's objective and acceptance text, so a later plan change cannot rewrite saved evidence.
 - A proposal cannot set personal reviews, acceptance, lessons or host receipts. New reviews start `unchecked`. The execution receipt comes only from the host context, never from model arguments.
 - Acceptance needs a pass with a note on every criterion and a reference on every claim.

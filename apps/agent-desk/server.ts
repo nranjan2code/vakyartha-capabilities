@@ -12,9 +12,14 @@ const payload = (v: unknown): Record<string, unknown> => {
   return v;
 };
 
-/** A governed save names the revision it read; a stale or missing one changes nothing. */
-function fresh(c: Context, p: Record<string, unknown>, s: State): Task {
-  if (!Number.isSafeInteger(c.appRevision) || p.expectedRevision !== c.appRevision) throw Error('Task changed; read get_task_context again before saving');
+/**
+ * A governed save names the revision it read; a stale or missing one changes nothing.
+ * The host's tool bridge checks the revision itself and removes the field, marking the
+ * call with a tool: control id; any other caller must name the current revision here.
+ */
+function fresh(c: Context, p: Record<string, unknown>, s: State, controlId: string): Task {
+  const checked = p.expectedRevision === undefined ? controlId.startsWith('tool:') : p.expectedRevision === c.appRevision;
+  if (!Number.isSafeInteger(c.appRevision) || !checked) throw Error('Task changed; read get_task_context again before saving');
   const task = s.tasks.find(t => t.id === p.taskId);
   if (!task || task.accepted) throw Error('Choose an open task contract');
   return task;
@@ -59,7 +64,7 @@ function edit(s: State, path: string, value: unknown): Outcome {
   throw Error('Unknown task field');
 }
 
-function act(s: State, action: string, value: unknown, c: Context): Outcome {
+function act(s: State, action: string, value: unknown, c: Context, controlId: string): Outcome {
   const task = current(s), attempt = selectedAttempt(s);
   switch (action) {
     case 'refresh': return {};
@@ -100,14 +105,14 @@ function act(s: State, action: string, value: unknown, c: Context): Outcome {
       return { affected: ['plan'] };
     }
     case 'plan_work': {
-      const p = payload(value), target = fresh(c, p, s);
+      const p = payload(value), target = fresh(c, p, s, controlId);
       if (!Array.isArray(p.assignments) || p.assignments.length > LIMITS.assignments) throw Error(`Supply at most ${LIMITS.assignments} assignments; an empty list keeps the task with one worker`);
       target.plan = p.assignments.map(assignmentDraft).map(a => ({ id: `w${++s.next}`, ...a }));
       s.selected = target.id;
       return { focus: 'plan' };
     }
     case 'propose_attempt': {
-      const p = payload(value), target = fresh(c, p, s);
+      const p = payload(value), target = fresh(c, p, s, controlId);
       if (target.attempts.length >= LIMITS.attempts) throw Error(`Task holds ${LIMITS.attempts} attempts; keep this evidence and start a new contract`);
       if (!Array.isArray(p.claims) || p.claims.length !== target.criteria.length) throw Error('Supply one check for every frozen criterion');
       const claims = p.claims.map(claim);
@@ -130,7 +135,7 @@ function act(s: State, action: string, value: unknown, c: Context): Outcome {
 
 export async function handleAction(controlId: string, value: unknown, c: Context, action?: string) {
   const s = normalize(c.state);
-  const { focus, affected } = action ? act(s, action, value, c) : edit(s, controlId, value);
+  const { focus, affected } = action ? act(s, action, value, c, controlId) : edit(s, controlId, value);
   if (JSON.stringify(s).length > LIMITS.stateBytes) throw Error('Workspace content exceeds 1.5 MB; keep the current saved workspace and export results');
   c.state = s;
   return { updates: views(s).filter(v => !affected || affected.includes(v.surface)), ...(focus ? { focusSurface: focus } : {}) };
