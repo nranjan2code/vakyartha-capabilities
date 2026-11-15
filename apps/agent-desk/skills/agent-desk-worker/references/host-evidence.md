@@ -1,5 +1,16 @@
-Host response evidence: context.assistantExecution is supplied outside model arguments for the matching app assistant turn. get_task_context exposes the currently offered tool names (not permission grants) and completed response receipts. propose_attempt retains this context as execution; it ignores similarly named model arguments. Each receipt contains host identity, tool name, time, status and SHA-256 of the actual arguments and response, without copying their private contents. An in-flight save is not a completed receipt. Evidence, speech and Markdown export distinguish these observations from prose claims and personal verdicts. These receipts do not verify source truth or an external mutation. Missing context remains explicitly absent.
+# Host evidence
 
-Context queries retain the complete canonical state while returning the frozen contract and a compact attempt index by default. Supply exact attemptId to inspect one full candidate; missing or foreign IDs fail without mutation. This avoids copying all retained results into each primary-model read. Criterion IDs follow the app-created c1 through c8 domain in both schema and validation; error feedback names the exact frozen IDs without remapping claims. Host receipts use a searchable, locally paged table; export retains all receipts and speech uses the same canonical count. Saving content alone does not force another model-authored canvas; explicit canvas procedures remain discoverable.
+The host, not the model, records what happened in an assistant turn that works on an Agent Desk task. `get_task_context` returns it as `assistantExecution`: the tool names offered in this turn (an offer is not a permission) and one receipt per completed tool response. Each receipt has the host's identity for the call, the tool name, the time, whether it returned or failed, and SHA-256 digests of the actual arguments and response. The private contents are not copied.
 
-Choose output according to the actual task. A text answer, source code, changed files or an interactive artifact may be appropriate. Saving a proposal rebuilds this app’s own views and does not require an additional model-authored canvas. Vakyartha owns shared presentation of retained results.
+When `propose_attempt` saves an attempt, the host attaches this record to it. Anything with a similar name in the model's own arguments is ignored. A save still in flight is not a completed receipt, and a turn with no record is saved with none.
+
+How to use it:
+
+- Cite a receipt's identity when a claim or a worker report rests on a tool response.
+- A receipt proves a response was observed. It does not prove the response is true or that an outside change succeeded; say which of those you checked.
+- With no receipt, do not state that a tool, a sandbox or a source read was used. Mark the evidence unknown.
+- Workers in one turn share the turn's record; a worker has no separate receipts of its own.
+
+`get_task_context` returns the full frozen contract and the plan, with attempts as a compact index. Ask for one attempt by its exact `attemptId` to read its full result and worker reports. Criterion IDs are `c1` to `c8` and assignment IDs look like `w3`; copy both unchanged.
+
+Choose the output the task calls for: a text answer, source code, changed files or an interactive result. Saving an attempt rebuilds this app's own views and needs no extra canvas.

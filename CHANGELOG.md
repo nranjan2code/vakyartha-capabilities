@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Agent Desk rewritten: work plans with bounded worker assignments, one worker per assignment in a run, worker reports kept with each attempt, a plan_work export, and views renamed to Tasks, Plan, Evidence and Compare.
+
 - All 29 catalog skills and 11 app skills declare bounded domain steps. Text-only workflows retain their Text output. Vakyartha provides presentation over retained evidence, including market results. Weather binds resolved coordinates and the requested forecast day count without retyping either.
 
 

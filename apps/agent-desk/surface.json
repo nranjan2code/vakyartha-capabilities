@@ -1,6 +1,6 @@
 [
   {
-    "id": "brief",
+    "id": "tasks",
     "title": "Tasks",
     "nodes": [
       {
@@ -11,7 +11,7 @@
         },
         "children": [
           "intro",
-          "brief",
+          "new",
           "empty"
         ]
       },
@@ -19,16 +19,16 @@
         "id": "intro",
         "type": "text",
         "props": {
-          "content": "Give work a clear goal. Keep the evidence that tells you whether it succeeded.",
+          "content": "Give work a clear goal, split it among workers where that helps, and keep the evidence that shows whether it succeeded.",
           "variant": "body"
         }
       },
       {
-        "id": "brief",
+        "id": "new",
         "type": "section",
         "props": {
           "title": "New task contract",
-          "description": "Criteria and supplied inputs stay fixed across attempts. Start a new contract if the goal changes."
+          "description": "The goal, supplied inputs and criteria stay fixed across attempts. Start a new contract if the goal changes."
         },
         "children": [
           "title",
@@ -68,7 +68,7 @@
         "id": "criteria",
         "type": "textarea",
         "props": {
-          "label": "Complete when — one observable criterion per line",
+          "label": "Complete when: one observable criterion per line",
           "bind": "/draft/criteria",
           "placeholder": "What result, source, value, interaction or receipt must be checked?"
         }
@@ -87,7 +87,7 @@
         "id": "empty",
         "type": "text",
         "props": {
-          "content": "No tasks saved yet. No model request starts when you save a contract.",
+          "content": "No tasks saved yet. Saving a contract starts no model request.",
           "variant": "body"
         }
       }
@@ -103,8 +103,8 @@
     }
   },
   {
-    "id": "workspace",
-    "title": "Workspace",
+    "id": "plan",
+    "title": "Plan",
     "nodes": [
       {
         "id": "root",
@@ -125,44 +125,79 @@
     ],
     "data": {
       "task": {
+        "title": "",
         "goal": ""
       },
       "criteria": [],
-      "approach": "Read the supplied inputs, perform the work, and check every completion criterion.",
+      "plan": [],
+      "assignment": {
+        "objective": "",
+        "acceptance": "",
+        "reason": "context_bound"
+      },
+      "approach": "Read the supplied inputs, do the work, and check every completion criterion.",
       "attempts": [],
-      "request": "Create a task contract first.",
-      "workflow": {
+      "planRequest": "Create a task contract first.",
+      "planning": {
+        "saveTool": "plan_work",
+        "title": "Work plan",
+        "stages": [
+          "Plan",
+          "Review"
+        ],
+        "brief": "Goal and assignments",
+        "boundary": "Send asks your selected assistant for a plan. Saving a plan starts no work and grants nothing.",
+        "saved": "Plan saved. Review or edit the assignments before running them.",
+        "steps": [
+          {
+            "id": "replan",
+            "saveTool": "plan_work",
+            "label": "Plan it differently",
+            "mode": "edit",
+            "stage": 0,
+            "message": "Read the current Agent Desk task context and plan the work differently. Say what changes and why a separate worker earns its cost for each assignment, then save the replacement with plan_work and a fresh expectedRevision. Do not change the criteria. What I want changed: "
+          }
+        ],
+        "review": {
+          "label": "Review the plan",
+          "surface": "plan",
+          "tool": "plan_work",
+          "stage": 1
+        }
+      },
+      "runRequest": "Create a task contract first.",
+      "working": {
         "saveTool": "propose_attempt",
-        "title": "Task workspace",
+        "title": "Task work",
         "stages": [
           "Work",
-          "Probe",
+          "Retry",
           "Review"
         ],
         "brief": "Goal and evidence",
-        "boundary": "Send starts work through your selected assistant and existing approvals. Saving a candidate never accepts it.",
-        "saved": "Candidate saved. Check each criterion before accepting the result.",
+        "boundary": "Send starts work through your selected assistant and existing approvals. Saving an attempt never accepts it.",
+        "saved": "Attempt saved. Check each criterion before accepting the result.",
         "steps": [
           {
-            "id": "probe",
+            "id": "retry",
             "saveTool": "propose_attempt",
             "label": "Try a different approach",
             "mode": "edit",
             "stage": 1,
-            "message": "Try a materially different approach on the same frozen task. State what changed and why it may help; keep previous failed evidence. Perform the work through permitted tools, then save a separate propose_attempt with fresh expectedRevision. Do not change the task criteria. My approach: "
+            "message": "Try a materially different approach on the same frozen task and plan. State what changed and why it may help; keep the earlier failed evidence. Do the work through permitted tools, then save a separate propose_attempt with a fresh expectedRevision. Do not change the criteria. My approach: "
           },
           {
-            "id": "compose",
+            "id": "combine",
             "saveTool": "propose_attempt",
             "label": "Combine supported findings",
             "mode": "send",
             "stage": 1,
-            "message": "Read current Agent Desk task context. Compare the saved attempts against the same frozen criteria. Combine only findings supported by actual evidence, perform remaining checks with permitted tools, preserve failures and uncertainty, and save a new unreviewed propose_attempt. Do not change permissions, instructions or criteria."
+            "message": "Read the current Agent Desk task context. Compare the saved attempts and their worker reports against the same frozen criteria. Combine only findings supported by actual evidence, do the remaining checks with permitted tools, keep failures and uncertainty visible, and save a new unreviewed propose_attempt. Do not change permissions, instructions or criteria."
           }
         ],
         "review": {
           "label": "Review saved evidence",
-          "surface": "review",
+          "surface": "evidence",
           "tool": "propose_attempt",
           "stage": 2
         }
@@ -178,7 +213,7 @@
     }
   },
   {
-    "id": "review",
+    "id": "evidence",
     "title": "Evidence",
     "nodes": [
       {
@@ -193,7 +228,7 @@
         "id": "empty",
         "type": "text",
         "props": {
-          "content": "Open a saved attempt in Workspace to review its evidence.",
+          "content": "Open a saved attempt in Plan to review its evidence.",
           "variant": "body"
         }
       }
@@ -202,8 +237,11 @@
       "candidate": {
         "identity": "",
         "result": "",
-        "limits": "No limits recorded by the assistant. Check for omissions."
+        "limits": "No limits recorded by the assistant. Check for omissions.",
+        "receipts": "No host execution receipt is attached to this attempt. Statements about tool use in its text are unsupported."
       },
+      "reports": [],
+      "operations": [],
       "checks": [],
       "lesson": "",
       "export": {
@@ -238,7 +276,7 @@
         "id": "empty",
         "type": "text",
         "props": {
-          "content": "Attempts will appear after the assistant saves candidates. Earlier failures remain visible.",
+          "content": "Attempts appear after the assistant saves them. Earlier failures stay visible.",
           "variant": "body"
         }
       }

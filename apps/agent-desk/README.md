@@ -1,23 +1,35 @@
 # Agent Desk
 
-A general task workspace in Vakyartha. Save a named goal, supplied input and one to eight observable completion criteria. The contract stays fixed across attempts. Workspace opens the shared docked assistant; Send explicitly starts work using the selected provider, skills, tools and approvals. Research and code execution use enabled integrations and the existing sandbox. Opening the studio or saving a contract never starts inference.
+Agent Desk turns a task into a fixed contract, splits the work into planned pieces for separate workers, and keeps every result for your review. Use it for research, coding and other work you can check against clear criteria.
 
-The assistant reads get_task_context, performs the work, and appends propose_attempt with the current expectedRevision. Every attempt retains its approach, candidate, limitations and one evidence claim per criterion. Try a different approach prepares an editable request; Combine supported findings explicitly sends a continuation through the same studio. Neither installs instructions nor grants capabilities.
+## Create a task
 
-Evidence keeps assistant claims separate from personal verdicts. Inspect actual sources, values, interactions and receipts, then record a note and verdict for every criterion. Acceptance requires all personal checks passed and a reference for each. Acceptance is your recorded review, not automatic factual verification. Failed and unknown claims remain visible. Accepted attempts are locked. A retained lesson stays on its task and is never a memory service or activated skill.
+Give the task a name and a goal. Add supplied inputs and references if you have them, then one to eight completion criteria, one per line. The contract stays fixed across attempts. To change the goal or the criteria, start a new task.
 
-Compare shows all attempts on that same contract, with claim counts, personal passes and missing references. These are not quality scores. Export produces Markdown with the selected candidate, original criteria, references and personal review. The shared header Listen reads the selected task status from the same records. Local collections page/search without source or model requests.
+## Plan the work
 
-Prepare background work opens the existing trusted Work form. Review the provider, limits, inputs, spending and capabilities before creating native work. This initial native route accepts supplied-input tasks and explicitly refuses integrations and specialized result policies; interactive research/coding remains available through the shared assistant. Background Work results live in their canonical Work workspace, not a second Agent Desk result store. The app and computer must remain running.
+In Plan, add assignments yourself or choose Plan with the assistant. Each assignment has one objective, what its result must contain, and a reason: independent judgment, or a smaller context of its own. A plan holds up to eight assignments. Remove any assignment before you run the task. Without a plan, one worker does the task. Saving a plan starts no work.
 
-Limits: 30 tasks, 12 attempts per task, eight criteria, 1.5 MB JSON content. No raw network, direct model endpoint, SQL, package timer, execution worker or private permission store. Shared Access, Background and Settings remain host-owned. New packages seed through the normal built-in lifecycle; existing installed packages require normal reviewed updates.
+## Run it
 
-Every pass claim requires a nonempty source or calculation reference; absence of evidence must be unknown or fail. References and candidate prose remain unverified assistant claims, including claims of tool use. Personal evidence review must check actual receipts. The worker procedure declares get_task_context as its input read; propose_attempt is the separately approved, revision-checked save. Shared workflow saveTool keeps Send and save open until the real commit receipt; no proposal can set personal verdicts or acceptance.
+Choose Run with the assistant, then press Send in the assistant panel. Opening the panel sends nothing. Send uses your selected provider, skills, integrations and approvals. The assistant runs one worker per planned assignment, each with only its own assignment and the task inputs, and then saves an attempt. Workers share the one authority of that turn and get no extra permissions.
 
-Native Work accepts text, code or interactive candidates, reads bounded UTF-8 text/source snapshots on demand and can load frozen selected skills through the shared loader. It imposes no task-specific layout, comparison ban or flat data model. Native integration tools, decision shaping, real delegation and automatic improvement remain unfinished. Interactive research/coding uses the shared assistant and its existing governed tools. Saved code is not evidence that it ran. Keep original failed outcomes open and lessons inactive until separately reviewed.
+## Review the result
 
-Host response evidence: context.assistantExecution is supplied outside model arguments for the matching app assistant turn. get_task_context exposes the currently offered tool names (not permission grants) and completed response receipts. propose_attempt retains this context as execution; it ignores similarly named model arguments. Each receipt contains host identity, tool name, time, status and SHA-256 of the actual arguments and response, without copying their private contents. An in-flight save is not a completed receipt. Evidence, speech and Markdown export distinguish these observations from prose claims and personal verdicts. These receipts do not verify source truth or an external mutation. Missing context remains explicitly absent.
+Open Evidence. Each attempt keeps its worker reports, including failed ones. Each criterion shows the assistant's claim and its reference. The assistant's claims are not verified until you check them. Check the actual sources, values or receipts, then record a verdict and a note for every criterion. Accept the result when every criterion has a pass with a note and every claim has a reference. An accepted task is locked. You can then save a lesson, which stays on that task.
 
-Context queries retain the complete canonical state while returning the frozen contract and a compact attempt index by default. Supply exact attemptId to inspect one full candidate; missing or foreign IDs fail without mutation. This avoids copying all retained results into each primary-model read. Criterion IDs follow the app-created c1 through c8 domain in both schema and validation; error feedback names the exact frozen IDs without remapping claims. Host receipts use a searchable, locally paged table; export retains all receipts and speech uses the same canonical count. Saving content alone does not force another model-authored canvas; explicit canvas procedures remain discoverable.
+## Compare and export
 
-The packaged assistant skill uses checked domain steps for its declared tools and interpretation. Vakyartha supplies the shared presentation procedure over retained results; this skill does not author report layout. Text requests remain text, and proposal writes still require the existing permissions and personal review.
+Compare lists all attempts on the same contract, with report counts, claim counts, your passes and missing references. These are counts, not quality scores. Export saves the selected attempt as Markdown through the host's file save.
+
+## Background work
+
+Prepare background work opens the Work form with the goal, criteria, inputs and planned pieces filled in. Choose the provider, the limits and whether delegated work is allowed there. Agent Desk starts nothing. Results stay in Work.
+
+## Voice
+
+The Listen action in the header reads the status of the selected task from the Plan view.
+
+## Limits
+
+30 tasks, 12 attempts per task, 8 criteria, 8 assignments per plan, and 1.5 MB of saved content. The app has no delete action for tasks or attempts.

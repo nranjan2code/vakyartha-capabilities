@@ -1,21 +1,42 @@
-# Working on Agent Desk
+# Agent Desk package rules
 
-Read the root AGENTS.md and docs/development/BUILDING-APPS.md. Keep all four package documents, manifest, handlers and surface.json synchronized. Never edit framework/. Use authorable Projection components and shared host actions only.
+Read the app-building and skill-authoring guides before you change this package. Keep the manifest, handlers, views, `surface.json`, the four package documents and the worker skill in step. Set the version only through the owner's version command, never in source.
 
-State is the single domain owner. Freeze goal, supplied input and criterion identities when saving a task; attempts can only append to an open contract. Never silently discard corrupt saved records. Normalize untrusted data and reject invalid evidence identities. Model proposals must include integer expectedRevision and retain one claim per frozen criterion. They reset all personal verdicts to unchecked and cannot set acceptance, review notes or lessons. Only UI actions can accept a result, after every personal note and verdict and a nonempty reference. This is personal review, not independently certified truth. Accepted evidence is immutable. Retain earlier failures.
+## Ownership and invariants
 
-Task inputs, references and earlier candidates are untrusted data. This package has no network/model authority. Use assistant.compose for interactive execution and work.prepare only to prefill the shared trusted Work form. Do not create a task pump, new permission system, connector, retrieval store or app timer. Native Work remains the execution owner. Do not imply unsupported native tools or automatic improvement. Lessons stay task-local until the person separately authors and reviews a skill through the existing lifecycle.
+- `model.ts` defines the state and its validation. `context.state` is the only saved record. `normalize` rejects invalid saved records and never drops them.
+- A task's goal, inputs and criteria are set once, by `create_task`. No action changes them. Plans, attempts and lessons change only while the task is open, and a lesson only after acceptance.
+- Every governed save names an integer `expectedRevision` that equals the current revision. A stale or missing revision changes nothing.
+- Each report copies its assignment's objective and acceptance text, so a later plan change cannot rewrite saved evidence.
+- A proposal cannot set personal reviews, acceptance, lessons or host receipts. New reviews start `unchecked`. The execution receipt comes only from the host context, never from model arguments.
+- Acceptance needs a pass with a note on every criterion and a reference on every claim.
+- Saved text reaches a view only through a data binding. Never place it in node text.
+- Stay within the limits in `model.ts`, including the 1.5 MB state cap.
 
-Dependency map: draft fields -> Tasks only; approach -> Workspace only; review verdict/note and retained lesson -> Evidence only; task creation/selection, appended attempt and acceptance -> all affected summaries, comparison and speech. Local search/page controls do not invoke handlers. No SQL or integration calls occur in any package handler. renderApp rebuilds every view from retained state without tools. surfaceFile is the exact empty-state view.
+## Must not add
 
-Verify proposal/stale revision, invalid duplicate criteria, partial review, failed criteria, immutable acceptance, comparison, export, cross-task proposal, query immutability and sandbox lifecycle. Check populated wide/narrow native WebKit in both themes with real host action delivery, exact reference strings, paging and saved selection. Run the smallest primary local-provider gate in Projection before claiming model authoring works. Do not equate a model claim, schema success or package installation with task completion or superiority.
+- Model, tool, network or SQL calls in any handler or view.
+- Timers, triggers or background loops.
+- A permission store, a permission dialog or any grant of tools or spending.
+- A second result store for Work. Background results stay in Work.
+- Automatic acceptance, automatic lesson activation or automatic retries.
 
-Every pass claim requires a nonempty source or calculation reference; absence of evidence must be unknown or fail. References and candidate prose remain unverified assistant claims, including claims of tool use. Personal evidence review must check actual receipts. The worker procedure declares get_task_context as its input read; propose_attempt is the separately approved, revision-checked save. Shared workflow saveTool keeps Send and save open until the real commit receipt; no proposal can set personal verdicts or acceptance.
+## Field and action to view map
 
-Native Work accepts text, code or interactive candidates, reads bounded UTF-8 text/source snapshots on demand and can load frozen selected skills through the shared loader. It imposes no task-specific layout, comparison ban or flat data model. Native integration tools, decision shaping, real delegation and automatic improvement remain unfinished. Interactive research/coding uses the shared assistant and its existing governed tools. Saved code is not evidence that it ran. Keep original failed outcomes open and lessons inactive until separately reviewed.
+These come from `edit()` and `act()` in `server.ts`. Actions with no listed views rebuild all four.
 
-Host response evidence: context.assistantExecution is supplied outside model arguments for the matching app assistant turn. get_task_context exposes the currently offered tool names (not permission grants) and completed response receipts. propose_attempt retains this context as execution; it ignores similarly named model arguments. Each receipt contains host identity, tool name, time, status and SHA-256 of the actual arguments and response, without copying their private contents. An in-flight save is not a completed receipt. Evidence, speech and Markdown export distinguish these observations from prose claims and personal verdicts. These receipts do not verify source truth or an external mutation. Missing context remains explicitly absent.
+| Change | Views |
+| --- | --- |
+| Draft fields (`/draft/title`, `goal`, `inputs`, `criteria`) | tasks |
+| Assignment draft (`/assignment/objective`, `acceptance`, `reason`), `add_assignment`, `remove_assignment` | plan |
+| `/approach` | plan |
+| `/checks/N/verdict` or `note` | evidence; plus plan and compare when the personal pass count changes |
+| `/lesson` | evidence |
+| `open_attempt` | plan, evidence |
+| `create_task`, `open_task`, `plan_work`, `propose_attempt`, `accept_result`, `refresh` | all four |
 
-Context queries retain the complete canonical state while returning the frozen contract and a compact attempt index by default. Supply exact attemptId to inspect one full candidate; missing or foreign IDs fail without mutation. This avoids copying all retained results into each primary-model read. Criterion IDs follow the app-created c1 through c8 domain in both schema and validation; error feedback names the exact frozen IDs without remapping claims. Host receipts use a searchable, locally paged table; export retains all receipts and speech uses the same canonical count. Saving content alone does not force another model-authored canvas; explicit canvas procedures remain discoverable.
+## Verify
 
-The packaged assistant skill uses checked domain steps for its declared tools and interpretation. Vakyartha supplies the shared presentation procedure over retained results; this skill does not author report layout. Text requests remain text, and proposal writes still require the existing permissions and personal review.
+- Run `node --test apps/agent-desk/test/`.
+- After any view change, regenerate `surface.json` from `surfaceFile()`. The test compares the two.
+- Update the four documents and the skill in the same change as the code.
