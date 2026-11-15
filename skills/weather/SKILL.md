@@ -38,6 +38,7 @@ This connector uses the free public API and supports no paid key or subscription
    - max: 8
    - arguments: {"name":{"item":""},"count":{"value":3}}
    - effect: read
+   - valid-for: 86400
    - done: has /results/0/latitude
 5. **forecast**: Read relative-day weather. Use daily temperature_2m_max and temperature_2m_min for ranges.
    - tool: open-meteo__weather_forecast

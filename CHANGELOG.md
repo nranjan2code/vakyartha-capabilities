@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Weather keeps a place's coordinates for a day (`valid-for` on the geocode step), so a follow-up in the same chat does not look the place up again. Forecasts and other readings are always read. Needs a Vakyartha whose skill steps accept `valid-for`.
+
+- Four development-channel skills for any language: translate, proofread, write-document and study-guide.
+
 - Agent Desk rewritten: work plans with bounded worker assignments, one worker per assignment in a run, worker reports kept with each attempt, a plan_work export, and views renamed to Tasks, Plan, Evidence and Compare.
 
 - All 29 catalog skills and 11 app skills declare bounded domain steps. Text-only workflows retain their Text output. Vakyartha provides presentation over retained evidence, including market results. Weather binds resolved coordinates and the requested forecast day count without retyping either.
