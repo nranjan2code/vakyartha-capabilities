@@ -286,8 +286,13 @@
     ],
     "skills": [
       {
+        "name": "agent-desk-planner",
+        "description": "Split an Agent Desk task into bounded assignments for separate workers, only where a fresh context earns its cost, and save the plan for the person to review. Starts no work.",
+        "path": "skills/agent-desk-planner/SKILL.md"
+      },
+      {
         "name": "agent-desk-worker",
-        "description": "Plan an Agent Desk task into bounded worker assignments, carry each out as a separate worker, combine what they support against the fixed criteria and save an unreviewed attempt.",
+        "description": "Carry out an Agent Desk task with one separate worker per planned assignment, combine what the workers support against the frozen criteria, and save an unreviewed attempt for personal evidence review.",
         "path": "skills/agent-desk-worker/SKILL.md"
       }
     ]

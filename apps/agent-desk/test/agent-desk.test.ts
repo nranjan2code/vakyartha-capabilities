@@ -218,7 +218,10 @@ test('the manifest, shipped surfaces and assistant controls match the handlers',
   assert.deepEqual([plan.maxItems, reports.maxItems], [8, 8]);
   const c = await planned();
   assert.ok(task(c).plan.every(a => new RegExp(reports.items.properties.assignment.pattern).test(a.id)));
-  const skill = readFileSync(here('skills/agent-desk-worker/SKILL.md'), 'utf8');
-  for (const tool of tools) assert.ok(skill.includes(`app-agent-desk__${tool.name}`), `the worker skill declares ${tool.name}`);
+  // Each save has exactly one skill whose steps call it, so the host can run that plan for a required save.
+  const skills = manifest.exports.skills.map((s: any) => readFileSync(here(s.path), 'utf8'));
+  assert.deepEqual(manifest.exports.skills.map((s: any) => s.name), ['agent-desk-planner', 'agent-desk-worker']);
+  for (const name of writes) assert.equal(skills.filter((text: string) => text.includes(`- tool: app-agent-desk__${name}`)).length, 1, `one plan saves through ${name}`);
+  assert.ok(skills.every((text: string) => text.includes('- tool: app-agent-desk__get_task_context')));
   assert.ok(readFileSync(here('skills/agent-desk-worker/references/host-evidence.md'), 'utf8').length > 0);
 });

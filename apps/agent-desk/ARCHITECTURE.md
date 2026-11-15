@@ -6,7 +6,7 @@
 - `model.ts`: the domain owner. It holds the state shape, limits, validation, the readiness rules (`checked`, `ready`), the prepared request text and the Work brief.
 - `server.ts`: the handlers. `handleAction` applies one edit or action and returns the views it affects. `handleQuery` answers `get_task_context`. `renderApp` rebuilds every view. `surfaceFile` supplies the empty views for `surface.json`.
 - `views.ts`: the four views (Tasks, Plan, Evidence, Compare) and the spoken summary and Markdown export. Every view is derived from the same state.
-- `skills/agent-desk-worker/SKILL.md`: the checked procedure the assistant follows. `references/host-evidence.md` explains the host receipts.
+- `skills/agent-desk-planner/SKILL.md` and `skills/agent-desk-worker/SKILL.md`: the checked procedures the assistant follows. The worker's `references/host-evidence.md` explains the host receipts.
 
 ## Data flow
 
@@ -23,9 +23,14 @@ person verdicts and notes -> accept_result when every criterion is ready -> acce
 
 Every change to state goes through `handleAction`; `handleQuery` only reads. Each affected view is rebuilt from that state.
 
-## Skill
+## Skills
 
-`agent-desk-worker` has one entry step that chooses plan, run or read. In plan mode it lists assignments and saves them with `plan_work`. In run mode it reads the context, does one worker step per planned assignment, combines the results, reads the context again and saves with `propose_attempt`. With no plan, one worker does the task. The skill declares only the app's three exports.
+Each save has exactly one skill whose steps call it, so Vakyartha runs that skill's plan for a Send and save turn and binds the revision and task id itself.
+
+- `agent-desk-planner` reads the context, lists the assignments and saves them with `plan_work`. The saved assignments are the list step's own output, bound by the host.
+- `agent-desk-worker` reads the context, does one worker step per planned assignment, combines the results, reads the context again and saves with `propose_attempt`. The worker reports in the save are the worker steps' own outputs, bound by the host. With no plan, no worker step runs and one worker does the task.
+
+Each skill declares only the exports it uses.
 
 ## Views
 

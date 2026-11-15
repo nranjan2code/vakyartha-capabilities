@@ -1,6 +1,6 @@
 # Agent Desk package rules
 
-Read the app-building and skill-authoring guides before you change this package. Keep the manifest, handlers, views, `surface.json`, the four package documents and the worker skill in step. Set the version only through the owner's version command, never in source.
+Read the app-building and skill-authoring guides before you change this package. Keep the manifest, handlers, views, `surface.json`, the four package documents and both skills in step. Set the version only through the owner's version command, never in source.
 
 ## Ownership and invariants
 
@@ -39,4 +39,5 @@ These come from `edit()` and `act()` in `server.ts`. Actions with no listed view
 
 - Run `node --test apps/agent-desk/test/`.
 - After any view change, regenerate `surface.json` from `surfaceFile()`. The test compares the two.
-- Update the four documents and the skill in the same change as the code.
+- Update the four documents and both skills in the same change as the code.
+- Keep exactly one skill whose steps call each save (`plan_work`, `propose_attempt`). Vakyartha runs that plan for a Send and save turn; with two, or none, the save is left to the open loop.
