@@ -34,7 +34,7 @@ async function planned(): Promise<Context> {
   await handleAction('', { expectedRevision: 1, taskId: 'task-1', assignments: pieces }, c, 'plan_work');
   return c;
 }
-const reportsFor = (c: Context) => task(c).plan.map((a, i) => ({ assignment: a.id, status: i ? 'failed' : 'returned', result: i ? 'Could not add without the values.' : 'Rows 1 and 2 hold 12 and 17.', reference: i ? '' : 'prices.csv rows 1–2' }));
+const reportsFor = (c: Context) => task(c).plan.map((_, i) => ({ status: i ? 'failed' : 'returned', result: i ? 'Could not add without the values.' : 'Rows 1 and 2 hold 12 and 17.', reference: i ? '' : 'prices.csv rows 1–2' }));
 
 test('a plan is a revision-checked proposal the person can edit, and it starts no work', async () => {
   const c = await create(3);
@@ -68,15 +68,16 @@ test('a plan is a revision-checked proposal the person can edit, and it starts n
 
 test('an attempt carries one report per planned assignment and keeps failed workers', async () => {
   const c = await planned();
-  await assert.rejects(handleAction('', proposal(c), c, 'propose_attempt'), /Assignment IDs: w\d+, w\d+/);
+  await assert.rejects(handleAction('', proposal(c), c, 'propose_attempt'), /2 worker reports, one per planned assignment in plan order \(w\d+, w\d+\); 0 supplied/);
   const reports = reportsFor(c);
-  await assert.rejects(handleAction('', proposal(c, { reports: [reports[0], reports[0]] }), c, 'propose_attempt'), /exactly once/);
+  await assert.rejects(handleAction('', proposal(c, { reports: [reports[0]] }), c, 'propose_attempt'), /1 supplied/);
   await assert.rejects(handleAction('', proposal(c, { reports: [reports[0], { ...reports[1], status: 'done' }] }), c, 'propose_attempt'), /status/);
   assert.equal(task(c).attempts.length, 0);
-  const saved = await handleAction('', proposal(c, { reports: [reports[1], reports[0]], reviews: [{ verdict: 'pass' }], accepted: true, execution: { id: 'forged' } }), c, 'propose_attempt');
+  const saved = await handleAction('', proposal(c, { reports, reviews: [{ verdict: 'pass' }], accepted: true, execution: { id: 'forged' } }), c, 'propose_attempt');
   assert.equal(saved.focusSurface, 'evidence');
   const attempt = task(c).attempts[0]!;
-  assert.deepEqual(attempt.reports.map(r => r.status), ['returned', 'failed'], 'reports follow plan order');
+  assert.deepEqual(attempt.reports.map(r => r.status), ['returned', 'failed']);
+  assert.deepEqual(attempt.reports.map(r => r.assignment), task(c).plan.map(a => a.id), 'each report is matched to its assignment by position');
   assert.equal(attempt.reports[0]!.objective, pieces[0]!.objective, 'the assignment is copied into its report');
   assert.ok(attempt.reviews.every(r => r.verdict === 'unchecked' && !r.note), 'a proposal cannot supply personal review');
   assert.equal(attempt.execution, null, 'a receipt comes only from the host context');
@@ -216,8 +217,7 @@ test('the manifest, shipped surfaces and assistant controls match the handlers',
   const plan = tools[1].inputSchema.properties.assignments, reports = tools[2].inputSchema.properties.reports;
   assert.deepEqual(plan.items.properties.reason.enum, ['independent_judgment', 'context_bound']);
   assert.deepEqual([plan.maxItems, reports.maxItems], [8, 8]);
-  const c = await planned();
-  assert.ok(task(c).plan.every(a => new RegExp(reports.items.properties.assignment.pattern).test(a.id)));
+  assert.deepEqual(reports.items.required, ['status', 'result', 'reference'], 'a report carries no identity: it is matched to the plan by order');
   // Each save has exactly one skill whose steps call it, so the host can run that plan for a required save.
   const skills = manifest.exports.skills.map((s: any) => readFileSync(here(s.path), 'utf8'));
   assert.deepEqual(manifest.exports.skills.map((s: any) => s.name), ['agent-desk-planner', 'agent-desk-worker']);

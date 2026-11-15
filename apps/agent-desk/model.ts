@@ -80,16 +80,18 @@ export function assignmentDraft(raw: unknown): Omit<Assignment, 'id'> {
   return { objective: field(raw.objective, ASSIGNMENT_LIMITS.objective, true), acceptance: field(raw.acceptance, ASSIGNMENT_LIMITS.acceptance, true), reason: choice(raw.reason, REASONS, 'An assignment reason') };
 }
 
-/** One worker report for each planned assignment, in plan order. */
+/**
+ * One worker report for each planned assignment, matched by position: the first report
+ * answers the first assignment. Order is the one thing a fan-out of workers guarantees,
+ * so no worker has to copy an identity for its report to land on the right assignment.
+ */
 export function reports(raw: unknown, plan: Assignment[]): Report[] {
   const given = list(raw, LIMITS.assignments, 'Worker reports').map(value => {
     if (!record(value)) throw Error('Each worker report is an object');
-    return { assignment: field(value.assignment, 20, true), status: choice(value.status, ['returned', 'failed'], 'A worker report status'), result: field(value.result, 6000, true), reference: field(value.reference, 1200) };
+    return { status: choice(value.status, ['returned', 'failed'], 'A worker report status'), result: field(value.result, 6000, true), reference: field(value.reference, 1200) };
   });
-  if (given.length !== plan.length || plan.some(a => given.filter(r => r.assignment === a.id).length !== 1)) {
-    throw Error(plan.length ? `Report each planned assignment exactly once. Assignment IDs: ${plan.map(a => a.id).join(', ')}. Copy these IDs exactly.` : 'This task has no work plan, so reports must be an empty list');
-  }
-  return plan.map(a => ({ ...given.find(r => r.assignment === a.id)!, objective: a.objective, acceptance: a.acceptance }));
+  if (given.length !== plan.length) throw Error(plan.length ? `Supply ${plan.length} worker reports, one per planned assignment in plan order (${plan.map(a => a.id).join(', ')}); ${given.length} supplied` : 'This task has no work plan, so reports must be an empty list');
+  return plan.map((a, i) => ({ assignment: a.id, objective: a.objective, acceptance: a.acceptance, ...given[i]! }));
 }
 
 function savedAttempt(raw: unknown, criteria: Criterion[]): Attempt {

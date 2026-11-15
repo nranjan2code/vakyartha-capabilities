@@ -11,6 +11,6 @@ How to use it:
 - With no receipt, do not state that a tool, a sandbox or a source read was used. Mark the evidence unknown.
 - Workers in one turn share the turn's record; a worker has no separate receipts of its own.
 
-`get_task_context` returns the full frozen contract and the plan, with attempts as a compact index. Ask for one attempt by its exact `attemptId` to read its full result and worker reports. Criterion IDs are `c1` to `c8` and assignment IDs look like `w3`; copy both unchanged.
+`get_task_context` returns the full frozen contract and the plan, with attempts as a compact index. Ask for one attempt by its exact `attemptId` to read its full result and worker reports. Criterion IDs are `c1` to `c8`; copy them unchanged. Worker reports carry no identity of their own: they are matched to the plan by order.
 
 Choose the output the task calls for: a text answer, source code, changed files or an interactive result. Saving an attempt rebuilds this app's own views and needs no extra canvas.

@@ -123,7 +123,7 @@
       {
         "name": "propose_attempt",
         "title": "Save an unreviewed attempt",
-        "description": "Append an unreviewed attempt to the exact open task with a fresh integer expectedRevision. Supply one worker report for each planned assignment (an empty list when there is no plan) and one observation for each fixed criterion. Does not accept results, grant permissions or activate lessons.",
+        "description": "Append an unreviewed attempt to the exact open task with a fresh integer expectedRevision. Supply one worker report per planned assignment, in plan order (an empty list when there is no plan), and one observation for each fixed criterion. Does not accept results, grant permissions or activate lessons.",
         "readOnly": false,
         "inputSchema": {
           "type": "object",
@@ -157,12 +157,6 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "assignment": {
-                    "type": "string",
-                    "pattern": "^w[1-9][0-9]*$",
-                    "maxLength": 20,
-                    "description": "Exact assignment id from the task plan in get_task_context, such as w3. Copy it unchanged."
-                  },
                   "status": {
                     "type": "string",
                     "enum": [
@@ -183,13 +177,13 @@
                   }
                 },
                 "required": [
-                  "assignment",
                   "status",
                   "result",
                   "reference"
                 ],
                 "additionalProperties": false
-              }
+              },
+              "description": "One report per planned assignment, in the order of the task plan: the first report answers the first assignment."
             },
             "claims": {
               "type": "array",
