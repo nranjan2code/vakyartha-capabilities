@@ -21,7 +21,7 @@ run with the assistant -> get_task_context
 person verdicts and notes -> accept_result when every criterion is ready -> accepted task
 ```
 
-Each step changes state through `handleAction` or `handleQuery`, and every view is rebuilt from that state.
+Every change to state goes through `handleAction`; `handleQuery` only reads. Each affected view is rebuilt from that state.
 
 ## Skill
 
