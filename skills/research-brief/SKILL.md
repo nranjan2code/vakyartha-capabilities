@@ -17,13 +17,14 @@ allowed-tools: use_skill brave-search__brave_web_search web__fetch_page
 ## Steps
 
 1. **scope**: Identify the research question, timeframe, needed evidence and supplied source URLs. Keep factual scope separate from assumptions.
-2. **sources**: Search the question or read supplied and discovered source URLs. Prefer primary evidence; retain actual source links, publication dates and claim passages.
+2. **sources**: Read every source URL the request supplies. To find more, search when a search tool is offered; otherwise open an organisation's home or publications page and follow the links it gives. Use only addresses given by the request, a search result or a page you read, never one written from memory. When an address is not found, read a different one. Prefer primary evidence; retain actual source links, publication dates and claim passages.
    - tool: brave-search__brave_web_search web__fetch_page
    - needs: scope
    - optional: true
    - effect: read
    - rounds: 4
-3. **synthesize**: Answer from the source passages actually read. Attribute factual claims, explain conflicting evidence and distinguish event, publication and retrieval dates. State what could not be verified.
+   - if-fails: skip
+3. **synthesize**: Answer from the source passages actually read. Attribute factual claims, explain conflicting evidence and distinguish event, publication and retrieval dates. State what could not be verified. When no source was read, open by saying that no source could be read and that what follows is general knowledge, not checked against any source; then answer the question from general knowledge, with no links or citations and no figure presented as sourced.
    - needs: scope, sources
 
 ## Domain guidance

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Research brief no longer stops when no source can be read: its sources step is skipped on failure, and the brief then says first that it rests on general knowledge, with no links or citations. The sources step reads only addresses the request, a search or a page has given, starts from an organisation's own pages when no search tool is set up, and reads a different address when one is not found.
+
 - Weather keeps a place's coordinates for a day (`valid-for` on the geocode step), so a follow-up in the same chat does not look the place up again. Forecasts and other readings are always read. Needs a Vakyartha whose skill steps accept `valid-for`.
 
 - Four development-channel skills for any language: translate, proofread, write-document and study-guide.
