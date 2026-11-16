@@ -22,14 +22,15 @@ This connector uses the free public API and supports no paid key or subscription
 
 ## Steps
 
-1. **request**: List each place the person names, now or earlier: written as they wrote it, lookup as its usual name in Latin letters; none if none. Mode and days as Modes says.
-   - output: {"type":"object","properties":{"places":{"type":"array","maxItems":8,"items":{"type":"object","properties":{"written":{"type":"string"},"lookup":{"type":"string"}},"required":["written","lookup"]}},"days":{"type":"integer","minimum":2,"maximum":16},"mode":{"enum":["forecast","window","archive","air","marine","other"]}},"required":["places","days","mode"]}
-   - done: grounded /places/*/written
+1. **request**: List each place the person names, now or earlier: written as they wrote it, lookup the same in Latin letters; none if none. Mode, days: see Modes.
+   - output: {"type":"object","properties":{"places":{"type":"array","maxItems":8,"items":{"type":"object","properties":{"written":{"type":"string"},"lookup":{"type":"string"}},"required":["written","lookup"]}},"days":{"type":"integer","minimum":2,"maximum":7},"mode":{"enum":["forecast","window","archive","air","marine","other"]}},"required":["places","days","mode"]}
+   - done: grounded /places/*/written, copies /places lookup written
 2. **geocode**: Resolve each place. Retain the returned full coordinates, name, admin1 and country. The host supplies the place name.
    - tool: open-meteo__geocoding
    - needs: request
    - each: request /places
    - max: 8
+   - if-item-fails: drop
    - arguments: {"name":{"item":"/lookup"},"count":{"value":3}}
    - effect: read
    - valid-for: 86400
@@ -88,13 +89,13 @@ This connector uses the free public API and supports no paid key or subscription
    - when: {"step":"request","pointer":"/mode","oneOf":["other"]}
    - arguments: {"latitude":{"item":"/results/0/latitude"},"longitude":{"item":"/results/0/longitude"}}
    - effect: read
-9. **interpret**: When the person named no place, ask which place and state no weather. Otherwise explain the requested weather from the retained Open-Meteo reads, naming each place as geocoding resolved it. Keep dates, local times, units and missing values distinct. Do not invent observations or infer paid access.
+9. **interpret**: When the person named no place, ask which place and state no weather. Otherwise explain the requested weather from the retained Open-Meteo reads, naming each place as geocoding resolved it and any listed place it did not find. Keep dates, local times, units and missing values distinct; invent nothing.
    - needs: request, geocode, forecast, window, archive, air, marine, specialist
    - read: references/weather-codes.md
 
 ## Modes
 
-- forecast: relative days (today, tomorrow, this weekend). Days counts from today, so tomorrow is 2.
+- forecast: relative days (today, tomorrow, this weekend). Days counts from today, so tomorrow is 2; a week is the most read.
 - window: exact dates or hours, or the recent past.
 - archive: dates before the recent past.
 - air: air quality or pollen. marine: waves or sea. other: ensembles, seasons, climate, river flooding or elevation.
