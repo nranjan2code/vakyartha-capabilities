@@ -41,7 +41,6 @@ Answers that give the user code to use: a script, a function, a service, configu
 ## Skill chaining
 
 - Load `debug-error` instead when the request starts from an error, a failing test or broken behaviour.
-- Load `code-review` instead when the user asks to review or improve code they supplied.
 - Load `shell-command` for install, build and run commands beyond a single obvious line.
 - Load `sandbox` before running anything (step 5).
 

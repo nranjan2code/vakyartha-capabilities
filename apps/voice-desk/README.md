@@ -18,7 +18,7 @@ Notes (title, text, tags, action items, created and updated times) live in this 
 
 ## Not included
 
-No automatic summaries or cleanup of the text (the chat's `voice-notes` skill does that on request), no owners or due dates on items, no export yet.
+No automatic summaries or cleanup of the text (ask the assistant in chat for that), no owners or due dates on items, no export yet.
 
 ## Shared Access and package review
 

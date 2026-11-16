@@ -1,118 +1,63 @@
-# NSE Query Patterns & Workflow Blueprints
+# NSE query patterns
 
-Step-by-step query workflows and canvas surface blueprints for common Indian stock market requests using the official NSE MCP servers.
-
----
-
-## Pattern 1: Single Stock Performance & Trend Review
-
-**User Request Example**: *"Give me a performance review of Reliance Industries (RELIANCE) over the last month and check its current price."*
-
-### Step 1: Tool Execution
-1. Query `nse__get_52_week_high_low` with `symbol: "RELIANCE"`.
-2. Query `nse__moving_average` with `symbol: "RELIANCE", period: 50`.
-3. If `nse-cmmkt` is enabled, query `nse-cmmkt__cm_get_stock_quote` with `symbol: "RELIANCE"` for the current trading day's snapshot.
-
-### Step 2: Extract & Verify Numbers
-- Identify First Close (e.g. ₹2,920.00 on 2026-09-28) and Last Close/LTP (e.g. ₹3,042.15 on 2026-10-28).
-- Compute Window Price Return:
-  `((3042.15 / 2920.00) - 1) × 100 = +4.18%`
-- Calculate 50-day SMA position: compare ₹3,042.15 to the returned SMA.
-
-### Step 3: Presenting the Result
-- **Headline**: *"Reliance Industries Limited (RELIANCE) recorded a +4.18% price return over the past 30 days, closing at ₹3,042.15 on the National Stock Exchange."*
-- **Canvas Payload** (if an interactive dashboard was requested):
-  ```json
-  {
-    "data": {
-      "summary": {
-        "symbol": "RELIANCE",
-        "lastPrice": "₹3,042.15",
-        "windowReturn": "+4.18%",
-        "sma50": "₹2,985.40",
-        "high52": "₹3,217.90"
-      },
-      "history": [
-        { "date": "2026-10-01", "close": 2930.50, "volume": 5120000 },
-        { "date": "2026-10-15", "close": 2985.00, "volume": 6240000 },
-        { "date": "2026-10-28", "close": 3042.15, "volume": 5890000 }
-      ]
-    },
-    "surfaces": [
-      {
-        "id": "reliance-summary",
-        "type": "grid",
-        "props": { "columns": 2, "minItemWidth": "sm" },
-        "children": ["m-price", "m-return"]
-      },
-      {
-        "id": "m-price",
-        "type": "metric",
-        "props": { "label": "Latest Price (NSE)", "value": "{/summary/lastPrice}" }
-      },
-      {
-        "id": "m-return",
-        "type": "metric",
-        "props": { "label": "30-Day Return", "value": "{/summary/windowReturn}", "tone": "success" }
-      },
-      {
-        "id": "trend-chart",
-        "type": "chart",
-        "props": {
-          "kind": "line",
-          "title": "RELIANCE Closing Price Trend",
-          "maxWidth": "lg",
-          "series": [{ "label": "Close", "records": "{/history}", "x": "date", "y": "close" }]
-        }
-      }
-    ]
-  }
-  ```
+Worked query sequences for common requests over the official NSE servers. Argument names follow `references/nse-tools-guide.md`; the offered tool schema wins over any example here. Every figure reported comes from a result. Vakyartha lays out any table or chart from the retained records.
 
 ---
 
-## Pattern 2: Market Breadth & Sentiment Analysis
+## Pattern 1: One stock's performance and trend
 
-**User Request Example**: *"What was the market breadth on the NSE yesterday and which stocks drove the session?"*
+**Request example**: "Review Reliance Industries (RELIANCE) over the last month and check its current price."
 
-### Step 1: Tool Execution
-1. Query `nse__get_market_breadth` with `date: "<yesterday's trading date>"`.
-2. Query `nse-cmmkt__nse_get_market_movers` with `index: "NIFTY 50", count: 5` to inspect the major institutional drivers.
+### Read
+1. `nse__get_stock_history` with `symbol: "RELIANCE"`, `months: 1`, `endDate: "today"`: the close of each session in the window.
+2. `nse__get_52_week_high_low` with `symbol: "RELIANCE"`.
+3. `nse__moving_average` with `symbol: "RELIANCE"`, `days: 50`.
+4. When `nse-cmmkt` is enabled, `nse-cmmkt__cm_get_stock_quote` with `symbol: "RELIANCE"` for the current session.
 
-### Step 2: Establish the Evidence
-- Verify Advances count, Declines count, Unchanged count, and the Advance/Decline (A/D) ratio.
-- Check top 5 gainers and top 5 losers by percentage move.
-- A/D ratio interpretation:
-  - Ratio > 1.5: Broad-based bullish rally.
-  - Ratio between 0.8 and 1.2: Mixed/neutral consolidation.
-  - Ratio < 0.7: Broad-based selling pressure.
+### Check
+- Take the first and last close of the window from the returned history, each with its session date.
+- Window price return = ((last close / first close) − 1) × 100, from those two returned closes only.
+- Compare the last close with the returned 50-day average and the 52-week high and low.
+- A current-session quote is not a close: report it beside the window return, never inside it.
+- A split or bonus inside the window distorts unadjusted prices: check `nse__get_corporate_actions` before stating a return across it.
 
-### Step 3: Presenting the Result
-- Lead with the overall market breadth ratio and total securities traded.
-- Pair the A/D ratio with the top gainer/loser leaders.
-- State clearly that breadth covers all listed equity series on the Capital Market segment of the NSE.
+### Report
+- Lead with the window return, naming both closes and their dates.
+- Give the 50-day average and the 52-week range as returned, with their dates.
 
 ---
 
-## Pattern 3: Sectoral Peer Comparison
+## Pattern 2: Market breadth and what moved
 
-**User Request Example**: *"Compare Indian IT majors TCS, Infosys, and Wipro over the last quarter."*
+**Request example**: "What was the market breadth on the NSE yesterday and which stocks drove the session?"
 
-### Step 1: Tool Execution
-1. Query `nse__compare_stocks` with `symbols: ["TCS", "INFY", "WIPRO"], start_date: "2026-07-01", end_date: "2026-09-30"`.
-2. For each symbol, query `nse__get_52_week_high_low` to inspect relative distance from peak levels.
+### Read
+1. `nse__get_market_breadth` with `date` set to that trading date (`YYYY-MM-DD`).
+2. `nse__get_top_movers` with the same `date`, `n: 5` and `direction: "gain"`, then `direction: "loss"`. For the current session instead, `nse-cmmkt__nse_get_market_movers` with `indexName: "NIFTY 50"`, `limit: 5`.
 
-### Step 2: Compare Metrics in a Table
-- Never sum stock prices into a total row (`totals: false`).
-- Build a structured comparison table with:
-  - Symbol
-  - Starting Price
-  - Ending Price
-  - Absolute Change (₹)
-  - Period Price Return (%)
-  - 52-Week Range Position
+### Check
+- Advances, declines, unchanged and the advance/decline ratio as returned.
+- Reading the ratio: above 1.5 is a broad advance, 0.8 to 1.2 is mixed, below 0.7 is broad selling. These describe the session; they forecast nothing.
+- Keep a past session's movers and the current session's movers apart: they come from different servers and times.
 
-### Step 3: Synthesis
-- Identify the strongest and weakest performers in the peer basket.
-- Note any company-specific factors or quarterly earnings releases that occurred during the window.
+### Report
+- Lead with the breadth ratio and the counts, then the leading gainers and losers.
+- Say that breadth covers the listed equities of the Capital Market segment.
 
+---
+
+## Pattern 3: Peer comparison
+
+**Request example**: "Compare TCS, Infosys and Wipro over the last quarter."
+
+### Read
+1. `nse__compare_stocks` with `symbols: ["TCS", "INFY", "WIPRO"]`, `months: 3`.
+2. `nse__get_52_week_high_low` for each symbol, for its distance from its range.
+
+### Check
+- Each stock's start price, end price and return over the same window, as returned.
+- Prices of different stocks are never summed or averaged into a total.
+
+### Report
+- Name the strongest and weakest performer by returned price return.
+- Give a reason for a move only when a returned corporate action or a source read in this conversation states it; otherwise say the data shows the move, not its cause.

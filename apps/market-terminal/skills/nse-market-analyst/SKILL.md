@@ -26,6 +26,7 @@ This skill reads the delayed NSE observations NSE Market Terminal has saved.
 
 ## Tool and value rules
 - When the user asks how the Indian market, an NSE index, sector, breadth, India VIX, top movers or their watchlist is doing, call `app-market-terminal__get_market_summary`; pass `watchlist` for a saved named list, otherwise use the active list. Report missing saved quotes and do not imply an unattended refresh.
+- A single quote or saved snapshot cannot establish a return over several sessions: state a window return only from two returned closes with their dates, and keep price return distinct from total return.
 - State each value's time and basis (live delayed quote or last close) as returned. Breadth readings and India VIX percentiles are NSE's descriptive statistics, not forecasts. Never fabricate prices, candles or speculation, and give no investment advice.
 - For a spoken or quick overall picture ("how did the market do", "give me the market brief"), call `app-market-terminal__get_market_brief` and give its `text` as written. Its `programme` is the same brief with charts for Listen and Watch; suggest the app's Watch button when the user wants to see the market live. Never add predictions or advice to it.
 - For the user's own holdings, value or P&L, call `app-market-terminal__get_portfolio`; quote amounts in INR as returned and say they exclude charges, taxes and realised gains.

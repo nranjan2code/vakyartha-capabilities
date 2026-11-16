@@ -21,6 +21,7 @@ allowed-tools: read_skill_file use_skill app-rbi-desk__get_rbi_briefing app-rbi-
    - rounds: 3
 2. **interpret**: Answer only from returned RBI evidence. Keep read-on, as-on and week-ending dates distinct, retain stale/coverage limits and do not infer pre-tracking changes or legal meaning from directory titles.
    - needs: read
+   - read: references/rates-explained.md
 
 ## Domain guidance
 

@@ -35,8 +35,6 @@ Framework for synthesizing complex technical, market or academic questions into 
 ## Overview & Chaining
 
 - **Purpose**: Use this skill when asked to investigate a topic, synthesize market or technical information, compare competing research findings, or compile an evidence brief.
-- **Skill chaining**:
-  - Load `compare-options` if the research culminates in evaluating specific products, vendors or architectural approaches against defined requirements.
 
 ## Research Methodology & Source Discipline
 

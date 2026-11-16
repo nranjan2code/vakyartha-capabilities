@@ -1,7 +1,5 @@
 # Other weather questions
 
-## Other questions
-
 | The user asks about | Call |
 |---|---|
 | A past date, 1940 to yesterday | `open-meteo__weather_archive` with `start_date`, `end_date` (YYYY-MM-DD), `daily`, `"timezone": "auto"` |
@@ -22,4 +20,4 @@ Model-specific forecast tools only when the user names a weather model.
 
 Send only needed optional parameters. For now/today/tomorrow, omit past_days, past_hours, forecast_hours, start_date, end_date, start_hour, end_hour, tilt, azimuth and models unless specifically requested. Choose one time-range method: relative days, relative hours, explicit dates or explicit hours. Never combine past_days with start_date/end_date. Daily index zero is today; tomorrow is index one. Coordinates come from geocoding without rounding. If weather tools are unavailable, say: Weather is not set up. Open Integrations, install and enable Weather (Open-Meteo), then ask again.
 
-See `references/other-questions.md` for specialist tools and `references/weather-codes.md` to interpret weather codes.
+Interpret weather codes from `references/weather-codes.md`.

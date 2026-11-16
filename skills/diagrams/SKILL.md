@@ -24,7 +24,7 @@ allowed-tools: read_skill_file use_skill
 ## Domain guidance
 
 
-Use for a diagram, flowchart, architecture, sequence, schema, state machine, pipeline, decision tree, org chart or concept map, or when a multi-stage process is clearer as a picture. `references/diagram-templates.json` holds one example per kind (flowchart, architecture, pipeline, feedback loop, state machine, entity relationship, sequence, mind map, swimlane); read it with read_skill_file when a starting shape helps. The examples show shape only: write every label from the request's own subject, in the request's language and script, never the example's words.
+Use for a diagram, flowchart, architecture, sequence, schema, state machine, pipeline, decision tree, org chart or concept map, or when a multi-stage process is clearer as a picture. `references/diagram-templates.json` holds one example per kind (flowchart, architecture, pipeline, feedback loop, state machine, entity relationship, sequence, mind map, swimlane), for when a starting shape helps. The examples show shape only: write every label from the request's own subject, in the request's language and script, never the example's words.
 
 ## Pick the archetype
 

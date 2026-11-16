@@ -18,6 +18,7 @@ allowed-tools: use_skill read_skill_file app-learning-desk__get_authoring_contex
    - effect: read
 3. **author**: For an outline request, draft the outline only. For explicit Create course draft, prepare the agreed bounded lessons and checked exercises. List sources only when actually read in this conversation.
    - needs: context
+   - read: references/lesson-review.md
 4. **revision**: Only before an explicitly requested complete draft save, re-read the current authoring context. Otherwise SKIP.
    - tool: app-learning-desk__get_authoring_context
    - needs: context, author, action
@@ -31,6 +32,7 @@ allowed-tools: use_skill read_skill_file app-learning-desk__get_authoring_contex
    - optional: true
    - effect: write
    - arguments: {"expectedRevision":{"step":"revision","pointer":"/expectedRevision"}}
+   - read: references/course-browsing.md
 6. **receipt**: Report the outline or actual proposal receipt and its source/teaching limits. A saved draft requires personal review and is not a published or independently verified course.
    - needs: author, propose
 
@@ -58,5 +60,5 @@ Read `references/lesson-review.md` for details.
 
 ## When you need more
 
-- To use the app's controls, change the package, debug a failure, or review Access, package updates and refresh cost, read `references/app-operation.md` with read_skill_file.
-- For how Discover, My learning, lesson tabs, progress bars and lesson media (video or audio) behave, read `references/course-browsing.md` with read_skill_file before describing or attaching them.
+- To use the app's controls, change the package, debug a failure, or review Access, package updates and refresh cost, see `references/app-operation.md`.
+- For how Discover, My learning, lesson tabs, progress bars and lesson media (video or audio) behave, see `references/course-browsing.md` before describing or attaching them.

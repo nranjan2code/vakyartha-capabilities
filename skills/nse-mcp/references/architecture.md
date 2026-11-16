@@ -14,8 +14,7 @@ The National Stock Exchange of India operates two official hosted MCP endpoints 
    - Scope: Near-real-time intraday snapshots (running on a 1–3 minute exchange delay), live stock quotes, day high/low, top gainers and losers, and index performance.
 
 ### Skill Chaining
-- Load enabled `market-dashboard` for multi-period reviews and comparable returns.
-- Read supporting reference files via `read_skill_file`:
+- Supporting reference files:
   - `references/nse-tools-guide.md`: Detailed tool catalog, schemas, arguments, and return types.
   - `references/nse-query-patterns.md`: Step-by-step query workflows for single equity reviews, market breadth, and index scans.
 

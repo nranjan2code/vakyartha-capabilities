@@ -32,7 +32,6 @@ Systematic methodology for diagnosing software failures, interpreting error trac
 - **Skill chaining**:
   - Load `sandbox` if reproducible reproduction, compilation or test execution in isolation is needed.
   - Load `shell-command` for running specific diagnostic, git bisect or profiling commands.
-  - Load `code-review` when evaluating the broader impact of a fix on surrounding code.
   - Load `write-code` when the answer gives corrected or new files: it names each file before its block and checks against current library docs.
 
 ## Systematic Debugging Process

@@ -31,7 +31,7 @@ This connector uses the free public API and supports no paid key or subscription
 3. **request**: Extract places, day count and mode. Tomorrow needs two days. Use forecast for relative days, window for exact dates/hours or recent past, archive for older dates, air for air quality, marine for waves, and other for specialist reads.
    - needs: place
    - output: {"type":"object","properties":{"places":{"type":"array","items":{"type":"string"},"minItems":1,"maxItems":8},"days":{"type":"integer","minimum":1,"maximum":16},"mode":{"enum":["forecast","window","archive","air","marine","other"]}},"required":["places","days","mode"],"additionalProperties":false}
-4. **geocode**: Resolve each place. Retain the returned full coordinates, name, admin1 and country. The host supplies the place name. If results are ambiguous, ask which place before using its coordinates.
+4. **geocode**: Resolve each place. Retain the returned full coordinates, name, admin1 and country. The host supplies the place name.
    - tool: open-meteo__geocoding
    - needs: request
    - each: request /places
@@ -53,6 +53,7 @@ This connector uses the free public API and supports no paid key or subscription
 6. **window**: Read the requested explicit dates/hours or recent past. Choose one time-range method.
    - tool: open-meteo__weather_forecast
    - needs: request, geocode
+   - read: references/other-questions.md
    - each: geocode ""
    - max: 8
    - when: {"step":"request","pointer":"/mode","oneOf":["window"]}
@@ -62,6 +63,7 @@ This connector uses the free public API and supports no paid key or subscription
 7. **archive**: Read each place for the requested past dates using daily or hourly fields and local time. State that these are estimates.
    - tool: open-meteo__weather_archive
    - needs: request, geocode
+   - read: references/other-questions.md
    - each: geocode ""
    - max: 8
    - when: {"step":"request","pointer":"/mode","oneOf":["archive"]}
@@ -83,16 +85,18 @@ This connector uses the free public API and supports no paid key or subscription
    - when: {"step":"request","pointer":"/mode","oneOf":["marine"]}
    - arguments: {"latitude":{"item":"/results/0/latitude"},"longitude":{"item":"/results/0/longitude"},"timezone":{"value":"auto"}}
    - effect: read
-10. **specialist**: Read each place with the specialist tool that answers the question; use only supported model and time-range parameters. Read references/other-questions.md for tool choice.
+10. **specialist**: Read each place with the specialist tool that answers the question; use only supported model and time-range parameters.
    - tool: open-meteo__ensemble_forecast open-meteo__seasonal_forecast open-meteo__climate_projection open-meteo__flood_forecast open-meteo__elevation
    - needs: request, geocode
+   - read: references/other-questions.md
    - each: geocode ""
    - max: 8
    - when: {"step":"request","pointer":"/mode","oneOf":["other"]}
    - arguments: {"latitude":{"item":"/results/0/latitude"},"longitude":{"item":"/results/0/longitude"}}
    - effect: read
-11. **interpret**: Explain the requested weather implications from the retained Open-Meteo reads. Keep dates, local times, units and missing values distinct. Do not invent observations or infer paid access.
-   - needs: forecast, window, archive, air, marine, specialist
+11. **interpret**: Explain the requested weather implications from the retained Open-Meteo reads, naming each place as geocoding resolved it. Keep dates, local times, units and missing values distinct. Do not invent observations or infer paid access.
+   - needs: geocode, forecast, window, archive, air, marine, specialist
+   - read: references/weather-codes.md
 
 ## Rules for the numbers
 

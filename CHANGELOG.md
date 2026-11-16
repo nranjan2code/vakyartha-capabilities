@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Twenty-four instruction-only skills are removed. They brought no tools and no reference data, and the general assistant already answers their requests; those that were not text-only also ran a three-step plan before every answer: `budget-helper`, `code-review`, `commit-message`, `compare-options`, `dashboard`, `data-review`, `explain-simply`, `finance-dashboard`, `meal-plan`, `meeting-actions`, `operations-dashboard`, `periodic-report`, `plan-my-day`, `sales-dashboard`, `summarize`, `task-tracker`, `trip-planner`, `voice-notes`, `write-email`, and the development-channel `proofread`, `study-guide`, `translate` and `write-document`. `market-dashboard` is removed as a duplicate: it read the same four Market Terminal tools as the app's own `nse-market-analyst`, which now states its rule on returns over several sessions. The remaining skills and app documents no longer point at the removed ones. Nine standalone skills remain: `daily-news`, `debug-error`, `diagrams`, `nse-mcp`, `research-brief`, `shell-command`, `weather`, `write-article` and `write-code`.
+
+- A step is given the reference it applies. In a stepped run a step is offered only its own tools and cannot open a file, so a reference named only in the surrounding text never reached it. Weather gives the parameter rules to the steps that read explicit dates, past dates and specialist data, and the weather-code words to the interpretation step, which now also receives the places as geocoding resolved them and names each one. RBI gives its interpretation step the fixed rate explanations, Clinic Desk its attendance-estimate wording, and Learning Desk gives lesson review to the authoring step and lesson media to the proposal step. Each step reads one file, so every supported Vakyartha reads these the same way.
+
+- Weather's geocode step no longer tells the model to ask which place was meant: a tool step cannot ask. The first match is used and the answer names it, so a wrong match can be corrected.
+
+- NSE's worked query patterns use the tools' own argument names, read the history a window return needs, and carry no invented prices or page layouts. The skill names all four of its references, and its repeated headings are gone.
+
 ## 1.0.6 (2026-11-16)
 
 - Skills supply content and the host lays it out: pages follow Vakyartha's layout patterns (dashboard, report, article, explorer, comparison, tabs), chosen by purpose in any language. Write Article no longer ships sample pages with invented figures in one currency and names no canvas components; its media reference covers media and spoken output only. Diagram examples show shape only, and labels come from the request's subject and language. Periodic Report states periods in the user's own calendar, week start and time zone, and Finance Dashboard shows each amount in its own currency without naming any. Needs a Vakyartha with layout patterns (Projection 0a2e5b8 or later).

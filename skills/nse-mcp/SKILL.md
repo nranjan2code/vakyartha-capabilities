@@ -51,15 +51,9 @@ Analytical and operational procedure for querying official National Stock Exchan
 
 ## More detail
 
-For how the NSE servers fit together and which skills chain with this one, read `references/architecture.md` with read_skill_file.
+`references/architecture.md` describes the two NSE servers. `references/tool-selection.md` maps each kind of question to its tools. `references/nse-query-patterns.md` gives worked query sequences. `references/nse-tools-guide.md` lists every tool's arguments.
 
-## Tool Selection & Dispatch Procedure
-
-## Tool selection
-
-Read `references/tool-selection.md` for details.
-
-### 2. Parameter & Symbol Conventions
+## Parameter and symbol conventions
 
 - **Symbol Formatting**: Use official uppercase NSE equity tickers:
   - Standard equities: `RELIANCE`, `TCS`, `INFY`, `HDFCBANK`, `TATAMOTORS`, `ITC`, `ICICIBANK`, `SBIN`, `BHARTIARTL`.

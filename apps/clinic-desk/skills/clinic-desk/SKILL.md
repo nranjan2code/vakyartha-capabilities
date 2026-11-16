@@ -41,6 +41,7 @@ allowed-tools: read_skill_file use_skill app-clinic-desk__get_clinic_context app
    - arguments: {"expectedRevision":{"step":"revision","pointer":"/expectedRevision"}}
 6. **interpret**: Explain the returned schedule, rule-based attention reasons and estimate limits without medical advice. A successful proposal only prepares the form for personal review and Book.
    - needs: context, detail, proposal
+   - read: references/attendance-estimate.md
 
 ## Domain guidance
 

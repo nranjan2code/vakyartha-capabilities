@@ -18,6 +18,7 @@ allowed-tools: read_skill_file use_skill
 1. **brief**: Identify the requested topic, audience, purpose, length, tone and supplied source material.
 2. **draft**: Draft the article with a clear argument, supporting evidence and appropriate structure. Distinguish supplied facts from original interpretation.
    - needs: brief
+   - read: references/article-archetypes.md
 3. **check**: Check factual claims, source attribution, coherence and requested style. State unsupported changing claims rather than inventing citations or a research receipt.
    - needs: draft
 
@@ -32,9 +33,6 @@ Comprehensive, domain-neutral methodology for drafting, structuring, and polishi
 - **Skill chaining**:
   - Load `research-brief` via `use_skill` when investigating complex topics, sourcing literature, or building an evidence matrix.
   - Load `daily-news` via `use_skill` when composing news-driven analyses, daily roundups, or timely event explainers.
-  - Load `compare-options` via `use_skill` when authoring comparative reviews, product evaluations, or multi-option analyses.
-  - Load `data-review` via `use_skill` when the article centers on empirical datasets or tabular statistics.
-  - Load `explain-simply` via `use_skill` when translating dense technical, financial, or academic concepts for a general audience.
 - **Reference files**:
   - Read `references/article-archetypes.md` via `read_skill_file` for structural patterns across journalism, essays, whitepapers, tutorials, and newsletters.
 

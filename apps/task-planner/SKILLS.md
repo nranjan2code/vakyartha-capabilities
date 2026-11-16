@@ -8,8 +8,6 @@ Voice behavior comes from the host: Dictate enters a transcription in the select
 
 ## Related Vakyartha skills
 
-- `task-tracker` covers general task registers and action lists.
-- `plan-my-day` covers time-blocking a day. A proposed schedule is not a calendar booking.
 - `app-operator` covers the shared app controls and lifecycle.
 
 ## Access
