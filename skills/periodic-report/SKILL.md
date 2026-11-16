@@ -7,7 +7,7 @@ metadata:
 
   category: reports
   author: Vakyartha
-  version: "1.0.0"
+  version: "1.1.0"
 allowed-tools: use_skill
 ---
 
