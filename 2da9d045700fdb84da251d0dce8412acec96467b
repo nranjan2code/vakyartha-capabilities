@@ -1,3 +1,4 @@
 {
- "quick": {"result":"pass","at":"2026-11-16T07:44:30.071Z","platform":"darwin-arm64","node":"v26.13.1","seconds":2,"skipped":[],"failed":[]}
+ "quick": {"result":"pass","at":"2026-11-16T07:44:30.071Z","platform":"darwin-arm64","node":"v26.13.1","seconds":2,"skipped":[],"failed":[]},
+ "full": {"result":"pass","at":"2026-11-16T08:59:40.222Z","platform":"darwin-arm64","node":"v26.13.1","seconds":5,"skipped":[],"failed":[]}
 }
