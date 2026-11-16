@@ -8,7 +8,7 @@ metadata:
   enhances: "integration:brave-search integration:tavily"
   category: writing
   author: Vakyartha
-  version: "1.0.0"
+  version: "1.1.0"
 allowed-tools: use_skill brave-search__brave_web_search web__fetch_page
 ---
 

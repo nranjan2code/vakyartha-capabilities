@@ -39,7 +39,7 @@
     }
   },
   "provides": {
-    "apps": 12,
+    "apps": 11,
     "skills": 29,
     "integrations": 17
   }
