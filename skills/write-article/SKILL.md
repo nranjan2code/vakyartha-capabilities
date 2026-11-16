@@ -37,7 +37,6 @@ Comprehensive, domain-neutral methodology for drafting, structuring, and polishi
   - Load `explain-simply` via `use_skill` when translating dense technical, financial, or academic concepts for a general audience.
 - **Reference files**:
   - Read `references/article-archetypes.md` via `read_skill_file` for structural patterns across journalism, essays, whitepapers, tutorials, and newsletters.
-  - Read `references/article-surface-templates.json` via `read_skill_file` for validated Projection surface schemas across standard, split, and tabbed canvas layouts.
 
 ## Core Editorial Craft & Structural Disciplines
 
@@ -48,12 +47,12 @@ Every article must follow a deliberate architecture calibrated to its format:
    - **Deck / Subtitle**: 1–2 sentences summarizing the central premise, context, or consequence.
    - **Byline & Metadata**: Explicitly state publication date, estimated reading time (e.g. `6 min read`), topic tags, and author/source attribution.
 2. **Executive Takeaways / Key Points**:
-   - Provide an upfront "At a Glance" or "Key Takeaways" callout (`alert` with tone `info` or a compact summary card) containing 3–4 bulleted core insights. This enables executive scanning before deep reading.
+   - Provide 3–4 core takeaways up front, so a reader can scan before reading in depth.
 3. **Structured Body & Section Pacing**:
-   - Organize into logical sections (`section` containers or distinct markdown headings) with clear thematic focus.
+   - Organize into logical sections, each with a clear thematic focus and its own heading.
    - Break up dense prose: keep paragraphs between 2–4 sentences.
-   - Use pull-quotes (`text` with `variant: "quote"`) for poignant statements, central theses, or notable quotes.
-   - Ground quantitative arguments in visible data anchors: stat highlights (`stat`), trend indicators, or clean comparative tables.
+   - Mark a central thesis or a notable quotation as a quote.
+   - Ground quantitative arguments in figures from the sources, with their dates and units, and in tables where several are compared.
 4. **Counterpoint, Nuance & Analytical Balance**:
    - Address counter-arguments, dissenting data points, limitations, or alternative interpretations.
    - Differentiate verified empirical facts from corporate announcements, analyst projections, and editorial opinions.
@@ -62,7 +61,7 @@ Every article must follow a deliberate architecture calibrated to its format:
 
 ## More detail
 
-Before laying out the article on the canvas or adding images and media, read `references/canvas-and-media.md` with read_skill_file.
+The host lays the article out as an article page (one reading-width column) through the shared presentation procedure; this skill supplies the content, not the layout. Before adding images or media, read `references/canvas-and-media.md` with read_skill_file.
 
 ## Sourcing, Fact Discipline & Ethics
 

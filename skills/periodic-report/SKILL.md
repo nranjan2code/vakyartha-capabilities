@@ -34,7 +34,7 @@ Framework for drafting structured daily, weekly, monthly and quarterly status re
 
 ## Period Definition & Boundary Discipline
 
-1. **Exact boundaries**: Clarify the exact start and end timestamps, timezones and reporting cadence (e.g. "Monday Oct 21 00:00 to Friday Oct 25 23:59 UTC").
+1. **Exact boundaries**: Clarify the exact start and end timestamps, their time zone and the reporting cadence, in the user's own calendar, week start and time zone, and state them in the report.
 2. **Completed periods vs Period-to-date**: Clearly distinguish between a fully closed period (e.g. full month of September) and period-to-date metrics (e.g. October MTD, day 18 of 31).
 3. **Comparability**:
    - Compare current metrics only against truly comparable prior periods (e.g. week-over-week, month-over-month, year-over-year).

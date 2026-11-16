@@ -41,7 +41,7 @@ Rigorous financial analysis methodology for constructing income statements, expe
    - **Gross profit vs Operating profit**: Maintain clear gross margin definitions (`Revenue - COGS`).
    - **Internal transfers**: Inter-account or inter-entity transfers are not operational revenue or expense.
 3. **Multi-currency isolation**:
-   - Never sum amounts across differing currencies (e.g. USD, EUR, GBP) without an explicit, dated foreign exchange rate.
+   - Never sum amounts in different currencies without an explicit, dated exchange rate; show each amount in its own currency as recorded.
    - Maintain separate currency columns or explicit conversion tables.
 4. **Missing amounts**: Missing line items must be labeled as `Missing` or `Unknown`, never silently coerced to `0.00`.
 

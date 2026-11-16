@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Skills supply content and the host lays it out: pages follow Vakyartha's layout patterns (dashboard, report, article, explorer, comparison, tabs), chosen by purpose in any language. Write Article no longer ships sample pages with invented figures in one currency and names no canvas components; its media reference covers media and spoken output only. Diagram examples show shape only, and labels come from the request's subject and language. Periodic Report states periods in the user's own calendar, week start and time zone, and Finance Dashboard shows each amount in its own currency without naming any. Needs a Vakyartha with layout patterns (Projection 0a2e5b8 or later).
+
 ## 1.0.5 (2026-11-16)
 
 - Agent Desk is retired and removed from the catalog, with its worker and planner skills. Its work-plan rewrite in this section is withdrawn with it.
