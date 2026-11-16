@@ -8,7 +8,7 @@ metadata:
   enhances: "integration:microsoft-learn integration:aws-knowledge integration:context7 integration:github integration:sandbox-execution"
   category: code
   author: Vakyartha
-  version: "1.0.0"
+  version: "1.1.0"
 allowed-tools: use_skill microsoft-learn__microsoft_docs_search microsoft-learn__microsoft_docs_fetch microsoft-learn__microsoft_code_sample_search aws-knowledge__aws___search_documentation aws-knowledge__aws___read_documentation context7__resolve-library-id context7__query-docs run_command
 ---
 

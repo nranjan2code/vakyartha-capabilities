@@ -7,7 +7,7 @@ metadata:
   requires: "integration:open-meteo"
   category: live-data
   author: Vakyartha
-  version: "1.1.0"
+  version: "1.2.0"
 
 allowed-tools: read_skill_file use_skill open-meteo__geocoding open-meteo__weather_forecast open-meteo__weather_archive open-meteo__air_quality open-meteo__marine_weather open-meteo__ensemble_forecast open-meteo__seasonal_forecast open-meteo__climate_projection open-meteo__flood_forecast open-meteo__elevation
 ---

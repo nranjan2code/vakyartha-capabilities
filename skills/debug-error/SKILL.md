@@ -8,7 +8,7 @@ metadata:
   enhances: "integration:sandbox-execution"
   category: code
   author: Vakyartha
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Error Debugging & Root Cause Analysis

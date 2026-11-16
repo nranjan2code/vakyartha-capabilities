@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "name": "vakyartha-capabilities",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "requires": {
     "vakyartha": {
       "min": "1.0.0",
@@ -40,7 +40,7 @@
   },
   "provides": {
     "apps": 11,
-    "skills": 29,
+    "skills": 9,
     "integrations": 17
   }
 }

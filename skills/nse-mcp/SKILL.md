@@ -7,7 +7,7 @@ metadata:
   requires: "integration:nse|integration:nse-cmmkt"
   category: live-data
   author: Vakyartha
-  version: "1.0.0"
+  version: "1.1.0"
 
 allowed-tools: read_skill_file use_skill nse__nse_lookup_symbol nse__search_symbols nse__get_stock_history nse__get_ltp_by_date nse__get_bulk_quote nse__get_52_week_high_low nse__moving_average nse__get_volume_analysis nse__get_corporate_actions nse__get_market_mood nse__get_market_breadth nse__get_top_movers nse__get_top_by_volume nse__get_index_snapshot nse__get_index_history nse__get_index_performance nse__get_index_valuation nse__get_index_movers nse__compare_indices nse__compare_stocks nse__get_stock_vs_index nse-cmmkt__nse_get_market_movers nse-cmmkt__nse_get_gainers nse-cmmkt__nse_get_losers nse-cmmkt__cm_get_stock_quote nse-cmmkt__cm_get_index_quote nse-cmmkt__cm_get_live_indices
 ---

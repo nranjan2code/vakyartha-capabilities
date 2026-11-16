@@ -7,7 +7,7 @@ metadata:
   output: text
   category: writing
   author: Vakyartha
-  version: "1.1.0"
+  version: "1.2.0"
 allowed-tools: read_skill_file use_skill
 ---
 
