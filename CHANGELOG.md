@@ -2,13 +2,13 @@
 
 ## Unreleased
 
+- Agent Desk is retired and removed from the catalog, with its worker and planner skills. Its work-plan rewrite in this section is withdrawn with it.
+
 - Research brief no longer stops when no source can be read: its sources step is skipped on failure, and the brief then says first that it rests on general knowledge, with no links or citations. The sources step reads only addresses the request, a search or a page has given, starts from an organisation's own pages when no search tool is set up, and reads a different address when one is not found.
 
 - Weather keeps a place's coordinates for a day (`valid-for` on the geocode step), so a follow-up in the same chat does not look the place up again. Forecasts and other readings are always read. Needs a Vakyartha whose skill steps accept `valid-for`.
 
 - Four development-channel skills for any language: translate, proofread, write-document and study-guide.
-
-- Agent Desk rewritten: work plans with bounded worker assignments, one worker per assignment in a run, worker reports kept with each attempt, a plan_work export, and views renamed to Tasks, Plan, Evidence and Compare.
 
 - All 29 catalog skills and 11 app skills declare bounded domain steps. Text-only workflows retain their Text output. Vakyartha provides presentation over retained evidence, including market results. Weather binds resolved coordinates and the requested forecast day count without retyping either.
 

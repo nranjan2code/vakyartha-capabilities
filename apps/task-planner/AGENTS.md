@@ -3,7 +3,7 @@
 Read the Vakyartha app-building and skill-authoring guides before changing this package.
 
 - `server.ts` owns the canonical local task records in `context.state`; every surface, count, calendar event and chart derives from those records.
-- Keep this app independent from Agent Desk. It is for personal to-dos and dates, not AI task execution, approvals or run history.
+- Keep this app for personal to-dos and dates, not AI task execution, approvals or run history.
 - Task Planner does not call a model, tool, network host, external calendar or notification service. Do not add those paths as a convenience feature.
 - Keep due dates date-only. Do not add local-time offsets to a due date.
 - A repeat rule produces the next occurrence only after explicit completion. Retain the completed occurrence. Do not create duplicate occurrences on reopening or rendering.
