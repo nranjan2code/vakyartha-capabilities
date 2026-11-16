@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.5 (2026-11-16)
 
 - Agent Desk is retired and removed from the catalog, with its worker and planner skills. Its work-plan rewrite in this section is withdrawn with it.
 
