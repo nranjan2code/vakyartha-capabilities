@@ -14,7 +14,7 @@ export interface State {
   importText?: string; lastImport?: { at: string; count: number }; confirmClear?: boolean;
   seq?: number; notice?: string;
 }
-export interface Context { state: State; surfaces?: Record<string, unknown>; database: Database; now?: () => Date }
+export interface Context { state: State; surfaces?: Record<string, unknown>; database: Database; now?: () => Date; appRevision?: number }
 export interface Transaction { id: string; date: string; description: string; category: string; amount: string }
 export interface Row { id: string; date: string; description: string; category: string; paise: number }
 /** What one run reads from DuckDB for the selected month. Chart amounts are rupees. */

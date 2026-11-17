@@ -6,7 +6,7 @@ import { ALL, EMPTY_LEDGER, daysIn, localDay, normalize, paise, replaceAll, shif
 import type { Ledger, Node, State, Update } from './model.ts';
 
 export const TITLES: Record<string, string> = { overview: 'Overview', ledger: 'Transactions', budgets: 'Budgets', insights: 'Insights', recurring: 'Recurring', import: 'Import' };
-const STARTERS = ['Education', 'Entertainment', 'Food', 'Groceries', 'Health', 'Housing', 'Income', 'Other', 'Shopping', 'Transport', 'Travel', 'Utilities'];
+export const STARTERS = ['Education', 'Entertainment', 'Food', 'Groceries', 'Health', 'Housing', 'Income', 'Other', 'Shopping', 'Transport', 'Travel', 'Utilities'];
 const EXAMPLE = 'id,date,description,category,amount\nsalary-2026-10,2026-10-01,October salary,Income,85000.00\nrent-2026-10,2026-10-03,Rent,Housing,-25000.00';
 
 const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' });
@@ -59,6 +59,19 @@ const dueCards = (prefix: string, edit: boolean): Node[] => [
   { id: `${prefix}-card`, type: 'card', props: { title: '{description}', subtitle: '{meta}', badge: '{amount}', tone: '{tone}', layout: 'row', ...(edit ? { action: 'open_rec', payload: { id: '{id}' }, actionLabel: 'Edit' } : {}) }, children: [`${prefix}-add`] },
   button(`${prefix}-add`, 'Add to ledger', 'post_recurring', 'secondary', { id: '{id}' }),
 ];
+
+/** What the docked assistant starts with on Transactions; the person edits and sends it. */
+const assistantRequest = 'Add these to my ledger: ';
+export const assistantWorkflow = {
+  title: 'Add by chat', brief: 'What you spent or received',
+  boundary: 'The assistant reads your categories and adds the transactions you describe, after you approve them. It never deletes or changes a saved transaction.',
+  saved: 'Added to your ledger. Check them in the list, and choose one to change it.',
+  steps: [
+    { id: 'add', label: 'Add transactions', mode: 'edit', message: assistantRequest },
+    { id: 'month', label: 'Summarise this month', mode: 'send', message: 'Read my ledger and summarise this month: money in, money out, what is left of my limits and the largest expenses. Use only what the ledger returned.' },
+  ],
+  review: { label: 'See the transactions', surface: 'ledger', tool: 'add_transactions' },
+};
 
 export function view(input: State, ledger: Ledger = EMPTY_LEDGER, now = new Date()): Update[] {
   const s = normalize(input, now), l = { ...EMPTY_LEDGER, ...ledger }, f = figures(s, l, now);
@@ -150,7 +163,8 @@ function ledgerSurface(s: State, l: Ledger, f: Figures): Update {
       { id: 'e-confirm', type: 'card', props: { title: 'Delete this transaction?', body: 'It is removed from the ledger for good.', tone: 'danger' }, children: ['e-confirm-bar'] } as Node,
       bar('e-confirm-bar', ['e-delete-yes', 'e-delete-no']), button('e-delete-yes', 'Delete', 'delete_entry', 'danger'), button('e-delete-no', 'Keep it', 'cancel_delete', 'secondary'),
     ] : [
-      bar('e-actions', ['e-save', ...(editing ? ['e-cancel', 'e-delete'] : [])]), button('e-save', editing ? 'Save changes' : 'Add', 'save_entry', 'primary'),
+      bar('e-actions', ['e-save', ...(editing ? ['e-cancel', 'e-delete'] : ['e-chat'])]), button('e-save', editing ? 'Save changes' : 'Add', 'save_entry', 'primary'),
+      ...(editing ? [] : [button('e-chat', 'Add by chat', 'assistant.compose', 'link', { path: 'assistantRequest', workflowPath: 'assistantWorkflow' })]),
       ...(editing ? [button('e-cancel', 'Cancel', 'cancel_edit', 'secondary'), button('e-delete', 'Delete', 'ask_delete', 'link')] : []),
     ]),
     ...(has ? [
@@ -159,7 +173,7 @@ function ledgerSurface(s: State, l: Ledger, f: Figures): Update {
     ] : [caption('list-empty', l.total ? 'Nothing recorded in this month yet.' : 'Your transactions are listed here, newest first, with search. Choose one to change or delete it.')]),
   ];
   const data = {
-    entry, categoryOptions: [...new Set([...f.categories, ...(entry.category ? [entry.category] : [])])].sort((a, b) => a.localeCompare(b)),
+    entry, assistantRequest, assistantWorkflow, categoryOptions: [...new Set([...f.categories, ...(entry.category ? [entry.category] : [])])].sort((a, b) => a.localeCompare(b)),
     summary: has ? `${monthName(f.month)} · ${plural(l.rows.length, 'transaction')} · ${money(f.income)} in · ${money(f.spent)} out` : l.total ? `No transactions in ${monthName(f.month)}.` : 'Record money in and money out as it happens. Amounts are exact to the paisa and stay on this computer.',
     ...(s.notice ? { notice: s.notice } : {}),
     ...(l.total ? { month: s.month, monthOptions: f.monthOptions } : {}),

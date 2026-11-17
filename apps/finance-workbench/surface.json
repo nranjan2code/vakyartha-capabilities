@@ -78,6 +78,32 @@
         "category": "",
         "newCategory": ""
       },
+      "assistantRequest": "Add these to my ledger: ",
+      "assistantWorkflow": {
+        "title": "Add by chat",
+        "brief": "What you spent or received",
+        "boundary": "The assistant reads your categories and adds the transactions you describe, after you approve them. It never deletes or changes a saved transaction.",
+        "saved": "Added to your ledger. Check them in the list, and choose one to change it.",
+        "steps": [
+          {
+            "id": "add",
+            "label": "Add transactions",
+            "mode": "edit",
+            "message": "Add these to my ledger: "
+          },
+          {
+            "id": "month",
+            "label": "Summarise this month",
+            "mode": "send",
+            "message": "Read my ledger and summarise this month: money in, money out, what is left of my limits and the largest expenses. Use only what the ledger returned."
+          }
+        ],
+        "review": {
+          "label": "See the transactions",
+          "surface": "ledger",
+          "tool": "add_transactions"
+        }
+      },
       "categoryOptions": [
         "Education",
         "Entertainment",
@@ -248,7 +274,8 @@
           "align": "end"
         },
         "children": [
-          "e-save"
+          "e-save",
+          "e-chat"
         ]
       },
       {
@@ -258,6 +285,19 @@
           "label": "Add",
           "action": "save_entry",
           "style": "primary"
+        }
+      },
+      {
+        "id": "e-chat",
+        "type": "button",
+        "props": {
+          "label": "Add by chat",
+          "action": "assistant.compose",
+          "style": "link",
+          "payload": {
+            "path": "assistantRequest",
+            "workflowPath": "assistantWorkflow"
+          }
         }
       },
       {

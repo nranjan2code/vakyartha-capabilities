@@ -7,6 +7,9 @@
 - `server.ts`: `handleAction` (field drafts and every action), `renderApp`, and `surfaceFile()` for `surface.json`.
 - `views.ts`: `view` with `overviewSurface`, `ledgerSurface`, `budgetsSurface`, `insightsSurface`, `recurringSurface`, `importSurface`, over shared `figures`.
 - `surface.json`: the empty app, from `surfaceFile()`.
+- `skills/finance-ledger/SKILL.md`: the app skill the assistant uses to read the ledger and add described transactions.
+
+`server.ts` also holds `handleQuery` (the read-only `get_ledger_context` export); `views.ts` holds `assistantWorkflow` for **Add by chat**.
 
 ## Flow
 
@@ -18,6 +21,7 @@ choose a transaction → open_entry → edit draft → Save changes, or Delete �
 Set limit / Remove limit → state.budget or state.budgets → load → view
 recurring: save_rec → state.recurring; Add to ledger → INSERT rec-<item>-<YYYY-MM> in one transaction → load → view
 Import → records(text) → ID clash check → INSERT in one transaction → receipt, month = last imported month → load → view (focus Overview)
+assistant: get_ledger_context (read-only, revision) → add_transactions {expectedRevision, transactions[]} → Ask → host checks the revision → handleAction('add_transactions') → validate all → INSERT in one transaction → notice, month → load → view (focus Transactions)
 Delete all → ask_clear → clear_ledger (DELETE FROM ledger) → view
 view → 6 updates (nodes + whole data) → registry lints, applies and commits state + database atomically
 ```
@@ -32,7 +36,7 @@ The ranked spending chart uses grouped outflows for its bars and the retained ne
 
 ## Boundaries
 
-Each command runs in its app’s dedicated sandbox instance with a 30 s deadline and a bounded DuckDB snapshot stored in the app record. Limits: 50,000 characters per paste, 200 rows per import, 5,000 in the ledger, 50 recurring items, 60 category limits.
+Each command runs in its app’s dedicated sandbox instance with a 30 s deadline and a bounded DuckDB snapshot stored in the app record. Limits: 50,000 characters per paste, 200 rows per import, 20 rows per assistant request, 5,000 in the ledger, 50 recurring items, 60 category limits.
 
 ## Shared Access and package review
 

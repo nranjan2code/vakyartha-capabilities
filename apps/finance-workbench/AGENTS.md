@@ -9,11 +9,12 @@ Read Building a Vakyartha app (Vakyartha's app-building guide, in the Vakyartha 
 3. Money is integer paise end to end. `paise()` parses signed decimal strings exactly; `typedPaise()` parses a typed positive amount; `decimal()` writes paise back. Charts receive rupees from SQL as `paise / 100`.
 4. Every write is explicit: Add, Save changes, Delete (after a confirmation), Set limit, Add to ledger, Import. Entered transactions get `entry-<n>` IDs; a recurring item posts as `rec-<item>-<YYYY-MM>`, so it cannot be added twice in a month. Imports are validated as a batch (`records()`), checked for existing IDs, and inserted in one transaction. No external tool, network or credential.
 5. Recurring items are due only in the person's calendar month, never in an earlier selected month. Nothing posts without a press: the package has no timer or trigger.
-6. `surface.json` is `surfaceFile()`: the empty app on a fixed clock with the entry date left blank, so it does not change from day to day.
+6. The assistant reaches the ledger only through the declared exports: `handleQuery('get_ledger_context')` reads (the host discards any change), and `add_transactions` is the one mutating export. It requires `expectedRevision` (checked and removed by the host), defaults to Ask, validates every row before writing, inserts in one transaction and never updates or deletes. The `finance-ledger` skill and the `assistantWorkflow` behind **Add by chat** describe only these two tools; keep them, the manifest schemas and README in step.
+7. `surface.json` is `surfaceFile()`: the empty app on a fixed clock with the entry date left blank, so it does not change from day to day.
 
 ## Change method
 
-Change `model.ts`, `server.ts` or `views.ts`; regenerate `surface.json` from `surfaceFile()` (Vakyartha's `node scripts/app-surfaces.ts` writes it); leave `version` alone (the owner types the new version at the next release; `node scripts/version.ts --list` shows the app); update these four documents; run `node --test tests/finance-workbench.test.ts` here and, in Vakyartha, `node --test test/reference-apps.test.ts test/app-registry.test.ts`, which also lint every view. A schema change needs a migration in `load()` because updates keep the saved database.
+Change `model.ts`, `server.ts` or `views.ts`; regenerate `surface.json` from `surfaceFile()` (Vakyartha's `node scripts/app-surfaces.ts` writes it); leave `version` alone (the owner types the new version at the next release; `node scripts/version.ts --list` shows the app); update these four documents; run `node --test tests/finance-workbench.test.ts` here and, in Vakyartha, `node --test test/finance-workbench.test.ts test/reference-apps.test.ts test/app-registry.test.ts`, which also lint every view and run the exports through the real registry. A schema change needs a migration in `load()` because updates keep the saved database.
 
 ## Shared Access and package review
 

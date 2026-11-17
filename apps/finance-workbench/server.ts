@@ -5,14 +5,15 @@
 // reads the selected month once and `view()` derives every surface from it.
 // No sample records, bank login or network.
 
-import { ALL, MAX_LEDGER, MAX_LIMITS, MAX_RECURRING, MAX_TEXT, MONTH, count, daysIn, decimal, initialize, load, localDay, normalize, paise, records, replaceAll, typedPaise } from './model.ts';
+import { ALL, MAX_LEDGER, MAX_LIMITS, MAX_RECURRING, MAX_TEXT, MONTH, count, daysIn, decimal, initialize, isDay, load, localDay, normalize, paise, records, replaceAll, typedPaise } from './model.ts';
 import type { Context, Database, RecDraft, State } from './model.ts';
-import { TITLES, money, monthName, view } from './views.ts';
+import { STARTERS, TITLES, money, monthName, view } from './views.ts';
 
 export { EMPTY_LEDGER, load, normalize, paise, records } from './model.ts';
 export type { Context, Ledger, State, Transaction } from './model.ts';
-export { TITLES, view } from './views.ts';
+export { TITLES, assistantWorkflow, view } from './views.ts';
 
+const MAX_CHAT = 20;
 const idOf = (value: unknown) => String((value as { id?: unknown } | null)?.id ?? '');
 /** A draft field arrives as typed text, or as a number from a number input. */
 const typed = (value: unknown, max: number) => (typeof value === 'number' && Number.isFinite(value) ? String(value) : typeof value === 'string' ? value : '').slice(0, max);
@@ -148,6 +149,37 @@ export async function handleAction(controlId: string, value: unknown, c: Context
       } catch { await db.run('ROLLBACK'); throw new Error('Nothing was added; try again'); }
       s.month = thisMonth;
       s.notice = `Added ${due.length === 1 ? due[0]!.description : `${due.length} recurring items`} to ${monthName(thisMonth)}.`;
+    } else if (action === 'add_transactions') {
+      // The assistant's export: the person approved these exact rows, so they are added whole or not at all.
+      const items = (value as { transactions?: unknown } | null)?.transactions;
+      if (!Array.isArray(items) || !items.length || items.length > MAX_CHAT) throw new Error(`Send 1 to ${MAX_CHAT} transactions`);
+      const known = new Map((await db.query('SELECT DISTINCT category FROM ledger')).map((r) => [String(r.category).toLowerCase(), String(r.category)]));
+      for (const c of [...STARTERS, ...Object.keys(s.budgets!)]) if (!known.has(c.toLowerCase())) known.set(c.toLowerCase(), c);
+      const rows = items.map((raw, i) => {
+        const x = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>, at = `Transaction ${i + 1}: `;
+        const date = x.date === undefined || x.date === '' ? today : x.date;
+        if (!isDay(date)) throw new Error(`${at}use a real YYYY-MM-DD date`);
+        const kind = x.kind === 'income' || x.kind === 'in' ? 'in' : x.kind === 'expense' || x.kind === 'out' ? 'out' : '';
+        if (!kind) throw new Error(`${at}kind is expense or income`);
+        const description = typeof x.description === 'string' ? x.description.trim().slice(0, 200) : '';
+        const typedCategory = typeof x.category === 'string' ? x.category.trim().slice(0, 60) : '';
+        if (!description || !typedCategory) throw new Error(`${at}needs a description and a category`);
+        let p: number;
+        try { p = typedPaise(String(x.amount ?? '')); } catch (e) { throw new Error(`${at}${(e as Error).message}`); }
+        // An existing category keeps its spelling, so "food" joins Food.
+        return { date, description, category: known.get(typedCategory.toLowerCase()) ?? typedCategory, paise: kind === 'in' ? p : -p };
+      });
+      await room(db, rows.length);
+      const ids: string[] = [];
+      for (let i = 0; i < rows.length; i++) ids.push(await freshId(db, s));
+      await db.run('BEGIN TRANSACTION');
+      try {
+        for (const [i, r] of rows.entries()) await insert(db, ids[i]!, r.date, r.description, r.category, r.paise);
+        await db.run('COMMIT');
+      } catch { await db.run('ROLLBACK'); throw new Error('Nothing was added; try again'); }
+      s.month = rows.map((r) => r.date.slice(0, 7)).sort().at(-1)!;
+      s.notice = rows.length === 1 ? `Added ${rows[0]!.description} · ${money(rows[0]!.paise)} from the assistant.` : `Added ${rows.length} transactions from the assistant, ${money(rows.reduce((a, r) => a + r.paise, 0))} in all.`;
+      focusSurface = 'ledger';
     } else if (action === 'import_records') {
       const rows = records(s.importText ?? '');
       await room(db, rows.length);
@@ -173,6 +205,31 @@ export async function handleAction(controlId: string, value: unknown, c: Context
   }
   const done = (c.state = normalize(s, now));
   return { updates: view(done, await load(db, done.month!, thisMonth), now), ...(focusSurface ? { focusSurface } : {}) };
+}
+
+/** Read-only exports for the assistant. The host discards any state or database change made here. */
+export async function handleQuery(name: string, params: unknown, c: Context) {
+  if (name !== 'get_ledger_context') throw new Error(`Unknown Finance Workbench query: ${name}`);
+  const now = c.now?.() ?? new Date(), today = localDay(now), thisMonth = today.slice(0, 7), s = normalize(c.state, now);
+  const asked = (params as { month?: unknown } | null)?.month, month = typeof asked === 'string' && MONTH.test(asked) ? asked : thisMonth;
+  const l = await load(c.database, month, thisMonth);
+  const moneyIn = l.rows.filter((r) => r.paise > 0).reduce((a, r) => a + r.paise, 0), moneyOut = -l.rows.filter((r) => r.paise < 0).reduce((a, r) => a + r.paise, 0);
+  const spentIn = new Map(l.categories.map((x) => [x.label, Math.round(x.amount * 100)]));
+  const limits = [
+    ...(s.budget ? [{ category: 'All spending', limit: decimal(paise(s.budget)), spent: decimal(moneyOut), left: decimal(paise(s.budget) - moneyOut) }] : []),
+    ...Object.entries(s.budgets!).map(([category, limit]) => ({ category, limit: decimal(limit), spent: decimal(spentIn.get(category) ?? 0), left: decimal(limit - (spentIn.get(category) ?? 0)) })),
+  ];
+  const posted = new Set(l.posted);
+  return {
+    expectedRevision: c.appRevision, today, month, currency: 'INR',
+    note: 'Amounts are INR decimal strings; in transactions, negative is money out and positive is money in. A left value below zero means the limit was passed. Money in less money out is not an account balance.',
+    categories: [...new Set([...STARTERS, ...l.allCategories, ...Object.keys(s.budgets!)])].sort((a, b) => a.localeCompare(b)),
+    totals: { moneyIn: decimal(moneyIn), moneyOut: decimal(moneyOut), saved: decimal(moneyIn - moneyOut), transactions: l.rows.length },
+    limits,
+    spendingByCategory: l.categories.map((x) => ({ category: x.label, spent: decimal(Math.round(x.amount * 100)) })),
+    recent: l.rows.slice(0, 15).map((r) => ({ date: r.date, description: r.description, category: r.category, amount: decimal(r.paise) })),
+    recurringNotYetAdded: month === thisMonth ? s.recurring!.filter((r) => !posted.has(`rec-${r.id}-${thisMonth}`)).map((r) => ({ description: r.description, category: r.category, amount: decimal(r.paise), day: r.day })) : [],
+  };
 }
 
 /** The shipped surface.json: every view of a new, empty app, on a fixed clock with the entry date left for the first run. */
