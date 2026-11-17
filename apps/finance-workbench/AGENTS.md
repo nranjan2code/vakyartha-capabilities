@@ -4,15 +4,16 @@ Read Building a Vakyartha app (Vakyartha's app-building guide, in the Vakyartha 
 
 ## Invariants
 
-1. DuckDB `ledger(id VARCHAR PRIMARY KEY, date VARCHAR, description VARCHAR, category VARCHAR, paise BIGINT)` is the only transaction owner. `context.state` holds `month`, `budget` (as typed), `importText`, `lastImport {at, count}` and `confirmClear`; `normalize()` accepts untrusted and version-1 state.
-2. The spending chart and its drill-down come from the selected month’s ledger read. Match exact categories and include only outflows. Operations that need ledger values read the selected month with `load()` and `view(state, ledger)` derives all three surfaces from that one read. Import-text drafts retain the committed import view without SQL: totals, charts and the table use the same rows. Regions are emitted only when they apply; empty months and an empty ledger say what to do.
-3. Money is integer paise end to end; `paise()` parses decimal strings exactly. Charts receive rupees as `paise / 100` from SQL.
-4. Imports are validated as a batch (`records()`), checked for existing IDs, and inserted in one transaction. No external tool, network or credential.
-5. Fields save as they change (`/month`, `/budget`, `/importText`); an invalid budget is kept as typed and shown with a hint rather than failing the run.
+1. DuckDB `ledger(id VARCHAR PRIMARY KEY, date VARCHAR, description VARCHAR, category VARCHAR, paise BIGINT)` is the only transaction owner. `context.state` owns `month`, `budget` (the limit on all spending, a decimal string), `budgets` (category to paise), `recurring[]`, the drafts `draft`, `edit`, `limit` and `rec`, the open records `editId` and `recId`, `importText`, `lastImport {at, count}`, the two confirmations, `seq` and the last `notice`. `normalize()` accepts untrusted and earlier state.
+2. Each action that needs ledger values reads once with `load(month, calendarMonth)`, and `view(state, ledger, now)` derives all six surfaces from that read: totals, limits, charts, tables and lists use the same rows. A text draft edit returns only its own view's data over the retained view, without SQL. Regions are emitted only when they apply; an empty month and an empty ledger say what to do.
+3. Money is integer paise end to end. `paise()` parses signed decimal strings exactly; `typedPaise()` parses a typed positive amount; `decimal()` writes paise back. Charts receive rupees from SQL as `paise / 100`.
+4. Every write is explicit: Add, Save changes, Delete (after a confirmation), Set limit, Add to ledger, Import. Entered transactions get `entry-<n>` IDs; a recurring item posts as `rec-<item>-<YYYY-MM>`, so it cannot be added twice in a month. Imports are validated as a batch (`records()`), checked for existing IDs, and inserted in one transaction. No external tool, network or credential.
+5. Recurring items are due only in the person's calendar month, never in an earlier selected month. Nothing posts without a press: the package has no timer or trigger.
+6. `surface.json` is `surfaceFile()`: the empty app on a fixed clock with the entry date left blank, so it does not change from day to day.
 
 ## Change method
 
-Change `server.ts`; run `node scripts/app-surfaces.ts`; leave `version` alone (the owner types the new version at the next release; `node scripts/version.ts --list` shows the app); update these four documents; run `node --test test/reference-apps.test.ts test/app-registry.test.ts`. A schema change needs a migration in `load()` because updates keep the saved database.
+Change `model.ts`, `server.ts` or `views.ts`; regenerate `surface.json` from `surfaceFile()` (Vakyartha's `node scripts/app-surfaces.ts` writes it); leave `version` alone (the owner types the new version at the next release; `node scripts/version.ts --list` shows the app); update these four documents; run `node --test tests/finance-workbench.test.ts` here and, in Vakyartha, `node --test test/reference-apps.test.ts test/app-registry.test.ts`, which also lint every view. A schema change needs a migration in `load()` because updates keep the saved database.
 
 ## Shared Access and package review
 

@@ -1,28 +1,33 @@
 # Personal Finance Workbench
 
-Your own INR transactions, imported as CSV or JSON, with monthly totals, a spending budget and charts. Amounts are exact (integer paise); records stay in this app's local database. No bank login, sync, network access or sample data, and actions make no model request.
+A private INR ledger for everyday use. Record what you earn and spend as it happens, set monthly limits, keep the amounts that repeat every month, and see where the money goes. Amounts are exact (integer paise); records stay in this app's local database. No bank login, sync, network access or sample data, and actions make no model request.
 
 ## Use it
 
-1. Open **Apps → Personal Finance Workbench**. With no records, Overview offers **Import transactions**.
-2. On **Import**, paste CSV with an `id,date,description,category,amount` header (quoted fields may contain commas) or a JSON array with those fields, and press **Import**. Positive amounts are money in, negative are money out. The app opens Overview on the month the import ends in.
-3. On **Overview**, choose a month and type a monthly spending budget; both save as you change them.
+1. Open **Apps → Personal Finance Workbench**. With no records, Overview offers **Add a transaction** and **Import a file**.
+2. On **Transactions**, choose Expense or Income, type the amount, date, description and category, and press **Add**. The form keeps the type, date and category so several entries go in quickly. Choose a listed transaction to change or delete it.
+3. On **Budgets**, set a monthly limit for all spending or for one category.
+4. On **Recurring**, add rent, salary and subscriptions once. Each month, **Add to ledger** records them; nothing is added on its own.
+5. On **Import**, paste records you already keep elsewhere. **Export CSV** on Transactions writes the selected month in the same format.
 
 ## Views
 
 | View | What it shows |
 | --- | --- |
-| **Overview** | Month, budget and **Import more**; money in, money out, net flow and transaction count; spending against budget (turns amber past 80 % and red past 100 %); ranked spending by category with the selected category’s amount and share, plus a drill-down to its outflows; net flow by day (coloured by sign); cumulative net flow through the month; money in and out by month (up to 12) once more than one month exists. |
-| **Ledger** | Month and the exact searchable, sortable transactions. |
+| **Overview** | The month in one line; money in, money out, what was saved and spending per day; spending against the monthly limit with what is left per remaining day; recurring items still to add this month; spending by category with a drill-down to its transactions; cumulative spending through the month against the limit. |
+| **Transactions** | The entry form beside the month's transactions, newest first, with search and paging. Choosing one opens it for editing; delete asks first. Export CSV. |
+| **Budgets** | The limit form beside a progress bar for each limit, the most used first (amber past 80%, red once passed), and the spending that has no limit. |
+| **Insights** | Share of income saved, spending against the previous month and the largest expense; tabs for the largest expenses and where the money went, a category comparison with the previous month, the 12-month trend with spending stacked by category, and a month-by-month table. |
+| **Recurring** | The recurring-item form beside the items still to add for the calendar month and those already added. |
 | **Import** | The import box, the format with an example, the last import receipt, and **Delete all transactions** (asks first). |
 
 ## Rules
 
-Amounts are decimals with up to two places and nine whole digits; floats and exponents are refused. Dates are real `YYYY-MM-DD` days. IDs are unique letters, digits, `_` or `-` and are never overwritten: importing the same file twice adds nothing and names the IDs already present. A batch (1–200 rows) is added whole or not at all; the ledger keeps up to 2,000. Net flow is not an account balance; classify transfers and refunds yourself.
+Typed amounts are positive, with up to two decimals; digit grouping and the rupee sign are accepted, and the type gives the sign. Imported amounts are signed decimals with up to two places and nine whole digits; floats and exponents are refused. Dates are real `YYYY-MM-DD` days. Imported IDs are unique letters, digits, `_` or `-` and are never overwritten: importing the same file twice adds nothing and names the IDs already present. A batch (1–200 rows) is added whole or not at all; the ledger keeps up to 5,000. A recurring item is added at most once per calendar month, on its day (or the month's last day). Limits apply to every month and are measured against the selected one. Money in less money out is not an account balance; classify transfers and refunds yourself.
 
 ## Data
 
-Transactions live in DuckDB `ledger`; the month, budget, import draft and receipt live in app state. Both are saved together only when a run succeeds. Version-1 state loads automatically.
+Transactions live in DuckDB `ledger`; the month, limits, recurring items, drafts and the import receipt live in app state. Both are saved together only when a run succeeds. Earlier saved state and ledgers load unchanged.
 
 ## Shared Access and package review
 

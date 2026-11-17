@@ -2,7 +2,7 @@
   "id": "finance-workbench",
   "version": "1.1.0",
   "name": "Personal Finance Workbench",
-  "description": "A private imported INR ledger with exact paise arithmetic, monthly cash-flow analysis, spending categories and atomic duplicate-safe imports.",
+  "description": "A private INR ledger for everyday use: add and edit transactions, monthly limits, recurring items, spending analysis, and CSV import and export, exact to the paisa.",
   "author": "Vakyartha",
   "icon": "chart",
   "brand": "#15803d",

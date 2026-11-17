@@ -8,7 +8,8 @@
         "id": "root",
         "type": "stack",
         "props": {
-          "gap": "md"
+          "gap": "md",
+          "density": "compact"
         },
         "children": [
           "fin-empty"
@@ -18,63 +19,671 @@
         "id": "fin-empty",
         "type": "card",
         "props": {
-          "title": "No transactions yet",
-          "body": "Import your own records as CSV or JSON: positive amounts are money in, negative amounts are money out. Totals, a budget and charts appear here. Nothing leaves this computer."
+          "title": "Start your ledger",
+          "body": "Add what you earn and spend as it happens, or import your own records. Totals, limits and charts appear here. Nothing leaves this computer."
         },
         "children": [
+          "empty-bar"
+        ]
+      },
+      {
+        "id": "empty-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
+        },
+        "children": [
+          "start-add",
           "start-import"
         ]
+      },
+      {
+        "id": "start-add",
+        "type": "button",
+        "props": {
+          "label": "Add a transaction",
+          "action": "view.open",
+          "style": "primary",
+          "payload": {
+            "surface": "ledger"
+          }
+        }
       },
       {
         "id": "start-import",
         "type": "button",
         "props": {
-          "label": "Import transactions",
+          "label": "Import a file",
           "action": "view.open",
+          "style": "secondary",
           "payload": {
             "surface": "import"
-          },
-          "style": "primary"
+          }
         }
       }
     ]
   },
   {
     "id": "ledger",
-    "title": "Ledger",
+    "title": "Transactions",
+    "data": {
+      "entry": {
+        "kind": "out",
+        "amount": "",
+        "date": "",
+        "description": "",
+        "category": "",
+        "newCategory": ""
+      },
+      "categoryOptions": [
+        "Education",
+        "Entertainment",
+        "Food",
+        "Groceries",
+        "Health",
+        "Housing",
+        "Income",
+        "Other",
+        "Shopping",
+        "Transport",
+        "Travel",
+        "Utilities"
+      ],
+      "summary": "Record money in and money out as it happens. Amounts are exact to the paisa and stay on this computer."
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "cap",
+          "work"
+        ]
+      },
+      {
+        "id": "cap",
+        "type": "text",
+        "props": {
+          "content": "{/summary}",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "work",
+        "type": "split",
+        "props": {
+          "ratio": "1:2",
+          "gap": "md"
+        },
+        "children": [
+          "editor",
+          "list-empty"
+        ]
+      },
+      {
+        "id": "editor",
+        "type": "section",
+        "props": {
+          "title": "Add a transaction"
+        },
+        "children": [
+          "e-kind",
+          "e-figures",
+          "e-description",
+          "e-categories",
+          "e-actions"
+        ]
+      },
+      {
+        "id": "e-kind",
+        "type": "select",
+        "props": {
+          "label": "Type",
+          "bind": "/entry/kind",
+          "options": [
+            {
+              "label": "Expense",
+              "value": "out"
+            },
+            {
+              "label": "Income",
+              "value": "in"
+            }
+          ]
+        }
+      },
+      {
+        "id": "e-figures",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
+        },
+        "children": [
+          "e-amount",
+          "e-date"
+        ]
+      },
+      {
+        "id": "e-amount",
+        "type": "input",
+        "props": {
+          "label": "Amount · INR",
+          "bind": "/entry/amount",
+          "kind": "number",
+          "min": 0,
+          "step": 0.01,
+          "placeholder": "250.00",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "e-date",
+        "type": "date",
+        "props": {
+          "label": "Date",
+          "bind": "/entry/date",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "e-description",
+        "type": "input",
+        "props": {
+          "label": "Description",
+          "bind": "/entry/description",
+          "placeholder": "Groceries"
+        }
+      },
+      {
+        "id": "e-categories",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
+        },
+        "children": [
+          "e-category",
+          "e-new"
+        ]
+      },
+      {
+        "id": "e-category",
+        "type": "select",
+        "props": {
+          "label": "Category",
+          "bind": "/entry/category",
+          "options": "{/categoryOptions}",
+          "presentation": "dropdown",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "e-new",
+        "type": "input",
+        "props": {
+          "label": "Or a new category",
+          "bind": "/entry/newCategory",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "e-actions",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
+        },
+        "children": [
+          "e-save"
+        ]
+      },
+      {
+        "id": "e-save",
+        "type": "button",
+        "props": {
+          "label": "Add",
+          "action": "save_entry",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "list-empty",
+        "type": "text",
+        "props": {
+          "content": "Your transactions are listed here, newest first, with search. Choose one to change or delete it.",
+          "variant": "caption"
+        }
+      }
+    ]
+  },
+  {
+    "id": "budgets",
+    "title": "Budgets",
+    "data": {
+      "limit": {
+        "category": "*",
+        "amount": ""
+      },
+      "limitOptions": [
+        {
+          "label": "All spending",
+          "value": "*"
+        },
+        {
+          "label": "Education",
+          "value": "Education"
+        },
+        {
+          "label": "Entertainment",
+          "value": "Entertainment"
+        },
+        {
+          "label": "Food",
+          "value": "Food"
+        },
+        {
+          "label": "Groceries",
+          "value": "Groceries"
+        },
+        {
+          "label": "Health",
+          "value": "Health"
+        },
+        {
+          "label": "Housing",
+          "value": "Housing"
+        },
+        {
+          "label": "Income",
+          "value": "Income"
+        },
+        {
+          "label": "Other",
+          "value": "Other"
+        },
+        {
+          "label": "Shopping",
+          "value": "Shopping"
+        },
+        {
+          "label": "Transport",
+          "value": "Transport"
+        },
+        {
+          "label": "Travel",
+          "value": "Travel"
+        },
+        {
+          "label": "Utilities",
+          "value": "Utilities"
+        }
+      ],
+      "summary": "No limits yet. Set one for all spending, or for a category you want to keep an eye on."
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "cap",
+          "work"
+        ]
+      },
+      {
+        "id": "cap",
+        "type": "text",
+        "props": {
+          "content": "{/summary}",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "work",
+        "type": "split",
+        "props": {
+          "ratio": "1:2",
+          "gap": "md"
+        },
+        "children": [
+          "limit-form",
+          "limit-pane"
+        ]
+      },
+      {
+        "id": "limit-form",
+        "type": "section",
+        "props": {
+          "title": "Set a monthly limit"
+        },
+        "children": [
+          "l-category",
+          "l-amount",
+          "l-actions"
+        ]
+      },
+      {
+        "id": "l-category",
+        "type": "select",
+        "props": {
+          "label": "Applies to",
+          "bind": "/limit/category",
+          "options": "{/limitOptions}",
+          "presentation": "dropdown"
+        }
+      },
+      {
+        "id": "l-amount",
+        "type": "input",
+        "props": {
+          "label": "Limit per month · INR",
+          "bind": "/limit/amount",
+          "kind": "number",
+          "min": 0,
+          "step": 0.01,
+          "placeholder": "40000",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "l-actions",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
+        },
+        "children": [
+          "l-save"
+        ]
+      },
+      {
+        "id": "l-save",
+        "type": "button",
+        "props": {
+          "label": "Set limit",
+          "action": "save_limit",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "limit-pane",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "limits-empty"
+        ]
+      },
+      {
+        "id": "limits-empty",
+        "type": "text",
+        "props": {
+          "content": "A limit is a monthly ceiling for all spending or for one category. Each one is measured against the selected month, and turns amber past 80% and red once it is passed.",
+          "variant": "caption"
+        }
+      }
+    ]
+  },
+  {
+    "id": "insights",
+    "title": "Insights",
     "data": {},
     "nodes": [
       {
         "id": "root",
         "type": "stack",
         "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "none"
+        ]
+      },
+      {
+        "id": "none",
+        "type": "text",
+        "props": {
+          "content": "Comparisons, trends and your largest expenses appear here once the ledger has transactions.",
+          "variant": "caption"
+        }
+      }
+    ]
+  },
+  {
+    "id": "recurring",
+    "title": "Recurring",
+    "data": {
+      "rec": {
+        "kind": "out",
+        "amount": "",
+        "description": "",
+        "category": "",
+        "newCategory": "",
+        "day": "1"
+      },
+      "categoryOptions": [
+        "Education",
+        "Entertainment",
+        "Food",
+        "Groceries",
+        "Health",
+        "Housing",
+        "Income",
+        "Other",
+        "Shopping",
+        "Transport",
+        "Travel",
+        "Utilities"
+      ],
+      "summary": "Keep the amounts that repeat every month in one place."
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "cap",
+          "work"
+        ]
+      },
+      {
+        "id": "cap",
+        "type": "text",
+        "props": {
+          "content": "{/summary}",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "work",
+        "type": "split",
+        "props": {
+          "ratio": "1:2",
           "gap": "md"
         },
         "children": [
-          "ledger-empty"
+          "rec-form",
+          "rec-pane"
         ]
       },
       {
-        "id": "ledger-empty",
-        "type": "card",
+        "id": "rec-form",
+        "type": "section",
         "props": {
-          "title": "Your ledger is empty",
-          "body": "Imported transactions are listed here exactly as stored, with search, sorting and paging."
+          "title": "Add a recurring item"
         },
         "children": [
-          "ledger-start"
+          "r-kind",
+          "r-figures",
+          "r-description",
+          "r-categories",
+          "r-actions"
         ]
       },
       {
-        "id": "ledger-start",
+        "id": "r-kind",
+        "type": "select",
+        "props": {
+          "label": "Type",
+          "bind": "/rec/kind",
+          "options": [
+            {
+              "label": "Expense",
+              "value": "out"
+            },
+            {
+              "label": "Income",
+              "value": "in"
+            }
+          ]
+        }
+      },
+      {
+        "id": "r-figures",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
+        },
+        "children": [
+          "r-amount",
+          "r-day"
+        ]
+      },
+      {
+        "id": "r-amount",
+        "type": "input",
+        "props": {
+          "label": "Amount · INR",
+          "bind": "/rec/amount",
+          "kind": "number",
+          "min": 0,
+          "step": 0.01,
+          "placeholder": "25000",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "r-day",
+        "type": "input",
+        "props": {
+          "label": "Day of the month",
+          "bind": "/rec/day",
+          "kind": "number",
+          "min": 1,
+          "max": 31,
+          "step": 1,
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "r-description",
+        "type": "input",
+        "props": {
+          "label": "Description",
+          "bind": "/rec/description",
+          "placeholder": "Rent"
+        }
+      },
+      {
+        "id": "r-categories",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
+        },
+        "children": [
+          "r-category",
+          "r-new"
+        ]
+      },
+      {
+        "id": "r-category",
+        "type": "select",
+        "props": {
+          "label": "Category",
+          "bind": "/rec/category",
+          "options": "{/categoryOptions}",
+          "presentation": "dropdown",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "r-new",
+        "type": "input",
+        "props": {
+          "label": "Or a new category",
+          "bind": "/rec/newCategory",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "r-actions",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
+        },
+        "children": [
+          "r-save"
+        ]
+      },
+      {
+        "id": "r-save",
         "type": "button",
         "props": {
-          "label": "Import transactions",
-          "action": "view.open",
-          "payload": {
-            "surface": "import"
-          },
+          "label": "Add",
+          "action": "save_rec",
           "style": "primary"
+        }
+      },
+      {
+        "id": "rec-pane",
+        "type": "stack",
+        "props": {
+          "gap": "md"
+        },
+        "children": [
+          "rec-empty"
+        ]
+      },
+      {
+        "id": "rec-empty",
+        "type": "text",
+        "props": {
+          "content": "Rent, salary, subscriptions and other amounts that repeat every month go here. Each month you add them to the ledger with one press; nothing is added on its own, and an item is never added twice in a month.",
+          "variant": "caption"
         }
       }
     ]
@@ -84,14 +693,15 @@
     "title": "Import",
     "data": {
       "importText": "",
-      "receipt": "Nothing imported yet. Use your own records; no sample data is supplied."
+      "receipt": "Bring in records you already keep elsewhere. No sample data is supplied."
     },
     "nodes": [
       {
         "id": "root",
         "type": "stack",
         "props": {
-          "gap": "md"
+          "gap": "md",
+          "density": "compact"
         },
         "children": [
           "import-section",
@@ -125,7 +735,9 @@
         "type": "stack",
         "props": {
           "direction": "horizontal",
-          "gap": "sm"
+          "wrap": true,
+          "gap": "sm",
+          "align": "end"
         },
         "children": [
           "import"
@@ -156,7 +768,7 @@
         "id": "format",
         "type": "text",
         "props": {
-          "content": "One row per transaction with **id, date, description, category, amount**. Amounts are INR decimals with up to two places: positive for money in, negative for money out. IDs must be unique and stay fixed, so importing the same file twice adds nothing. Up to 200 rows per import and 2,000 in the ledger; a batch is added whole or not at all."
+          "content": "One row per transaction with **id, date, description, category, amount**. Amounts are INR decimals with up to two places: positive for money in, negative for money out. IDs must be unique and stay fixed, so importing the same file twice adds nothing. Up to 200 rows per import and 5,000 in the ledger; a batch is added whole or not at all. **Export CSV** on Transactions writes this same format."
         }
       },
       {
@@ -171,7 +783,7 @@
         "id": "privacy",
         "type": "text",
         "props": {
-          "content": "Records stay in this app’s local database. No bank login, sync or network access. Net flow is not an account balance; classify transfers and refunds yourself.",
+          "content": "Records stay in this app’s local database. No bank login, sync or network access. Money in less money out is not an account balance; classify transfers and refunds yourself.",
           "variant": "caption"
         }
       }
