@@ -1,6 +1,6 @@
 {
   "id": "finance-workbench",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "name": "Personal Finance Workbench",
   "description": "A private INR ledger for everyday use: add and edit transactions, monthly limits, recurring items, spending analysis, and CSV import and export, exact to the paisa.",
   "author": "Vakyartha",
