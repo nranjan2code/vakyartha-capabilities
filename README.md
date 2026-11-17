@@ -32,6 +32,8 @@ Find something useful on the catalog page, then add it from inside Vakyartha. No
 
 See the [catalog page](https://nranjan2code.github.io/vakyartha-capabilities/) for what is available now; `capabilities.json` names the Vakyartha versions this release works with.
 
+[Azure Operations Desk](apps/azure-operations-desk/README.md) and [Azure Infrastructure Workbench](apps/azure-infrastructure-workbench/README.md) are on the development channel.
+
 ## Verify a release
 
 A release is the exact bytes of its `index.json`, which lists every archive with its SHA-256. The owner signs those bytes with Ed25519; the key never leaves the owner's Mac.

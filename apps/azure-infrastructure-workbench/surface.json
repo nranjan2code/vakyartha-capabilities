@@ -1,0 +1,271 @@
+[
+  {
+    "id": "estate",
+    "title": "Estate explorer",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "density": "compact",
+          "gap": "md"
+        },
+        "children": [
+          "estate-headline",
+          "estate-caption",
+          "estate-tools",
+          "estate-empty"
+        ]
+      },
+      {
+        "id": "estate-headline",
+        "type": "text",
+        "props": {
+          "variant": "heading",
+          "content": "{/headline}"
+        }
+      },
+      {
+        "id": "estate-caption",
+        "type": "text",
+        "props": {
+          "content": "{/summary}",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "estate-tools",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "align": "end",
+          "wrap": true
+        },
+        "children": [
+          "estate-list"
+        ]
+      },
+      {
+        "id": "estate-list",
+        "type": "button",
+        "props": {
+          "label": "Load customer subscriptions",
+          "action": "load_scopes",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "estate-empty",
+        "type": "alert",
+        "props": {
+          "title": "Choose an Operations Desk subscription",
+          "body": "Allow the local read tools in Access to load saved customer scopes and captures.",
+          "tone": "info"
+        }
+      }
+    ],
+    "data": {
+      "selected": "",
+      "assets": [],
+      "changes": [],
+      "events": [],
+      "receipts": [
+        {
+          "source": "Resource Graph",
+          "coverage": "Missing",
+          "captured": "None",
+          "detail": ""
+        },
+        {
+          "source": "Azure Monitor alerts",
+          "coverage": "Missing",
+          "captured": "None",
+          "detail": ""
+        },
+        {
+          "source": "Azure Service Health",
+          "coverage": "Missing",
+          "captured": "None",
+          "detail": ""
+        }
+      ],
+      "byRegion": [],
+      "groupDraft": "",
+      "mapNodes": [],
+      "mapEdges": [],
+      "mapSummary": "",
+      "coverageLine": "Resource count unknown · 0 captured signals",
+      "summary": "Load customer subscriptions from Operations Desk.",
+      "headline": "Explore a customer estate",
+      "compareSummary": "Load two different complete inventory captures for this scope to compare them\\.",
+      "spoken": "No customer subscription is selected."
+    }
+  },
+  {
+    "id": "landing",
+    "title": "Landing zones",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "density": "compact",
+          "gap": "md"
+        },
+        "children": [
+          "landing-caption",
+          "landing-empty"
+        ]
+      },
+      {
+        "id": "landing-caption",
+        "type": "text",
+        "props": {
+          "content": "Select a customer subscription in Estate explorer.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "landing-empty",
+        "type": "alert",
+        "props": {
+          "title": "No subscription selected",
+          "body": "Load customer subscriptions from Operations Desk before starting a plan.",
+          "tone": "info"
+        }
+      }
+    ],
+    "data": {
+      "area": "billing",
+      "reviewDraft": {
+        "status": "Pending",
+        "evidence": ""
+      },
+      "draft": {
+        "name": "",
+        "kind": "Application",
+        "region": "",
+        "managementGroup": "",
+        "network": "Hub and spoke",
+        "cidr": "",
+        "owner": "",
+        "change": ""
+      },
+      "rows": [
+        {
+          "area": "Billing and subscription ownership",
+          "status": "Pending",
+          "evidence": ""
+        },
+        {
+          "area": "Identity and privileged access",
+          "status": "Pending",
+          "evidence": ""
+        },
+        {
+          "area": "Management groups and subscriptions",
+          "status": "Pending",
+          "evidence": ""
+        },
+        {
+          "area": "Network connectivity and DNS",
+          "status": "Pending",
+          "evidence": ""
+        },
+        {
+          "area": "Security and recovery",
+          "status": "Pending",
+          "evidence": ""
+        },
+        {
+          "area": "Monitoring and operations",
+          "status": "Pending",
+          "evidence": ""
+        },
+        {
+          "area": "Policy and exceptions",
+          "status": "Pending",
+          "evidence": ""
+        },
+        {
+          "area": "Deployment pipeline",
+          "status": "Pending",
+          "evidence": ""
+        }
+      ],
+      "assessed": 0,
+      "designAreas": 8,
+      "headline": "Review billing and subscription ownership",
+      "progress": "**0 of 8** areas assessed · 8 pending · 0 gaps",
+      "inventoryEvidence": "Virtual networks: Unknown · Log workspaces: Unknown. Counts describe the loaded capture.",
+      "handoffSummary": "",
+      "saved": "",
+      "export": ""
+    }
+  },
+  {
+    "id": "migration",
+    "title": "Migration waves",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "density": "compact",
+          "gap": "md"
+        },
+        "children": [
+          "migration-caption",
+          "migration-empty"
+        ]
+      },
+      {
+        "id": "migration-caption",
+        "type": "text",
+        "props": {
+          "content": "Select a customer subscription in Estate explorer.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "migration-empty",
+        "type": "alert",
+        "props": {
+          "title": "No subscription selected",
+          "body": "Migration plans are saved under the selected tenant and subscription.",
+          "tone": "info"
+        }
+      }
+    ],
+    "data": {
+      "workloadDraft": {
+        "key": "",
+        "name": "",
+        "source": "",
+        "owner": "",
+        "target": "",
+        "strategy": "Rehost",
+        "wave": "1",
+        "dependencies": "",
+        "blocker": "",
+        "rollback": "",
+        "test": "",
+        "approval": "",
+        "outcome": "",
+        "stage": "Discovery"
+      },
+      "importText": "",
+      "rows": [],
+      "waveProgress": [],
+      "stageDistribution": [],
+      "singleStage": "",
+      "waveSummary": "0 workloads · 0 with blockers",
+      "dependencyDraft": "",
+      "dependencyNodes": [],
+      "dependencyEdges": [],
+      "nextKey": "",
+      "headline": "Plan the first migration wave",
+      "export": "\"Tenant ID\",\"Subscription ID\",\"Wave\",\"Workload key\",\"Workload\",\"Source reference\",\"Strategy\",\"Target\",\"Owner\",\"Dependencies\",\"Stage\",\"Blocker\",\"Test evidence\",\"Approval\",\"Rollback\",\"Outcome\"\r\n"
+    }
+  }
+]

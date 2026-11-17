@@ -1,0 +1,31 @@
+{
+  "id": "azure-infrastructure-workbench",
+  "version": "0.0.0",
+  "channel": "dev",
+  "name": "Azure Infrastructure Workbench",
+  "description": "Explore scoped estate captures, assess landing zone readiness and plan migration waves with explicit cutover evidence.",
+  "author": "Vakyartha",
+  "icon": "branch",
+  "brand": "#4338ca",
+  "category": "developer",
+  "entrypoints": { "backend": "server.ts", "surface": "surface.json", "render": "renderApp" },
+  "runtime": { "engine": "node26" },
+  "entitlements": {
+    "network": { "mode": "brokered", "allowedDomains": [] },
+    "mcpTools": [
+      "app-azure-operations-desk__list_scopes",
+      "app-azure-operations-desk__read_scope"
+    ],
+    "toolActions": {
+      "load_scopes": ["app-azure-operations-desk__list_scopes"],
+      "load_capture": ["app-azure-operations-desk__read_scope"]
+    },
+    "toolPurposes": {
+      "app-azure-operations-desk__list_scopes": { "reason": "Select a saved customer subscription from Operations Desk.", "optional": false },
+      "app-azure-operations-desk__read_scope": { "reason": "Load the retained inventory, alert and health evidence for the selected subscription.", "optional": false }
+    },
+    "storage": { "duckdb": false }
+  },
+  "triggers": [],
+  "voice": { "listen": { "surface": "estate", "path": "/spoken", "label": "Listen to estate coverage" } }
+}

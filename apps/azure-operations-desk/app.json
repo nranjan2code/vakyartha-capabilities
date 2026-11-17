@@ -1,0 +1,76 @@
+{
+  "id": "azure-operations-desk",
+  "version": "0.0.0",
+  "channel": "dev",
+  "name": "Azure Operations Desk",
+  "description": "Review customer inventory, fired alerts, and service health from scoped captures. Assign and track local follow-up.",
+  "author": "Vakyartha",
+  "icon": "dashboard",
+  "brand": "#0369a1",
+  "category": "developer",
+  "entrypoints": {
+    "backend": "server.ts",
+    "surface": "surface.json",
+    "render": "renderApp"
+  },
+  "runtime": {
+    "engine": "node26"
+  },
+  "entitlements": {
+    "network": {
+      "mode": "airgap",
+      "allowedDomains": []
+    },
+    "mcpTools": [],
+    "toolActions": {},
+    "toolPurposes": {},
+    "storage": {
+      "duckdb": false
+    }
+  },
+  "triggers": [],
+  "voice": {
+    "listen": {
+      "surface": "queue",
+      "path": "/spoken",
+      "label": "Listen to the operations summary"
+    }
+  },
+  "exports": {
+    "tools": [
+      {
+        "name": "list_scopes",
+        "title": "List registered customer subscriptions",
+        "description": "List customer scope identities and retained capture dates in the operations desk.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "readOnly": true
+      },
+      {
+        "name": "read_scope",
+        "title": "Read one customer subscription capture",
+        "description": "Read retained inventory and signals for one matching customer tenant and subscription.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "tenant": {
+              "type": "string"
+            },
+            "subscription": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "tenant",
+            "subscription"
+          ],
+          "additionalProperties": false
+        },
+        "readOnly": true
+      }
+    ]
+  }
+}
