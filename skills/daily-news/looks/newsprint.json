@@ -1,0 +1,25 @@
+{
+  "id": "newsprint",
+  "label": "Newsprint",
+  "tokens": {
+    "--vak-font": "ui-serif, \"New York\", \"Iowan Old Style\", Charter, Georgia, \"Noto Serif\", serif",
+    "--vak-font-size": "15px",
+    "--vak-line-height": "1.65",
+    "--vak-weight-heading": "700",
+    "--vak-size-title": "1.7em",
+    "--vak-radius": "0px",
+    "--vak-radius-sm": "0px",
+    "--vak-shadow": "none",
+    "--vak-shadow-hover": "none",
+    "--vak-card-bg": "transparent",
+    "--vak-stat-bg": "transparent",
+    "--vak-fg": {
+      "light": "#111111",
+      "dark": "#f2f0eb"
+    },
+    "--vak-muted": {
+      "light": "#4a4a4a",
+      "dark": "#c9c5bc"
+    }
+  }
+}

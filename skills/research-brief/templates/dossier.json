@@ -1,0 +1,15 @@
+{
+  "id": "dossier",
+  "label": "Dossier",
+  "purpose": "findings set out for review: the finding and figures in one reading column, the exact records before any chart, each section's text before its view",
+  "order": [
+    "detail",
+    "compared",
+    "drawn",
+    "component"
+  ],
+  "beside": "none",
+  "reading": true,
+  "figures": true,
+  "look": "editorial"
+}

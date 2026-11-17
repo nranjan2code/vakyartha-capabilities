@@ -1,0 +1,42 @@
+{
+  "id": "ledger",
+  "label": "Ledger",
+  "tokens": {
+    "--vak-font": "ui-monospace, SFMono-Regular, Menlo, Consolas, \"Noto Sans Mono\", monospace",
+    "--vak-font-size": "13px",
+    "--vak-line-height": "1.45",
+    "--vak-space-sm": "6px",
+    "--vak-space-md": "8px",
+    "--vak-space-lg": "14px",
+    "--vak-card-padding": "10px",
+    "--vak-stat-padding": "6px",
+    "--vak-radius": "3px",
+    "--vak-radius-sm": "2px",
+    "--vak-shadow": "none",
+    "--vak-shadow-hover": "none",
+    "--vak-series-1": {
+      "light": "#15803d",
+      "dark": "#4ade80"
+    },
+    "--vak-series-2": {
+      "light": "#b91c1c",
+      "dark": "#f87171"
+    },
+    "--vak-series-3": {
+      "light": "#1d4ed8",
+      "dark": "#60a5fa"
+    },
+    "--vak-series-4": {
+      "light": "#a16207",
+      "dark": "#facc15"
+    },
+    "--vak-series-5": {
+      "light": "#7e22ce",
+      "dark": "#c084fc"
+    },
+    "--vak-series-6": {
+      "light": "#0e7490",
+      "dark": "#22d3ee"
+    }
+  }
+}

@@ -12,7 +12,7 @@ Rules: [AGENTS.md](../../AGENTS.md). Relationships: [DEPENDENCIES.md](../../DEPE
 | Item | Where | Must have |
 | --- | --- | --- |
 | App | `apps/<id>/` | `app.json` with an exact version and `runtime.engine: "node26"`, its code and surfaces, `README.md`, `AGENTS.md`, `SKILLS.md`, `ARCHITECTURE.md`; its own skills in `skills/<name>/SKILL.md` |
-| Skill | `skills/<id>/SKILL.md` | `name` matching the folder, a `description` that says when to use it, reference files beside it |
+| Skill | `skills/<id>/SKILL.md` | `name` matching the folder, a `description` that says when to use it, reference files beside it; optionally kinds of page in `templates/<id>.json` and looks in `looks/<id>.json` (data only; Vakyartha checks them, and its test of catalog skills runs in the ahead check) |
 | Integration | `integrations/<id>/integration.json` | data only: an exact npm version published at least 14 days ago or an https endpoint, every host it may reach |
 
 - An item whose files change needs a new version before the next release. A signed release never changes; fix forward. The person types item versions in `node scripts/version.ts X.Y.Z` (`--list` shows which items need one).

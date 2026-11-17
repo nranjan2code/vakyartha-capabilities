@@ -1,0 +1,13 @@
+{
+  "id": "digest",
+  "label": "Digest",
+  "purpose": "a briefing read part by part: the finding first, then each section collapsible, lists and tables before charts",
+  "order": [
+    "detail",
+    "component",
+    "drawn",
+    "compared"
+  ],
+  "panels": "accordion",
+  "look": "newsprint"
+}

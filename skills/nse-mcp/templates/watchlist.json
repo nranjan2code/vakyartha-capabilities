@@ -1,0 +1,20 @@
+{
+  "id": "watchlist",
+  "label": "Watchlist",
+  "purpose": "many instruments watched at once: headline figures, compact charts three to a row, then searchable sortable tables to look each one up",
+  "order": [
+    "component",
+    "drawn",
+    "compared",
+    "detail"
+  ],
+  "beside": [
+    "component",
+    "drawn",
+    "compared"
+  ],
+  "columns": 3,
+  "figures": true,
+  "browse": true,
+  "look": "ledger"
+}

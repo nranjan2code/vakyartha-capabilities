@@ -1,0 +1,32 @@
+{
+  "id": "daylight",
+  "label": "Daylight",
+  "tokens": {
+    "--vak-series-1": {
+      "light": "#0369a1",
+      "dark": "#7dd3fc"
+    },
+    "--vak-series-2": {
+      "light": "#c2410c",
+      "dark": "#fdba74"
+    },
+    "--vak-series-3": {
+      "light": "#0f766e",
+      "dark": "#5eead4"
+    },
+    "--vak-series-4": {
+      "light": "#7e22ce",
+      "dark": "#d8b4fe"
+    },
+    "--vak-series-5": {
+      "light": "#a16207",
+      "dark": "#fde047"
+    },
+    "--vak-series-6": {
+      "light": "#be123c",
+      "dark": "#fda4af"
+    },
+    "--vak-radius": "14px",
+    "--vak-space-lg": "24px"
+  }
+}

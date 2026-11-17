@@ -1,0 +1,14 @@
+{
+  "id": "outlook",
+  "label": "Outlook",
+  "purpose": "what is coming over the next hours or days: headline figures, then each dated view at full width in time order, then the detail tables",
+  "order": [
+    "compared",
+    "drawn",
+    "component",
+    "detail"
+  ],
+  "beside": "none",
+  "figures": true,
+  "look": "daylight"
+}
