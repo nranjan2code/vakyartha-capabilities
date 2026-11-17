@@ -297,7 +297,7 @@
           "title": "Work log"
         },
         "children": [
-          "service-empty"
+          "service-work-empty"
         ]
       },
       {
@@ -306,6 +306,15 @@
         "props": {
           "title": "Register a customer subscription",
           "body": "The handover and work log use the customer scopes from Customers.",
+          "tone": "info"
+        }
+      },
+      {
+        "id": "service-work-empty",
+        "type": "alert",
+        "props": {
+          "title": "No work log yet",
+          "body": "Work is logged against a customer scope from Customers.",
           "tone": "info"
         }
       },

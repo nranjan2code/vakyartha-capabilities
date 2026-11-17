@@ -344,8 +344,8 @@ function service(s: State, now: number) {
     ] : []),
     node("service-tabs", "tabs", {}, ["service-review", "service-work", "service-billing"]),
     node("service-review", "section", { title: "Handover" }, scope ? ["service-summary", ...(alertSeverity.length > 1 ? ["service-alert-chart"] : alertSeverity.length ? ["service-one-severity"] : []), "service-coverage"] : ["service-empty"]),
-    node("service-work", "section", { title: "Work log" }, scope ? [...(byWorkType.length > 1 ? ["service-work-chart"] : byWorkType.length ? ["service-one-work-type"] : []), "work-layout"] : ["service-empty"]),
-    ...(!scope ? [empty("service-empty", "Register a customer subscription", "The handover and work log use the customer scopes from Customers.")] : [
+    node("service-work", "section", { title: "Work log" }, scope ? [...(byWorkType.length > 1 ? ["service-work-chart"] : byWorkType.length ? ["service-one-work-type"] : []), "work-layout"] : ["service-work-empty"]),
+    ...(!scope ? [empty("service-empty", "Register a customer subscription", "The handover and work log use the customer scopes from Customers."), empty("service-work-empty", "No work log yet", "Work is logged against a customer scope from Customers.")] : [
       caption("service-summary", "{/summary}"),
       ...(alertSeverity.length > 1 ? [node("service-alert-chart", "chart", {
         kind: "pie", title: "Open monitor alerts by severity", maxWidth: "sm",
