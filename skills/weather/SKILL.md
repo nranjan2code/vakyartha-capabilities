@@ -22,7 +22,7 @@ This connector uses the free public API and supports no paid key or subscription
 
 ## Steps
 
-1. **request**: List each place the person names, now or earlier: written as they wrote it, lookup the same in Latin letters; an empty list if none. Mode, days: see Modes.
+1. **request**: List each place the person names, now or earlier: written as they wrote it, lookup the same in Latin letters; empty if none. Mode, days: see Modes.
    - output: {"type":"object","properties":{"places":{"type":"array","maxItems":8,"items":{"type":"object","properties":{"written":{"type":"string"},"lookup":{"type":"string"}},"required":["written","lookup"]}},"days":{"type":"integer","minimum":2,"maximum":7},"mode":{"enum":["forecast","window","archive","air","marine","other"]}},"required":["places","days","mode"]}
    - done: grounded /places/*/written, copies /places lookup written
 2. **geocode**: Resolve each place. Retain the returned full coordinates, name, admin1 and country. The host supplies the place name.
