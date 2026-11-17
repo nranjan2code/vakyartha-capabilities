@@ -101,7 +101,7 @@ test("add, edit, delete, limits and recurring items keep one ledger and one stat
   assert.deepEqual([c.state.draft.amount, c.state.draft.description, c.state.draft.category], ["", "", "Food"]);
 
   let r = await handleAction("open_entry", { id: "entry-1" }, c, "open_entry");
-  assert.equal(r.focusSurface, "ledger");
+  assert.equal((r as { focusSurface?: string }).focusSurface, "ledger");
   assert.equal(dataOf(r.updates, "ledger").entry.amount, "250.50");
   await handleAction("/entry/kind", "in", c);
   await handleAction("/entry/date", "2026-10-31", c);
