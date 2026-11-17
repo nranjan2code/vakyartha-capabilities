@@ -1,0 +1,413 @@
+[
+  {
+    "id": "queue",
+    "title": "Needs attention",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "queue-empty",
+          "queue-add"
+        ]
+      },
+      {
+        "id": "queue-empty",
+        "type": "alert",
+        "props": {
+          "title": "Add your first customer subscription",
+          "body": "Register its scope, then import a capture to build the queue.",
+          "tone": "info"
+        }
+      },
+      {
+        "id": "queue-add",
+        "type": "button",
+        "props": {
+          "label": "Set up customers",
+          "action": "view.open",
+          "style": "primary",
+          "payload": {
+            "surface": "customers"
+          }
+        }
+      }
+    ],
+    "data": {
+      "queueScope": "all",
+      "queueStatus": "Open",
+      "issueDraft": {
+        "status": "New",
+        "owner": "",
+        "note": ""
+      },
+      "summary": "0 open of 0 captured signals. 0 alert or health sources missing, stale, or unavailable.",
+      "leadTitle": "",
+      "leadContext": "",
+      "leadKey": "",
+      "headline": "No open signals in this capture",
+      "spoken": "No subscriptions are registered. Add a customer subscription to start tracking captures.",
+      "rows": [],
+      "detail": "",
+      "sourceId": "",
+      "targetId": "",
+      "export": "\"Customer\",\"Tenant ID\",\"Subscription ID\",\"Title\",\"Source\",\"Source ID\",\"Target ID\",\"Source condition\",\"Severity rank (0 highest, 5 unknown)\",\"Occurred UTC\",\"Captured UTC\",\"Coverage\",\"Triage status\",\"Owner\"\r\n"
+    }
+  },
+  {
+    "id": "customers",
+    "title": "Customers",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "customer-caption",
+          "customer-editor"
+        ]
+      },
+      {
+        "id": "customer-caption",
+        "type": "text",
+        "props": {
+          "content": "Register each subscription under its customer and tenant.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "customer-editor",
+        "type": "section",
+        "props": {
+          "title": "Register subscription"
+        },
+        "children": [
+          "customer-form"
+        ]
+      },
+      {
+        "id": "customer-form",
+        "type": "form",
+        "props": {
+          "submit": "save_scope",
+          "submitLabel": "Save subscription"
+        },
+        "children": [
+          "customer-name",
+          "customer-label",
+          "customer-tenant",
+          "customer-subscription",
+          "customer-owner"
+        ]
+      },
+      {
+        "id": "customer-name",
+        "type": "input",
+        "props": {
+          "label": "Customer name",
+          "bind": "/scopeDraft/customer"
+        }
+      },
+      {
+        "id": "customer-label",
+        "type": "input",
+        "props": {
+          "label": "Subscription name",
+          "bind": "/scopeDraft/label"
+        }
+      },
+      {
+        "id": "customer-tenant",
+        "type": "input",
+        "props": {
+          "label": "Tenant ID",
+          "bind": "/scopeDraft/tenant"
+        }
+      },
+      {
+        "id": "customer-subscription",
+        "type": "input",
+        "props": {
+          "label": "Subscription ID",
+          "bind": "/scopeDraft/subscription"
+        }
+      },
+      {
+        "id": "customer-owner",
+        "type": "input",
+        "props": {
+          "label": "Default owner",
+          "bind": "/scopeDraft/owner"
+        }
+      }
+    ],
+    "data": {
+      "scopeDraft": {
+        "customer": "",
+        "label": "",
+        "tenant": "",
+        "subscription": "",
+        "owner": ""
+      },
+      "rows": [],
+      "identity": ""
+    }
+  },
+  {
+    "id": "inventory",
+    "title": "Inventory",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "inventory-empty"
+        ]
+      },
+      {
+        "id": "inventory-empty",
+        "type": "alert",
+        "props": {
+          "title": "Add a subscription first",
+          "body": "The Customers view holds subscription scopes.",
+          "tone": "info"
+        }
+      }
+    ],
+    "data": {
+      "inventoryScope": "",
+      "rows": [],
+      "summary": "No inventory capture for this subscription.",
+      "export": "\"Tenant ID\",\"Subscription ID\",\"Resource ID\",\"Name\",\"Type\",\"Region\",\"Resource group\",\"Captured UTC\",\"Coverage\"\r\n"
+    }
+  },
+  {
+    "id": "captures",
+    "title": "Captures",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "captures-empty"
+        ]
+      },
+      {
+        "id": "captures-empty",
+        "type": "alert",
+        "props": {
+          "title": "Register a subscription first",
+          "body": "Go to Customers to set up the tenant and subscription IDs.",
+          "tone": "info"
+        }
+      }
+    ],
+    "data": {
+      "captureScope": "",
+      "captureText": "",
+      "command": "",
+      "rows": [
+        {
+          "source": "Resource Graph",
+          "status": "Missing",
+          "observed": "None",
+          "count": "Unknown",
+          "detail": ""
+        },
+        {
+          "source": "Azure Monitor alerts",
+          "status": "Missing",
+          "observed": "None",
+          "count": "Unknown",
+          "detail": ""
+        },
+        {
+          "source": "Azure Service Health",
+          "status": "Missing",
+          "observed": "None",
+          "count": "Unknown",
+          "detail": ""
+        }
+      ]
+    }
+  },
+  {
+    "id": "service",
+    "title": "Service review",
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "service-caption",
+          "service-tabs"
+        ]
+      },
+      {
+        "id": "service-caption",
+        "type": "text",
+        "props": {
+          "content": "Review captured evidence, manage follow-up, and reconcile customer invoice totals.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "service-tabs",
+        "type": "tabs",
+        "props": {},
+        "children": [
+          "service-review",
+          "service-work",
+          "service-billing"
+        ]
+      },
+      {
+        "id": "service-review",
+        "type": "section",
+        "props": {
+          "title": "Handover"
+        },
+        "children": [
+          "service-empty"
+        ]
+      },
+      {
+        "id": "service-work",
+        "type": "section",
+        "props": {
+          "title": "Work log"
+        },
+        "children": [
+          "service-empty"
+        ]
+      },
+      {
+        "id": "service-empty",
+        "type": "alert",
+        "props": {
+          "title": "Register a customer subscription",
+          "body": "The handover and work log use the customer scopes from Customers.",
+          "tone": "info"
+        }
+      },
+      {
+        "id": "service-billing",
+        "type": "section",
+        "props": {
+          "title": "Billing"
+        },
+        "children": [
+          "billing-caption",
+          "billing-form"
+        ]
+      },
+      {
+        "id": "billing-caption",
+        "type": "text",
+        "props": {
+          "content": "Use a complete reconciliation CSV for one invoice. Enter the matching invoiced charges total before pasting the CSV.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "billing-form",
+        "type": "form",
+        "props": {
+          "submit": "save_invoice",
+          "submitLabel": "Save reconciliation"
+        },
+        "children": [
+          "billing-expected",
+          "billing-paste"
+        ]
+      },
+      {
+        "id": "billing-expected",
+        "type": "input",
+        "props": {
+          "label": "Invoiced charges total",
+          "bind": "/invoiceExpected",
+          "placeholder": "Before payments and balance adjustments"
+        }
+      },
+      {
+        "id": "billing-paste",
+        "type": "textarea",
+        "props": {
+          "label": "Invoice reconciliation CSV",
+          "bind": "/invoiceCsv",
+          "rows": 3,
+          "placeholder": "Paste the CSV exported for this invoice"
+        }
+      }
+    ],
+    "data": {
+      "serviceScope": "",
+      "workDraft": {
+        "id": "",
+        "subscription": "",
+        "title": "",
+        "kind": "Maintenance",
+        "status": "Planned",
+        "owner": "",
+        "due": "",
+        "ticket": "",
+        "evidence": "",
+        "updatedAt": ""
+      },
+      "invoiceExpected": "",
+      "invoiceCsv": "",
+      "selectedInvoice": "",
+      "counts": [
+        {
+          "source": "Resource Graph",
+          "coverage": "Missing",
+          "at": "None",
+          "rows": "Unknown"
+        },
+        {
+          "source": "Azure Monitor alerts",
+          "coverage": "Missing",
+          "at": "None",
+          "rows": "Unknown"
+        },
+        {
+          "source": "Azure Service Health",
+          "coverage": "Missing",
+          "at": "None",
+          "rows": "Unknown"
+        }
+      ],
+      "workRows": [],
+      "summary": "0 open captured signals · 0 open work items · 0 closed",
+      "alertSeverity": [],
+      "byWorkType": [],
+      "billing": [],
+      "oneSeverity": "",
+      "oneWorkType": "",
+      "staged": "",
+      "billingSummary": "",
+      "serviceExport": "\"Customer\",\"Tenant ID\",\"Subscription ID\",\"Record type\",\"Name\",\"Status or coverage\",\"Observed UTC\",\"Detail\",\"Owner\",\"Ticket reference\",\"Due date\"\r\n\"\",\"\",\"\",\"Capture\",\"Resource Graph\",\"Missing\",\"None\",\"Unknown\",\"\",\"\",\"\"\r\n\"\",\"\",\"\",\"Capture\",\"Azure Monitor alerts\",\"Missing\",\"None\",\"Unknown\",\"\",\"\",\"\"\r\n\"\",\"\",\"\",\"Capture\",\"Azure Service Health\",\"Missing\",\"None\",\"Unknown\",\"\",\"\",\"\"\r\n",
+      "billingExport": ""
+    }
+  }
+]
