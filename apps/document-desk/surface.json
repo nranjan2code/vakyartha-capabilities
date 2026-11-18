@@ -41,9 +41,22 @@
           "density": "compact"
         },
         "children": [
-          "summary",
+          "head",
           "toolbar",
           "welcome"
+        ]
+      },
+      {
+        "id": "head",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "wrap": true,
+          "gap": "sm",
+          "align": "center"
+        },
+        "children": [
+          "summary"
         ]
       },
       {
@@ -67,9 +80,7 @@
           "query",
           "mode",
           "kind",
-          "go",
-          "add",
-          "share"
+          "go"
         ]
       },
       {
@@ -78,7 +89,8 @@
         "props": {
           "label": "Search",
           "bind": "/query",
-          "placeholder": "Words, \"an exact phrase\", or -word to leave out"
+          "placeholder": "Words, \"an exact phrase\", or -word to leave out",
+          "maxWidth": "full"
         }
       },
       {
@@ -101,7 +113,6 @@
               "label": "Pattern"
             }
           ],
-          "presentation": "dropdown",
           "maxWidth": "sm"
         }
       },
@@ -167,30 +178,6 @@
         }
       },
       {
-        "id": "add",
-        "type": "button",
-        "props": {
-          "label": "Add documents",
-          "action": "documents.upload",
-          "payload": {
-            "then": "add_uploads"
-          },
-          "style": "secondary"
-        }
-      },
-      {
-        "id": "share",
-        "type": "button",
-        "props": {
-          "label": "Share a folder",
-          "action": "documents.folders",
-          "payload": {
-            "then": "sync"
-          },
-          "style": "secondary"
-        }
-      },
-      {
         "id": "welcome",
         "type": "section",
         "props": {
@@ -251,7 +238,7 @@
         "folder": "",
         "kind": "all"
       },
-      "listTitle": "0 categorys",
+      "listTitle": "0 categories",
       "categories": []
     },
     "nodes": [
@@ -280,15 +267,48 @@
         "id": "add-section",
         "type": "section",
         "props": {
-          "title": "New category",
-          "description": "Rules are optional. A document matches when every part you fill in holds; categories are tried top to bottom."
+          "title": "New category"
         },
         "children": [
-          "add-form"
+          "new-name",
+          "add-rules",
+          "add-bar"
         ]
       },
       {
-        "id": "add-form",
+        "id": "add-rules",
+        "type": "accordion",
+        "props": {
+          "multiple": true
+        },
+        "children": [
+          "add-rules-panel"
+        ]
+      },
+      {
+        "id": "add-bar",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm"
+        },
+        "children": [
+          "add-cat"
+        ]
+      },
+      {
+        "id": "add-rules-panel",
+        "type": "section",
+        "props": {
+          "title": "Filing rules (optional)",
+          "description": "A document matches when every part you fill in holds; categories are tried top to bottom."
+        },
+        "children": [
+          "add-rules-form"
+        ]
+      },
+      {
+        "id": "add-rules-form",
         "type": "stack",
         "props": {
           "direction": "horizontal",
@@ -297,11 +317,9 @@
           "align": "end"
         },
         "children": [
-          "new-name",
           "new-words",
           "new-folder",
-          "new-kind",
-          "add-cat"
+          "new-kind"
         ]
       },
       {
@@ -484,7 +502,7 @@
           "payload": {
             "then": "add_uploads"
           },
-          "style": "secondary"
+          "style": "link"
         }
       },
       {
@@ -493,7 +511,7 @@
         "props": {
           "direction": "horizontal",
           "wrap": true,
-          "gap": "md"
+          "gap": "lg"
         },
         "children": [
           "stat-docs",

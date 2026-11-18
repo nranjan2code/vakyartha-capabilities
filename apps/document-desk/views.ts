@@ -13,7 +13,7 @@ const KIND_LABEL: Record<string, string> = { pdf: "PDF", docx: "Word", odt: "Ope
 const KIND_OPTIONS = [["all", "All kinds"], ...KIND_GROUPS].map(([value, label]) => ({ value, label }));
 const MODE_OPTIONS = [{ value: "smart", label: "Best match" }, { value: "exact", label: "Exact text" }, { value: "regex", label: "Pattern" }];
 
-const plural = (n: number, w: string) => `${n.toLocaleString("en")} ${w}${n === 1 ? "" : "s"}`;
+const plural = (n: number, w: string, many = `${w}s`) => `${n.toLocaleString("en")} ${n === 1 ? w : many}`;
 const size = (b: number) => b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : b >= 1024 ? `${Math.round(b / 1024)} KB` : `${b} B`;
 const day = (iso: string) => iso ? iso.slice(0, 10) : "";
 const replace = (value: Record<string, unknown>) => [{ op: "replace" as const, path: "/" as const, value }];
@@ -86,17 +86,24 @@ function librarySurface(s: State, lib: Library | undefined, engine: SearchEngine
   const active = panels.some(p => p[0] === s.tab) ? `${s.tab}#${s.tabTick}` : `${panels[0]![0]}#${s.tabTick}`;
 
   const nodes: Node[] = [
-    { id: "root", type: "stack", props: { gap: "md", density: "compact" }, children: ["summary", "toolbar", ...(s.notice ? ["notice"] : []), docs.length ? "work" : "welcome"] },
+    { id: "root", type: "stack", props: { gap: "md", density: "compact" }, children: ["head", "toolbar", ...(s.notice ? ["notice"] : []), ...(docs.length ? ["rule", "work"] : ["welcome"])] },
+    // A rule closes the search area, so the list and the reader below read as the working region.
+    ...(docs.length ? [{ id: "rule", type: "divider" }] : []),
+    // The library's size and the two ways in share one quiet line; the search bar below is the one strong control.
+    { id: "head", type: "stack", props: { direction: "horizontal", wrap: true, gap: "sm", align: "center" }, children: ["summary", ...(docs.length ? ["add", "share"] : [])] },
     { id: "summary", type: "text", props: { content: "{/summary}", variant: "caption" } },
-    { id: "toolbar", type: "stack", props: { direction: "horizontal", wrap: true, gap: "sm", align: "end" }, children: ["query", "mode", "kind", ...(cats.length ? ["category"] : []), "go", ...(s.query ? ["clear"] : []), "add", "share"] },
-    { id: "query", type: "input", props: { label: "Search", bind: "/query", placeholder: "Words, \"an exact phrase\", or -word to leave out" } },
-    { id: "mode", type: "select", props: { label: "Match", bind: "/mode", options: MODE_OPTIONS, presentation: "dropdown", maxWidth: "sm" } },
+    // The full-width search field takes the first line; its filters and the Search button wrap onto a quieter line beneath.
+    { id: "toolbar", type: "stack", props: { direction: "horizontal", wrap: true, gap: "sm", align: "end" }, children: ["query", "mode", "kind", ...(cats.length ? ["category"] : []), "go", ...(s.query ? ["clear"] : [])] },
+    { id: "query", type: "input", props: { label: "Search", bind: "/query", placeholder: "Words, \"an exact phrase\", or -word to leave out", maxWidth: "full" } },
+    { id: "mode", type: "select", props: { label: "Match", bind: "/mode", options: MODE_OPTIONS, maxWidth: "sm" } },
     { id: "kind", type: "select", props: { label: "Kind", bind: "/kind", options: KIND_OPTIONS, presentation: "dropdown", maxWidth: "sm" } },
     ...(cats.length ? [{ id: "category", type: "select", props: { label: "Category", bind: "/category", options: "{/categoryOptions}", presentation: "dropdown", maxWidth: "sm" } }] : []),
     { id: "go", type: "button", props: { label: "Search", action: "search", style: "primary" } },
     ...(s.query ? [{ id: "clear", type: "button", props: { label: "Clear", action: "clear_search", style: "link" } }] : []),
-    { id: "add", type: "button", props: { label: "Add documents", action: "documents.upload", payload: { then: "add_uploads" }, style: "secondary" } },
-    { id: "share", type: "button", props: { label: "Share a folder", action: "documents.folders", payload: { then: "sync" }, style: "secondary" } },
+    ...(docs.length ? [
+      { id: "add", type: "button", props: { label: "Add documents", action: "documents.upload", payload: { then: "add_uploads" }, style: "link" } },
+      { id: "share", type: "button", props: { label: "Share a folder", action: "documents.folders", payload: { then: "sync" }, style: "link" } },
+    ] : []),
     ...(s.notice ? [{ id: "notice", type: "alert", props: { body: "{/notice}", tone: "info" } }] : []),
   ];
   if (!docs.length) {
@@ -106,8 +113,9 @@ function librarySurface(s: State, lib: Library | undefined, engine: SearchEngine
       { id: "welcome-share", type: "button", props: { label: "Share a folder", action: "documents.folders", payload: { then: "sync" }, style: "secondary" } });
   } else {
     nodes.push({ id: "work", type: "split", props: { ratio: "1:2", gap: "lg" }, children: ["browse", open ? "reader" : "reader-empty"] },
-      { id: "browse", type: "stack", props: { gap: "sm" }, children: ["browse-tabs"] },
-      ...tabbed("browse-tabs", active, panels),
+      ...(panels.length > 1
+        ? [{ id: "browse", type: "stack", props: { gap: "sm" }, children: ["browse-tabs"] }, ...tabbed("browse-tabs", active, panels)]
+        : [{ id: "browse", type: "stack", props: { gap: "sm" }, children: panels[0]![2] }]),
       { id: "documents-list", type: "grid", props: { columns: 1, gap: "sm", searchable: true, pageSize: 12 }, children: { each: "/documents", template: "doc-card" } },
       { id: "doc-card", type: "card", props: { title: "{title}", subtitle: "{meta}", badge: "{badge}", tone: "{tone}", layout: "row", titleLines: 2, action: "open", payload: { id: "{id}" } } },
       ...(listed.length > MAX_LISTED ? [{ id: "documents-more", type: "text", props: { content: `The ${MAX_LISTED.toLocaleString("en")} most recent are listed. Search finds every document.`, variant: "caption" } }] : []),
@@ -126,7 +134,7 @@ function librarySurface(s: State, lib: Library | undefined, engine: SearchEngine
         ] : []),
         ...(found!.items.length ? [
           { id: "results-list", type: "grid", props: { columns: 1, gap: "sm", pageSize: 10 }, children: { each: "/results", template: "hit" } },
-          { id: "hit", type: "card", props: { title: "{title}", subtitle: "{where}", action: "open", payload: { id: "{id}", line: "{line}" }, titleLines: 2 }, children: ["hit-snippet", "hit-why"] },
+          { id: "hit", type: "card", props: { title: "{title}", subtitle: "{where}", layout: "row", action: "open", payload: { id: "{id}", line: "{line}" }, titleLines: 2 }, children: ["hit-snippet", "hit-why"] },
           { id: "hit-snippet", type: "text", props: { content: "{snippet}" } },
           { id: "hit-why", type: "text", props: { content: "{why}", variant: "caption" } },
         ] : []),
@@ -178,7 +186,7 @@ function readerNodes(s: State, lib: Library, d: Doc): Node[] {
   return [
     { id: "reader", type: "section", props: { title: "{/doc/title}", description: "{/doc/meta}" }, children: ["reader-bar", "reader-tabs"] },
     { id: "reader-bar", type: "stack", props: { direction: "horizontal", wrap: true, gap: "sm", align: "center" }, children: ["listen", ...(ps.length > 1 ? ["part-caption"] : [])] },
-    { id: "listen", type: "button", props: { label: "Read aloud", action: "voice.read", payload: { text: "/spoken/part" }, style: "secondary" } },
+    { id: "listen", type: "button", props: { label: "Read aloud", action: "voice.read", payload: { text: "/spoken/part" }, style: "link" } },
     ...(ps.length > 1 ? [{ id: "part-caption", type: "text", props: { content: "{/doc/partLabel}", variant: "caption" } }] : []),
     ...tabbed("reader-tabs", "read", panels),
     ...(d.status === "failed" ? [{ id: "read-failed", type: "alert", props: { title: "This document could not be read", body: "{/doc/note}", tone: "warning" } }]
@@ -196,7 +204,7 @@ function readerNodes(s: State, lib: Library, d: Doc): Node[] {
       { id: "links-list", type: "grid", props: { columns: 1, gap: "sm", pageSize: 10 }, children: { each: "/doc/related", template: "related" } },
       { id: "related", type: "card", props: { title: "{title}", subtitle: "{relation}", layout: "row", action: "open", payload: { id: "{id}" } } },
     ] : []),
-    { id: "details-table", type: "table", props: { columns: [{ key: "field", label: "Field" }, { key: "value", label: "Value" }], rows: "{/doc/details}" } },
+    { id: "details-table", type: "table", props: { columns: [{ key: "field", label: "Field" }, { key: "value", label: "Value" }], rows: "{/doc/details}", searchable: false, sortable: false, maxWidth: "full" } },
     { id: "tags-bar", type: "stack", props: { direction: "horizontal", align: "end", gap: "sm", wrap: true }, children: [...(lib.categories.length ? ["doc-category"] : []), "tags", "save-tags"] },
     ...(lib.categories.length ? [{ id: "doc-category", type: "select", props: { label: "Category", bind: "/doc/category", options: "{/doc/categoryOptions}", presentation: "dropdown", maxWidth: "sm" } }] : []),
     { id: "tags", type: "input", props: { label: "Tags", bind: "/doc/tags", placeholder: "contracts, home" } },
@@ -255,8 +263,11 @@ function categoriesSurface(s: State, lib: Library | undefined): Update {
   const nodes: Node[] = [
     { id: "root", type: "stack", props: { gap: "md", density: "compact" }, children: ["caption", "add-section", ...(editing ? ["edit-section"] : []), ...(confirming ? ["confirm-cat"] : []), cats.length ? "list-section" : "no-cats"] },
     { id: "caption", type: "text", props: { content: "{/caption}", variant: "caption" } },
-    { id: "add-section", type: "section", props: { title: "New category", description: "Rules are optional. A document matches when every part you fill in holds; categories are tried top to bottom." }, children: ["add-form"] },
-    { id: "add-form", type: "stack", props: { direction: "horizontal", wrap: true, gap: "sm", align: "end" }, children: ["new-name", "new-words", "new-folder", "new-kind", "add-cat"] },
+    { id: "add-section", type: "section", props: { title: "New category" }, children: ["new-name", "add-rules", "add-bar"] },
+    { id: "add-rules", type: "accordion", props: { multiple: true }, children: ["add-rules-panel"] },
+    { id: "add-bar", type: "stack", props: { direction: "horizontal", gap: "sm" }, children: ["add-cat"] },
+    { id: "add-rules-panel", type: "section", props: { title: "Filing rules (optional)", description: "A document matches when every part you fill in holds; categories are tried top to bottom." }, children: ["add-rules-form"] },
+    { id: "add-rules-form", type: "stack", props: { direction: "horizontal", wrap: true, gap: "sm", align: "end" }, children: ["new-words", "new-folder", "new-kind"] },
     ...draftFields("new", "/newCategory"),
     { id: "add-cat", type: "button", props: { label: "Add category", action: "add_category", style: "primary" } },
     ...(editing ? [
@@ -281,15 +292,15 @@ function categoriesSurface(s: State, lib: Library | undefined): Update {
       { id: "cat-bar", type: "stack", props: { direction: "horizontal", gap: "sm", wrap: true }, children: ["cat-up", "cat-down", "cat-edit", "cat-delete"] },
       { id: "cat-up", type: "button", props: { label: "Up", action: "move_category", payload: { id: "{id}", by: -1 }, style: "link", visibleIf: "{canUp}" } },
       { id: "cat-down", type: "button", props: { label: "Down", action: "move_category", payload: { id: "{id}", by: 1 }, style: "link", visibleIf: "{canDown}" } },
-      { id: "cat-edit", type: "button", props: { label: "Edit", action: "edit_category", payload: { id: "{id}" }, style: "secondary" } },
+      { id: "cat-edit", type: "button", props: { label: "Edit", action: "edit_category", payload: { id: "{id}" }, style: "link" } },
       { id: "cat-delete", type: "button", props: { label: "Delete", action: "ask_delete_category", payload: { id: "{id}" }, style: "link" } },
     ] : [{ id: "no-cats", type: "text", props: { content: "No categories yet. Make one per kind of paper you keep, such as Home, Health or Taxes. Documents you file yourself stay where you put them.", variant: "caption" } }]),
   ];
   const uncategorised = docs.filter(d => !d.category).length;
   const data = {
-    caption: cats.length ? `${plural(cats.length, "category")} · ${plural(uncategorised, "document")} uncategorised` : "Group your documents into categories. Each document has one category; tags can still cross them.",
+    caption: cats.length ? `${plural(cats.length, "category", "categories")} · ${plural(uncategorised, "document")} uncategorised` : "Group your documents into categories. Each document has one category; tags can still cross them.",
     newCategory: s.newCategory, ...(editing ? { editDraft: s.editDraft } : {}),
-    listTitle: plural(cats.length, "category"),
+    listTitle: plural(cats.length, "category", "categories"),
     categories: cats.map((c, i) => ({ id: c.id, name: c.name, meta: plural(count(c.id), "document"), rule: ruleText(c) || "No rule: filed by hand only.", canUp: i > 0, canDown: i < cats.length - 1 })),
   };
   return { surface: "categories", nodes, data: replace(data) };
@@ -309,13 +320,13 @@ function sourcesSurface(s: State, lib: Library | undefined, syncSummary: (y: Syn
     { id: "bar", type: "stack", props: { direction: "horizontal", wrap: true, gap: "sm" }, children: ["share", "rescan", "add"] },
     { id: "share", type: "button", props: { label: "Share a folder", action: "documents.folders", payload: { then: "sync" }, style: "primary" } },
     { id: "rescan", type: "button", props: { label: "Check folders now", action: "sync", style: "secondary" } },
-    { id: "add", type: "button", props: { label: "Add documents", action: "documents.upload", payload: { then: "add_uploads" }, style: "secondary" } },
-    { id: "stats", type: "stack", props: { direction: "horizontal", wrap: true, gap: "md" }, children: ["stat-docs", "stat-folders", "stat-uploads", "stat-attention"] },
+    { id: "add", type: "button", props: { label: "Add documents", action: "documents.upload", payload: { then: "add_uploads" }, style: "link" } },
+    { id: "stats", type: "stack", props: { direction: "horizontal", wrap: true, gap: "lg" }, children: ["stat-docs", "stat-folders", "stat-uploads", "stat-attention"] },
     { id: "stat-docs", type: "stat", props: { label: "Documents", value: "{/stats/docs}" } },
     { id: "stat-folders", type: "stat", props: { label: "Shared folders", value: "{/stats/folders}" } },
     { id: "stat-uploads", type: "stat", props: { label: "Uploaded", value: "{/stats/uploads}" } },
     { id: "stat-attention", type: "stat", props: { label: "Need attention", value: "{/stats/attention}" } },
-    ...(folders.length ? [{ id: "folders", type: "table", props: { columns: [{ key: "name", label: "Folder" }, { key: "documents", label: "Documents" }, { key: "words", label: "Words" }, { key: "problems", label: "Not read" }, { key: "path", label: "Location" }], rows: "{/folders}", sortable: true } }]
+    ...(folders.length ? [{ id: "folders", type: "table", props: { columns: [{ key: "name", label: "Folder" }, { key: "documents", label: "Documents", align: "end" }, { key: "words", label: "Words", align: "end" }, { key: "problems", label: "Not read", align: "end" }, { key: "path", label: "Location" }], rows: "{/folders}", sortable: folders.length > 1, searchable: folders.length > 8, maxWidth: "full" } }]
       : [{ id: "no-folders", type: "text", props: { content: "No folders are shared yet. A shared folder is read, never changed: new and edited files are picked up when the folders are checked, and files you remove leave the library.", variant: "caption" } }]),
     ...(s.excluded!.length ? [
       { id: "excluded", type: "stack", props: { direction: "horizontal", gap: "sm", align: "center", wrap: true }, children: ["excluded-text", "include-all"] },
