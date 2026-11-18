@@ -12,9 +12,11 @@
 // it, else `.runs/<name>/<stamp>-<sha>/`) and writes its pictures and logs there. Nothing
 // worth reading afterwards goes to the OS temp folder or a personal scratch folder; only
 // throwaway fixtures do, and they are deleted. The newest KEEP runs of each name are kept;
-// `latest` links to the newest.
+// `latest` links to the newest. Whatever else is in `.runs/` and has not changed for
+// MAX_AGE_DAYS (one-off names, loose files, folders filled by hand) is removed when the
+// next run starts, so the folder cannot grow without limit.
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
+import { createWriteStream, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 export type Step = { name: string; cmd: string[]; cwd?: string; needs?: string[]; minutes?: number };
@@ -29,6 +31,7 @@ export type Config = {
 type Result = { name: string; status: "pass" | "fail" | "skip"; ms: number; reason?: string; log?: string };
 
 export const KEEP = 20;
+export const MAX_AGE_DAYS = 14;
 const safe = (name: string) => name.replace(/[^A-Za-z0-9._-]+/g, "-");
 
 /** A new folder `.runs/<name>/<YYMMDD-HHMMSS>-<sha>[-dirty]/` in `repo`; keeps the newest KEEP. */
@@ -45,7 +48,26 @@ export function newRun(repo: string, name: string): string {
   for (const old of runs.slice(0, Math.max(0, runs.length - KEEP))) rmSync(path.join(base, old), { recursive: true, force: true });
   try { unlinkSync(path.join(base, "latest")); } catch { /* none yet */ }
   try { symlinkSync(path.basename(dir), path.join(base, "latest")); } catch { /* a link is a convenience */ }
+  sweep(path.dirname(base));
   return dir;
+}
+
+/** Removes entries of `.runs/` (and of each name's folder) unchanged for MAX_AGE_DAYS. */
+function sweep(runs: string): void {
+  const cutoff = Date.now() - MAX_AGE_DAYS * 86_400_000;
+  const stale = (p: string) => { try { return lstatSync(p).mtimeMs < cutoff; } catch { return false; } };
+  // Another run may be sweeping at the same time; a vanished entry is not an error.
+  const list = (p: string) => { try { return readdirSync(p); } catch { return []; } };
+  for (const name of list(runs)) {
+    const top = path.join(runs, name);
+    let isDir = false;
+    try { isDir = lstatSync(top).isDirectory(); } catch { continue; }
+    if (!isDir) { if (stale(top)) rmSync(top, { force: true }); continue; }
+    for (const child of list(top)) if (child !== "latest" && stale(path.join(top, child))) rmSync(path.join(top, child), { recursive: true, force: true });
+    const latest = path.join(top, "latest");
+    if (!existsSync(latest)) rmSync(latest, { force: true });
+    if (list(top).length === 0) rmSync(top, { recursive: true, force: true });
+  }
 }
 
 /**
