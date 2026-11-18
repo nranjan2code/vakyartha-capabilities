@@ -2,13 +2,16 @@
 // saved sessions. Pure: the same inputs always give the same views.
 import { TEMPLATES, LIMITS, type Params } from './engine.ts';
 import type { Chart, Paper, State, Stored, Strategy } from './server.ts';
-import { BENCHMARKS, MAX_UNIVERSE, PARAM_LABELS, progress, windowStart } from './server.ts';
+import { BENCHMARKS, MAX_UNIVERSE, PARAM_LABELS, progress, unknownSymbol, windowStart } from './server.ts';
 
 interface Node { id: string; type: string; props?: Record<string, unknown>; children?: string[] | { each: string; template: string } }
 interface Update { surface: string; nodes: Node[]; data: { op: 'replace'; path: '/'; value: Record<string, unknown> }[] }
 export const TITLES: Record<string, string> = { lab: 'Overview', strategies: 'Strategies', results: 'Backtest', paper: 'Paper trading', data: 'Data' };
 
 // --- formatting ------------------------------------------------------------------------
+
+/** The strategy against the benchmark over the benchmark's own span, which can be shorter than the run. */
+const excessOf = (m: Stored['metrics']) => { const own = m.sameSpanCagrPct ?? m.cagrPct; return own != null && m.benchmarkCagrPct != null ? Math.round((own - m.benchmarkCagrPct) * 100) / 100 : null; };
 
 const num = (n: number, digits = 2) => n.toLocaleString('en-IN', { maximumFractionDigits: digits, minimumFractionDigits: digits });
 const inr = (n: number) => `${n < 0 ? '−' : ''}₹${Math.round(Math.abs(n)).toLocaleString('en-IN')}`;
@@ -62,7 +65,7 @@ const noticeData = (s: State) => ({ ...(s.problem ? { problem: s.problem } : {})
 function metricRows(s: State) {
   return s.strategies!.map((st) => {
     const r = s.results![st.id], m = r?.metrics;
-    return { id: st.id, name: st.name, type: templateLabel(st.rules.template), cagr: m?.cagrPct != null ? r2(m.cagrPct) : null, total: m ? r2(m.totalPct) : null, drawdown: m ? r2(m.maxDrawdownPct) : null, sharpe: m?.sharpe != null ? r2(m.sharpe) : null, trades: m?.trades ?? null, win: m?.winRatePct != null ? r2(m.winRatePct) : null, excess: m && m.cagrPct != null && m.benchmarkCagrPct != null ? r2(m.cagrPct - m.benchmarkCagrPct) : null };
+    return { id: st.id, name: st.name, type: templateLabel(st.rules.template), cagr: m?.cagrPct != null ? r2(m.cagrPct) : null, total: m ? r2(m.totalPct) : null, drawdown: m ? r2(m.maxDrawdownPct) : null, sharpe: m?.sharpe != null ? r2(m.sharpe) : null, trades: m?.trades ?? null, win: m?.winRatePct != null ? r2(m.winRatePct) : null, excess: m ? excessOf(m) : null };
   });
 }
 /** Every tested strategy as growth of 100 on a shared date axis. */
@@ -106,7 +109,7 @@ function lab(s: State, on: string): Update {
   const pr = progress(s), rows = metricRows(s), tested = rows.filter((r) => r.total != null), g = growth(s), orders = nextOrders(s);
   const best = [...tested].sort((a, b) => (b.cagr ?? -1e9) - (a.cagr ?? -1e9))[0];
   const paperEquity = s.paper!.reduce((a, p) => a + (p.equity.at(-1)?.equity ?? p.capital), 0), paperCapital = s.paper!.reduce((a, p) => a + p.capital, 0);
-  const latest = s.covered![`INDEX:${s.benchmark}`]?.last;
+  const latest = Object.values(s.covered!).map((c) => c.last).sort().at(-1);
   const nodes: Node[] = [
     { id: 'root', type: 'stack', props: { density: 'compact', gap: 'md' }, children: ['cap', ...notice(s).map((n) => n.id), 'actions', 'kpis', ...(tested.length ? ['compare'] : ['empty']), ...(orders.length ? ['orders'] : [])] },
     caption('cap', `${pr.ready ? 'History is complete' : `Saving history · ${pr.done} of ${pr.total} stocks`}${latest ? ` · latest session ${day(latest)}` : ''} · benchmark ${s.benchmark} · last sync ${ist(s.syncedAt)}`),
@@ -214,9 +217,9 @@ function results(s: State, chart?: Chart): Update {
   }
   const m = r.metrics, capital = m.capital;
   // Five years of sessions exceed a record view, so long series travel as label and value arrays.
-  const c = r.curve, hasBench = c.dates.length > 0 && c.benchmark.every((v) => v != null);
+  const c = r.curve, hasBench = c.benchmark.some((v) => v != null);
   const curveDates = c.dates;
-  const equity = [{ name: 'Strategy', values: c.equity }, ...(hasBench ? [{ name: s.benchmark!, values: c.benchmark as number[] }] : [])];
+  const equity = [{ name: 'Strategy', values: c.equity }, ...(hasBench ? [{ name: s.benchmark!, values: c.benchmark }] : [])];
   const fall = [{ name: 'Fall from peak', values: c.drawdown }];
   const years = r.yearly.map((y) => ({ year: y.year, Strategy: r2(y.strategy), ...(y.benchmark != null ? { [s.benchmark!]: r2(y.benchmark) } : {}) }));
   // Months as records with one field per year: a month outside the test is a gap, not a zero.
@@ -235,7 +238,7 @@ function results(s: State, chart?: Chart): Update {
   ]) : [];
   for (const p of r.open.filter((x) => x.symbol === chart?.symbol && dates.has(x.entryDate))) markers.push({ at: p.entryDate, label: `Buy ${p.qty} at ${price(p.entryPrice)} · open`, direction: 'up' });
   const stat = (id: string, label: string, value: string, t?: string, delta?: string): Node => ({ id, type: 'stat', props: { label, value, ...(t ? { tone: t } : {}), ...(delta ? { delta, trend: delta.startsWith('−') ? 'down' : 'up' } : {}) } });
-  const excess = m.cagrPct != null && m.benchmarkCagrPct != null ? m.cagrPct - m.benchmarkCagrPct : null;
+  const excess = excessOf(m), partial = !!m.benchmarkFrom && m.benchmarkFrom > m.start, since = partial ? ` since ${day(m.benchmarkFrom!)}` : '';
   const nodes: Node[] = [
     { id: 'root', type: 'stack', props: { density: 'compact', gap: 'md' }, children: ['cap', ...notice(s).map((n) => n.id), 'head', 'tabs'] },
     caption('cap', `${st.name} · ${templateLabel(st.rules.template)} · ${plural(r.universe, 'stock')}${r.left.length ? ` (left out without complete history: ${r.left.join(', ')})` : ''} · ${day(m.start)} to ${day(m.end)} (${m.years.toFixed(1)} years) · run ${ist(r.ranAt)}`),
@@ -250,10 +253,10 @@ function results(s: State, chart?: Chart): Update {
     ], s.ui!.resultsTab || undefined),
     { id: 'p-kpis', type: 'grid', props: { columns: 4, minItemWidth: 'sm', gap: 'sm' }, children: ['s-final', 's-cagr', 's-dd', 's-sharpe'] },
     stat('s-final', `Final equity from ${compact(capital)}`, compact(m.final), tone(m.totalPct), pct(m.totalPct)),
-    stat('s-cagr', 'A year (compound)', pct(m.cagrPct), tone(m.cagrPct), excess != null ? `${pct(excess)} vs ${s.benchmark}` : undefined),
+    stat('s-cagr', 'A year (compound)', pct(m.cagrPct), tone(m.cagrPct), excess != null ? `${pct(excess)} vs ${s.benchmark}${since}` : undefined),
     stat('s-dd', 'Worst fall', pct(m.maxDrawdownPct), 'danger'),
     stat('s-sharpe', 'Sharpe', ratio(m.sharpe)),
-    { id: 'p-more', type: 'table', props: { columns: [{ key: 'k', label: 'Measure' }, { key: 'v', label: 'Strategy', align: 'end' }, { key: 'b', label: s.benchmark, align: 'end' }],
+    { id: 'p-more', type: 'table', props: { columns: [{ key: 'k', label: 'Measure' }, { key: 'v', label: 'Strategy', align: 'end' }, { key: 'b', label: `${s.benchmark}${since}`, align: 'end' }],
       rows: [
         ['Total return', pct(m.totalPct), pct(m.benchmarkTotalPct)], ['A year (compound)', pct(m.cagrPct), pct(m.benchmarkCagrPct)], ['Worst fall', pct(m.maxDrawdownPct), pct(m.benchmarkMaxDrawdownPct)],
         ['Longest time under a peak', `${plural(m.longestDrawdownDays, 'session')}`, '—'], ['Volatility a year', rate(m.volatilityPct), '—'], ['Sortino', ratio(m.sortino), '—'], ['Calmar', ratio(m.calmar), '—'],
@@ -261,7 +264,7 @@ function results(s: State, chart?: Chart): Update {
         ['Profit factor', ratio(m.profitFactor), '—'], ['Average result a trade', m.expectancy == null ? '—' : inr(m.expectancy), '—'], ['Average holding', m.avgHoldDays == null ? '—' : `${m.avgHoldDays.toFixed(0)} days`, '—'],
         ['Time invested', rate(m.exposurePct), '—'], ['Costs and slippage paid', inr(m.costs + 0), '—'], ...(m.skipped ? [['Entries skipped for cash', String(m.skipped), '—']] : []),
       ] } },
-    { id: 'p-equity', type: 'chart', props: { kind: 'line', title: 'Equity', xScale: 'time', height: 'lg', maxWidth: 'full', yLabel: '₹', guides: [{ value: capital, label: 'Starting capital' }], labels: '{/curveDates}', series: '{/equity}' } },
+    { id: 'p-equity', type: 'chart', props: { kind: 'line', title: 'Equity', xScale: 'time', height: 'lg', maxWidth: 'full', yLabel: '₹', guides: [{ value: capital, label: 'Starting capital' }], labels: '{/curveDates}', series: '{/equity}', ...(partial ? { missing: 'gap' } : {}) } },
     { id: 'p-dd', type: 'chart', props: { kind: 'area', title: 'Fall from peak', xScale: 'time', height: 'sm', maxWidth: 'full', yLabel: '%', labels: '{/curveDates}', series: '{/fall}' } },
     { id: 'y-chart', type: 'chart', props: { kind: 'bar', title: 'Return by calendar year', maxWidth: 'lg', yLabel: '%', series: { records: '{/years}', label: 'year', fields: years.some((y) => s.benchmark! in y) ? ['Strategy', s.benchmark] : ['Strategy'] } } },
     ...(months.length ? [{ id: 'm-chart', type: 'chart', props: { kind: 'heatmap', title: 'Return by month (%)', maxWidth: 'lg', colorBy: 'sign', series: { records: '{/months}', label: 'month', fields: r.monthly.map((x) => x.year) } } }] : []),
@@ -281,7 +284,8 @@ function results(s: State, chart?: Chart): Update {
     ...(pending.length ? [{ id: 'o-pending', type: 'table', props: { columns: [{ key: 'side', label: 'Next open' }, { key: 'symbol', label: 'Stock' }, { key: 'reason', label: 'Signal' }, { key: 'signal', label: 'Signal close' }], rows: { records: '{/pending}', fields: ['side', 'symbol', 'reason', 'signal'] } } }] : []),
     caption('o-none', 'No position was open at the end and no order is waiting.'),
     { id: 'n-method', type: 'list', props: { items: [
-      `History: delayed end-of-day NSE sessions saved locally since ${day(windowStart(m.end))}, the EQ series only.`,
+      `History: delayed end-of-day NSE sessions saved locally since ${day(windowStart(m.end))}, the EQ series only. The run uses the stocks’ own trading sessions.`,
+      ...(partial ? [`NSE’s archive has ${s.benchmark} from ${day(m.benchmarkFrom!)}, so the benchmark starts level with the strategy that day and is compared over that span only.`] : []),
       'Splits and bonuses scale earlier prices by NSE’s published factor. Dividends are not added back, so returns are price returns; demergers are not adjusted.',
       'Signals use each session’s close; orders fill at the next session’s open with the slippage and costs set in the rules. Stops and targets fill inside the session’s range, or at the open after a gap.',
       'Positions are equal slices of equity at the previous close; an entry that cannot buy one share is skipped and counted.',
@@ -356,16 +360,17 @@ const mib = (bytes: number) => `${(bytes / 1048576).toFixed(bytes < 10485760 ? 1
 function data(s: State, on: string): Update {
   const pr = progress(s), bench = s.covered![`INDEX:${s.benchmark}`];
   const stocks = s.universe!.map((sym) => {
-    const c = s.covered![sym], e = s.sync![sym]!;
-    const status = e.error ? 'Check symbol' : e.done ? (e.actionsError ? 'Actions pending' : 'Complete') : c ? 'Saving' : 'Waiting';
-    return { symbol: sym, title: sym, subtitle: c ? `${day(c.first)} – ${day(c.last)} · ${plural(c.sessions, 'session')}` : 'No sessions saved yet', body: e.error ?? (e.actionsAt ? `Corporate actions checked ${ist(e.actionsAt)}` : 'Corporate actions not checked yet'), badge: status, tone: e.error ? 'danger' : e.done ? 'success' : 'info', confirm: s.ui!.confirm === `remove:${sym}` ? 'Remove with history' : 'Remove' };
+    const c = s.covered![sym], e = s.sync![sym]!, unknown = unknownSymbol(c);
+    const status = unknown ? 'Check symbol' : c?.complete ? (e.actionsError ? 'Actions pending' : 'Complete') : c?.sessions ? 'Saving' : 'Waiting';
+    const left = c && !c.complete && c.toRead ? ` · ${plural(c.toRead, 'day')} left to read` : '';
+    return { symbol: sym, title: sym, subtitle: c?.sessions ? `${day(c.first)} – ${day(c.last)} · ${plural(c.sessions, 'session')}${left}` : `No sessions saved yet${left}`, body: unknown ? `NSE has no sessions for ${sym} in its archive. Check the symbol, then Sync again.` : e.actionsAt ? `Corporate actions checked ${ist(e.actionsAt)}` : 'Corporate actions not checked yet', badge: status, tone: unknown ? 'danger' : c?.complete ? 'success' : 'info', confirm: s.ui!.confirm === `remove:${sym}` ? 'Remove with history' : 'Remove' };
   });
   const acts = Object.entries(s.actionList!).flatMap(([sym, list]) => list.map((a) => ({ symbol: sym, date: a.exDate, kind: a.kind, purpose: a.purpose, factor: a.factor }))).sort((a, b) => b.date.localeCompare(a.date));
   const receipts = s.receipts!.map((r) => ({ subject: r.subject, tool: r.tool.replace(/^nse__/, ''), fetched: ist(r.fetchedAt), source: r.sourceAt, rows: r.rows, status: r.status }));
   const pctDone = pr.total ? Math.round(pr.done / pr.total * 100) : 0;
   const nodes: Node[] = [
     { id: 'root', type: 'stack', props: { density: 'compact', gap: 'md' }, children: ['cap', ...notice(s).map((n) => n.id), 'prog', 'controls', 'tabs'] },
-    caption('cap', `Daily NSE history saved on this computer: up to five years per stock (from ${day(windowStart(on))}), then each new session. ${s.universe!.length} of ${MAX_UNIVERSE} stocks · benchmark ${bench ? `${day(bench.first)} – ${day(bench.last)}` : 'not saved yet'} · storage ${mib(s.storage ?? 0)}${s.storageLimit ? ` of ${mib(s.storageLimit)}` : ''}.`),
+    caption('cap', `Daily NSE history saved on this computer: up to five years per stock (from ${day(windowStart(on))}), then each new session. ${s.universe!.length} of ${MAX_UNIVERSE} stocks · benchmark ${bench?.sessions ? `${day(bench.first)} – ${day(bench.last)} (as far back as NSE has it)` : 'not saved yet'} · storage ${mib(s.storage ?? 0)}${s.storageLimit ? ` of ${mib(s.storageLimit)}` : ''}.`),
     ...notice(s),
     { id: 'prog', type: 'progress', props: { label: pr.ready ? 'History complete' : `History saving in the background · ${pr.done} of ${pr.total} stocks`, value: pctDone, show: 'value' } },
     { id: 'controls', type: 'stack', props: { direction: 'horizontal', gap: 'sm', wrap: true, align: 'end' }, children: ['add', 'add-go', 'bench', 'sync'] },
@@ -383,7 +388,7 @@ function data(s: State, on: string): Update {
     { id: 'st-actions', type: 'stack', props: { direction: 'horizontal', gap: 'sm' }, children: ['st-retry', 'st-remove'] },
     { id: 'st-retry', type: 'button', props: { label: 'Sync again', action: 'retry_symbol', payload: { symbol: '{symbol}' }, style: 'link' } },
     { id: 'st-remove', type: 'button', props: { label: '{confirm}', action: 'remove_symbol', payload: { symbol: '{symbol}' }, style: 'link' } },
-    caption('st-note', 'The scheduled sync runs every two minutes while Background operation is on; Sync now runs one step. Each step reads at most fifteen chunks, so the first full history of ten stocks takes about twenty minutes.'),
+    caption('st-note', 'The scheduled sync runs every two minutes while Background operation is on; Sync now runs one step. Each step reads at most fifteen chunks, so the first full history of ten stocks takes about twenty minutes. A stock’s Sync again asks NSE for its whole window again; saved sessions stay until each reading replaces them.'),
     caption('st-none', 'No stocks yet. Add NSE symbols above.'),
     { id: 'ca-table', type: 'table', props: { sortable: true, searchable: true, pageSize: 20, columns: [{ key: 'symbol', label: 'Stock' }, { key: 'date', label: 'Ex-date' }, { key: 'kind', label: 'Type' }, { key: 'purpose', label: 'Purpose' }, { key: 'factor', label: 'Price factor', align: 'end' }], rows: { records: '{/actions}', fields: ['symbol', 'date', 'kind', 'purpose', 'factor'] } } },
     caption('ca-none', 'No corporate actions saved yet; they are checked weekly once a stock’s history is complete.'),

@@ -198,22 +198,26 @@ export interface Metrics {
   trades: number; winRatePct: number | null; avgWinPct: number | null; avgLossPct: number | null; profitFactor: number | null; expectancy: number | null;
   avgHoldDays: number | null; exposurePct: number; costs: number; skipped: number;
   benchmarkTotalPct: number | null; benchmarkCagrPct: number | null; benchmarkMaxDrawdownPct: number | null;
+  /** The first session the benchmark has, and the strategy's compound rate over the benchmark's own span. */
+  benchmarkFrom: string | null; sameSpanCagrPct: number | null;
 }
 export interface Result { metrics: Metrics; curve: Point[]; trades: Trade[]; open: (Position & { last: number; pnl: number; pnlPct: number })[]; pending: Order[]; fills: Fill[] }
 
 /**
- * Run the rules over the calendar (benchmark sessions) from `from` to the last
- * date. Benchmark closes are scaled to the starting capital for comparison.
+ * Run the rules over the calendar (the stocks' own sessions) from `from` to the last
+ * date. Benchmark closes are scaled to the strategy's equity on the first session
+ * the benchmark has, so the lines start level wherever NSE's index archive begins.
  */
 export function backtest(rules: Rules, capital: number, series: Map<string, Series>, calendar: string[], benchmark: Map<string, number>, from = ''): Result {
   const days = calendar.filter((d) => d >= from && [...series.values()].some((s) => s.at.has(d)));
   const book = newBook(capital), curve: Point[] = [];
-  let equity = capital, peak = capital, base: number | undefined;
+  let equity = capital, peak = capital, base: number | undefined, level = capital;
   for (const date of days) {
     step(book, rules, series, date, equity);
     equity = equityOf(book, series, date); peak = Math.max(peak, equity);
-    const b = benchmark.get(date); if (base === undefined && b) base = b;
-    curve.push({ date, equity, benchmark: b && base ? capital * b / base : null, drawdown: (equity / peak - 1) * 100, exposure: book.positions.length });
+    // A benchmark that starts later than the run starts level with the strategy's equity on that day.
+    const b = benchmark.get(date); if (base === undefined && b) { base = b; level = equity; }
+    curve.push({ date, equity, benchmark: b && base ? level * b / base : null, drawdown: (equity / peak - 1) * 100, exposure: book.positions.length });
   }
   const last = days.at(-1) ?? '';
   const open = book.positions.map((p) => { const s = series.get(p.symbol)!, px = closeAt(s, last, s.bars.length - 1) ?? p.entryPrice, pnl = p.qty * px - p.qty * p.entryPrice - p.cost; return { ...p, last: px, pnl, pnlPct: pnl / (p.qty * p.entryPrice + p.cost) * 100 }; });
@@ -242,7 +246,11 @@ export function metrics(curve: Point[], book: Book, capital: number): Metrics {
   const gw = wins.reduce((a, t) => a + t.pnl, 0), gl = -losses.reduce((a, t) => a + t.pnl, 0);
   const bench = curve.filter((p) => p.benchmark != null) as (Point & { benchmark: number })[];
   const bTotal = bench.length > 1 ? (bench.at(-1)!.benchmark / bench[0]!.benchmark - 1) * 100 : null;
-  const cagr = (t: number) => years >= 0.25 ? ((1 + t / 100) ** (1 / years) - 1) * 100 : null;
+  const rate = (t: number, span: number) => span >= 0.25 ? ((1 + t / 100) ** (1 / span) - 1) * 100 : null;
+  const cagr = (t: number) => rate(t, years);
+  // The benchmark is measured over its own sessions, and the strategy over the same span beside it.
+  const bYears = bench.length > 1 ? Math.max(daysBetween(bench[0]!.date, bench.at(-1)!.date), 1) / 365.25 : 0;
+  const same = bench.length > 1 ? rate((bench.at(-1)!.equity / bench[0]!.equity - 1) * 100, bYears) : null;
   const avg = (xs: number[]) => xs.length ? xs.reduce((a, x) => a + x, 0) / xs.length : null;
   return {
     start: first?.date ?? '', end: last?.date ?? '', sessions: curve.length, years, capital, final, totalPct: total, cagrPct: cagr(total),
@@ -252,7 +260,7 @@ export function metrics(curve: Point[], book: Book, capital: number): Metrics {
     avgWinPct: avg(wins.map((t) => t.pnlPct)), avgLossPct: avg(losses.map((t) => t.pnlPct)), profitFactor: gl > 0 ? gw / gl : null,
     expectancy: avg(book.trades.map((t) => t.pnl)), avgHoldDays: avg(book.trades.map((t) => t.days)),
     exposurePct: curve.length ? curve.filter((p) => p.exposure > 0).length / curve.length * 100 : 0, costs: book.costs, skipped: book.skipped,
-    benchmarkTotalPct: bTotal, benchmarkCagrPct: bTotal == null ? null : cagr(bTotal), benchmarkMaxDrawdownPct: bench.length > 1 ? drawdown(bench.map((p) => p.benchmark)).worst : null,
+    benchmarkTotalPct: bTotal, benchmarkCagrPct: bTotal == null ? null : rate(bTotal, bYears), benchmarkFrom: bench[0]?.date ?? null, sameSpanCagrPct: same, benchmarkMaxDrawdownPct: bench.length > 1 ? drawdown(bench.map((p) => p.benchmark)).worst : null,
   };
 }
 
@@ -277,7 +285,7 @@ export function monthly(curve: Point[]) {
   for (const k of keys) {
     const row = rows.get(k.slice(0, 4)) ?? new Array<number | null>(12).fill(null);
     row[Number(k.slice(5, 7)) - 1] = prev ? Number(((ends.get(k)! / prev - 1) * 100).toFixed(2)) : null;
-    rows.set(k.slice(0, 4), row); prev = ends.get(k);
+    rows.set(k.slice(0, 4), row); prev = ends.get(k)!;
   }
   return [...rows.entries()].map(([year, values]) => ({ year, values }));
 }

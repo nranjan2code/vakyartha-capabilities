@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { adjust, backtest, monthly, newBook, prepare, rsi, sma, step, type Bar, type Rules } from "../apps/strategy-lab/engine.ts";
-import { bulk, decode, initialize, saveBars, stockChunk, type Database } from "../apps/strategy-lab/source.ts";
+import { bulk, decode, initialize, missing, monthsBefore, saveBars, stockChunk, type Database } from "../apps/strategy-lab/source.ts";
 import { handleAction, MAX_UNIVERSE, normalize, surfaceFile, symbols, sync, type Context } from "../apps/strategy-lab/server.ts";
 
 const days = (n: number, from = Date.UTC(2025, 0, 6)) => Array.from({ length: n }, (_, i) => new Date(from + i * 86_400_000).toISOString().slice(0, 10));
@@ -134,14 +134,83 @@ test('storage is shown against the declared limit, not a fixed one', async () =>
   assert.equal(context.state.storage, 60 * MIB);
 });
 
-test('progress that outlived its database is read again, and a wrong symbol stays reported', async () => {
+/** An in-memory archive answering the statements source.ts sends, so a sync can run end to end. */
+function archive(): Database & { bars: Map<string, Bar & { symbol: string }>; spans: Set<string> } {
+  const barsBy = new Map<string, Bar & { symbol: string }>(), spans = new Set<string>();
+  return {
+    maxBytes: 256 * MIB, bars: barsBy, spans,
+    async run(sql, v = []) {
+      if (sql.startsWith('INSERT OR REPLACE INTO bars')) barsBy.set(`${v[0]}|${v[1]}`, { symbol: String(v[0]), date: String(v[1]), open: Number(v[2]), high: Number(v[3]), low: Number(v[4]), close: Number(v[5]), volume: Number(v[6]) });
+      else if (sql.startsWith('INSERT OR REPLACE INTO spans')) { for (const k of [...spans]) if (k.startsWith(`${v[0]}|${v[1]}|${v[2]}|`)) spans.delete(k); spans.add(`${v[0]}|${v[1]}|${v[2]}|${v[3]}|${v[4]}`); }
+      else if (sql.startsWith('DELETE FROM spans')) { for (const k of [...spans]) if (k.startsWith(`${v[0]}|`)) spans.delete(k); }
+      else if (sql.startsWith('DELETE FROM bars')) { for (const k of [...barsBy.keys()]) if (k.startsWith(`${v[0]}|`)) barsBy.delete(k); }
+    },
+    async query(sql, v = []) {
+      const all = [...barsBy.values()];
+      if (sql.includes('FROM spans')) return [...spans].map((k) => k.split('|')).filter(([, , , n, at]) => Number(n) > 0 || at! >= String(v[0])).map(([symbol, from_date, to_date]) => ({ symbol, from_date, to_date })).sort((a, b) => `${a.symbol}|${a.from_date}`.localeCompare(`${b.symbol}|${b.from_date}`));
+      if (sql.includes('GROUP BY symbol')) return [...new Set(all.map((b) => b.symbol))].map((symbol) => { const d = all.filter((b) => b.symbol === symbol).map((b) => b.date).sort(); return { symbol, first: d[0], last: d.at(-1), sessions: d.length }; });
+      if (sql.includes('SELECT DISTINCT date')) return [...new Set(all.map((b) => b.date))].sort().reverse().slice(0, Number(/LIMIT (\d+)/.exec(sql)![1])).map((date) => ({ date }));
+      if (sql.includes('FROM bars WHERE symbol')) return all.filter((b) => b.symbol === v[0]).sort((a, b) => a.date.localeCompare(b.date));
+      if (sql.includes('pragma_database_size')) return [{ total_blocks: 1, block_size: 262144 }];
+      return [];
+    },
+  };
+}
+/** NSE as it answers: weekday sessions inside its archive, its error sentence (with hints) outside it. */
+function nse(archiveFrom: Record<string, string>, calls: { name: string; args: Record<string, unknown> }[] = []) {
+  const weekdays = (from: string, to: string) => { const out: string[] = []; for (let t = Date.parse(`${from}T00:00:00Z`); t <= Date.parse(`${to}T00:00:00Z`); t += 86_400_000) { const d = new Date(t); if (d.getUTCDay() % 6) out.push(d.toISOString().slice(0, 10)); } return out; };
+  const back = (on: string, m: number) => { const d = new Date(`${on}T00:00:00Z`); d.setUTCMonth(d.getUTCMonth() - m); return d.toISOString().slice(0, 10); };
+  return async (name: string, args: Record<string, unknown>) => {
+    calls.push({ name, args });
+    if (name === 'nse__get_corporate_actions') return { text: JSON.stringify({ symbol: args.symbol, actions: [] }) };
+    if (name === 'nse__get_bulk_quote') return { text: JSON.stringify({ quotes: [] }) };
+    const key = String(args.symbol ?? `INDEX:${args.indexName}`), end = String(args.endDate), from = back(end, Number(args.months));
+    const start = archiveFrom[key], dates = start ? weekdays(from > start ? from : start, end > '2026-11-17' ? '2026-11-17' : end) : [];
+    if (!dates.length) return { text: JSON.stringify({ error: `No data for ${key}`, similar: ['X'], hint: 'Try another name' }) };
+    const row = (date: string) => ({ symbol: args.symbol, series: 'EQ', indexName: args.indexName, date, open: 100, high: 101, low: 99, close: 100, volume: 10 });
+    return { text: JSON.stringify({ ...(args.symbol ? { symbol: args.symbol } : { index: args.indexName }), data: dates.map(row), next_end_date: new Date(Date.parse(`${from}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10) }) };
+  };
+}
+const steps = async (context: Context, n: number) => { for (let i = 0; i < n; i++) await sync(context); };
+
+test('NSE answers with hints are its own answer, and what is missing comes from the answered ranges', () => {
+  assert.throws(() => decode({ text: JSON.stringify({ error: 'No data for index', similar_indices: ['NIFTY 50'], hint: 'list names' }) }), /NSE: No data/);
+  assert.deepEqual(missing([{ from: '2024-01-01', to: '2024-03-31' }, { from: '2024-06-01', to: '2024-12-31' }], '2023-11-17', '2026-11-17'),
+    [{ from: '2023-11-17', to: '2023-12-31' }, { from: '2024-04-01', to: '2024-05-31' }, { from: '2025-01-01', to: '2026-11-17' }]);
+  assert.equal(monthsBefore('2026-05-31', 3), '2026-02-28');
+});
+
+test('a benchmark whose archive is shorter completes, and stocks fill five years around holes and lost sessions', async () => {
+  const db = archive(), calls: { name: string; args: Record<string, unknown> }[] = [];
   const state = normalize({ universe: ['INFY', 'NOPE'] });
-  state.bench = { next: null, until: '', done: true, checkedAt: '2026-11-02T00:00:00Z' };
-  state.sync!.INFY = { next: null, until: '', done: true, actionsAt: '2026-11-02T00:00:00Z' };
-  state.sync!.NOPE = { next: null, until: '', done: true, error: 'Not found. Check the symbol in Data.' };
-  await sync({ state, database: recording(), callTool: async () => { throw new Error('offline'); }, now: () => new Date('2026-11-02T06:00:00Z') });
-  assert.equal(state.sync!.INFY!.done, false);
-  assert.equal(state.sync!.INFY!.actionsAt, undefined);
-  assert.equal(state.bench!.done, false);
-  assert.equal(state.sync!.NOPE!.done, true);
+  // An earlier database kept only an old stretch of INFY and no record of what was read.
+  for (const d of ['2022-03-01', '2022-03-02']) db.bars.set(`INFY|${d}`, { symbol: 'INFY', date: d, open: 1, high: 1, low: 1, close: 1, volume: 1 });
+  const context: Context = { state, database: db, callTool: nse({ 'INDEX:Nifty 50': '2024-10-07', INFY: '2021-11-17' }, calls), now: () => new Date('2026-11-17T12:00:00Z') };
+  await steps(context, 12);
+  const bench = state.covered!['INDEX:Nifty 50']!, infy = state.covered!.INFY!;
+  assert.ok(bench.complete && bench.first === '2024-10-07', 'the benchmark stops where NSE has it, without retrying the same read');
+  assert.ok(infy.complete && infy.first <= '2021-11-18' && infy.last === '2026-11-17', 'INFY is read over its whole window, the lost recent years included');
+  assert.equal(state.covered!.NOPE!.complete && state.covered!.NOPE!.sessions, 0);
+  assert.equal(calls.filter((c) => c.args.symbol === 'NOPE').length, 1, 'an unknown symbol is asked once');
+  const before = calls.length; await sync(context);
+  assert.ok(calls.slice(before).every((c) => c.name !== 'nse__get_stock_history'), 'a complete archive makes no history reads');
+  // NSE's archive changes, so a range it had nothing for is asked again a week later, and only that range.
+  const week = calls.length; context.now = () => new Date('2026-11-25T12:00:00Z');
+  await sync(context);
+  const again = calls.slice(week).filter((c) => c.name === 'nse__get_stock_history');
+  assert.ok(again.some((c) => c.args.symbol === 'NOPE') && again.every((c) => c.args.symbol === 'NOPE' || String(c.args.endDate) < '2021-12-01' || String(c.args.endDate) >= '2026-11-17'), JSON.stringify(again.map((c) => c.args)));
+  // Sync again asks for the whole window again.
+  await handleAction('st-retry', { symbol: 'INFY' }, context, 'retry_symbol');
+  assert.ok(calls.slice(before).some((c) => c.args.symbol === 'INFY'));
+});
+
+test('a backtest runs on the stocks\' own sessions and compares the benchmark over its span', () => {
+  const d = days(400), late = d.slice(200);
+  const series = new Map([['A', prepare('A', bars(d.map((_, i) => 100 + i)), rules({ template: 'buy_hold' }))]]);
+  const r = backtest(rules({ template: 'buy_hold' }), 100_000, series, d, new Map(late.map((x, i) => [x, 1000 + i])));
+  assert.equal(r.curve.length, 400);
+  assert.equal(r.metrics.benchmarkFrom, late[0]);
+  const at = r.curve.find((p) => p.date === late[0])!;
+  assert.equal(Math.round(at.benchmark!), Math.round(at.equity));
+  assert.ok(r.metrics.sameSpanCagrPct != null && r.metrics.benchmarkCagrPct != null);
 });

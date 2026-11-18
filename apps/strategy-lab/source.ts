@@ -15,7 +15,8 @@ export function decode(value: unknown): O {
   const content = Array.isArray(result.content) ? (result.content as O[]).find((c) => typeof c?.text === 'string')?.text : undefined;
   const text = typeof result.text === 'string' ? result.text : content;
   const body = typeof text === 'string' ? object(JSON.parse(text)) : result;
-  if (typeof body.error === 'string' && Object.keys(body).length <= 2) throw new NseError(body.error.slice(0, 200));
+  // NSE answers a range it has no sessions for with an error sentence (and sometimes hints); a reading never carries one.
+  if (typeof body.error === 'string') throw new NseError(body.error.slice(0, 200));
   return body;
 }
 /** An answer from NSE itself (an unknown symbol, a date before its window), not a failed read. */
@@ -97,6 +98,66 @@ export async function initialize(db: Database) {
   if (old.length) await db.run('DROP TABLE bars');
   await db.run('CREATE TABLE IF NOT EXISTS bars(symbol VARCHAR, date VARCHAR, open DOUBLE, high DOUBLE, low DOUBLE, close DOUBLE, volume DOUBLE, PRIMARY KEY(symbol, date))');
   await db.run('CREATE TABLE IF NOT EXISTS actions(symbol VARCHAR, ex_date VARCHAR, kind VARCHAR, purpose VARCHAR, factor DOUBLE, PRIMARY KEY(symbol, ex_date, kind))');
+  // Every date range NSE has answered for, with how many sessions it held and when: what is left to read is
+  // the window minus these. A table from an earlier package without those columns is read again.
+  const oldSpans = await db.query("SELECT table_name FROM duckdb_tables() WHERE table_name='spans' AND NOT EXISTS (SELECT 1 FROM duckdb_columns() WHERE table_name='spans' AND column_name='answered_at')");
+  if (oldSpans.length) await db.run('DROP TABLE spans');
+  await db.run('CREATE TABLE IF NOT EXISTS spans(symbol VARCHAR, from_date VARCHAR, to_date VARCHAR, sessions INTEGER, answered_at VARCHAR, PRIMARY KEY(symbol, from_date, to_date))');
+}
+/** A date range NSE answered for, inclusive. */
+export interface Span { from: string; to: string }
+/** One NSE answer: its sessions and the range it covered, saved together so neither outlives the other. */
+export async function saveRead(db: Database, symbol: string, bars: Bar[], span: Span, answeredAt: string) {
+  return serial(db, async () => {
+  await db.run('BEGIN TRANSACTION');
+  try {
+    for (const b of bars) await db.run('INSERT OR REPLACE INTO bars VALUES(?,?,?,?,?,?,?)', [symbol, b.date, b.open, b.high, b.low, b.close, b.volume]);
+    if (span.from <= span.to) await db.run('INSERT OR REPLACE INTO spans VALUES(?,?,?,?,?)', [symbol, span.from, span.to, bars.length, answeredAt]);
+    await db.run('COMMIT');
+  } catch (e) { await db.run('ROLLBACK'); throw e; }
+  });
+}
+/** How long NSE's answer that it has no sessions in a range stands; its archive changes, so it is asked again. */
+export const EMPTY_ANSWER_DAYS = 7;
+/** Answered ranges per symbol, merged where they touch or overlap. An empty answer older than a week no longer counts. */
+export async function loadSpans(db: Database, on: string): Promise<Map<string, Span[]>> {
+  const rows = await db.query('SELECT symbol, from_date, to_date FROM spans WHERE sessions > 0 OR answered_at >= ? ORDER BY symbol, from_date', [shift(on, -EMPTY_ANSWER_DAYS)]);
+  const out = new Map<string, Span[]>();
+  for (const r of rows) {
+    const list = out.get(String(r.symbol)) ?? [], span = { from: String(r.from_date), to: String(r.to_date) }, last = list.at(-1);
+    if (last && span.from <= nextDay(last.to)) { if (span.to > last.to) last.to = span.to; } else list.push(span);
+    out.set(String(r.symbol), list);
+  }
+  return out;
+}
+/** The parts of [from, to] no answered range covers, oldest first. */
+export function missing(spans: Span[], from: string, to: string): Span[] {
+  const out: Span[] = [];
+  let cursor = from;
+  for (const s of spans) {
+    if (s.to < cursor) continue;
+    if (s.from > to) break;
+    if (s.from > cursor) out.push({ from: cursor, to: previousDay(s.from) });
+    cursor = nextDay(s.to);
+  }
+  if (cursor <= to) out.push({ from: cursor, to });
+  return out;
+}
+export async function forgetSpans(db: Database, symbol: string) { await serial(db, () => db.run('DELETE FROM spans WHERE symbol=?', [symbol])); }
+/** The most recent exchange sessions saved for any stock or index, newest first. */
+export async function latestSessions(db: Database, n = 2): Promise<string[]> {
+  return (await db.query(`SELECT DISTINCT date FROM bars ORDER BY date DESC LIMIT ${Math.max(1, Math.min(10, Math.trunc(n)))}`)).map((r) => String(r.date));
+}
+
+const shift = (on: string, days: number) => { const d = new Date(`${on}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10); };
+export const nextDay = (on: string) => shift(on, 1);
+export const previousDay = (on: string) => shift(on, -1);
+/** The same day `months` earlier (clamped to the month's end): where a history chunk ending on `on` starts. */
+export function monthsBefore(on: string, months: number) {
+  const [y, m, d] = on.split('-').map(Number) as [number, number, number];
+  const first = new Date(Date.UTC(y, m - 1 - months, 1)), end = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+  first.setUTCDate(Math.min(d, end));
+  return first.toISOString().slice(0, 10);
 }
 /** Insert or replace sessions; NSE's latest reading of a day wins. */
 export async function saveBars(db: Database, symbol: string, bars: Bar[]) {
@@ -140,6 +201,7 @@ export async function storageUsed(db: Database): Promise<number> {
   return r ? Number(r.total_blocks) * Number(r.block_size) : 0;
 }
 export async function forget(db: Database, symbol: string) {
-  await db.run('DELETE FROM bars WHERE symbol=?', [symbol]);
-  await db.run('DELETE FROM actions WHERE symbol=?', [symbol]);
+  await serial(db, async () => {
+    for (const table of ['bars', 'actions', 'spans']) await db.run(`DELETE FROM ${table} WHERE symbol=?`, [symbol]);
+  });
 }

@@ -1193,7 +1193,7 @@
         "id": "st-note",
         "type": "text",
         "props": {
-          "content": "The scheduled sync runs every two minutes while Background operation is on; Sync now runs one step. Each step reads at most fifteen chunks, so the first full history of ten stocks takes about twenty minutes.",
+          "content": "The scheduled sync runs every two minutes while Background operation is on; Sync now runs one step. Each step reads at most fifteen chunks, so the first full history of ten stocks takes about twenty minutes. A stock’s Sync again asks NSE for its whole window again; saved sessions stay until each reading replaces them.",
           "variant": "caption"
         }
       },
