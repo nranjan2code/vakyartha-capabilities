@@ -5,9 +5,11 @@ import type { Snapshot } from './store.ts';
 import { EMPTY, RECENT } from './store.ts';
 import { SOURCE } from './source.ts';
 import { PROVENANCE_LABEL, PROVENANCE_NOTE, type Provenance } from './provenance.ts';
-import { billable, CORROBORATION, MIN_RANKED, OUTLIER_FACTOR, spread, workload, WORKLOADS, type Abilities, type Board, type Entry, type Facts, type ModelDetail, type ModelRow, type Offer, type Point, type Score, type Span, type Workload } from './market.ts';
+import { ACCESS_LABEL, classify, LICENCE_LABEL, LICENCE_NOTE, named, type AccessClass, type LicenceClass } from './licence.ts';
+import { floor, MAX_GPUS, type Gpu } from './selfhost.ts';
+import { billable, CORROBORATION, MIN_RANKED, OUTLIER_FACTOR, spread, workload, WORKLOADS, type Abilities, type Board, type Entry, type OpenModel, type Facts, type ModelDetail, type ModelRow, type Offer, type Point, type Score, type Span, type Workload } from './market.ts';
 
-export interface State { type?: string; model?: string; workload?: string; volume?: number; compare?: string[]; board?: { slug: string; measure: string } }
+export interface State { type?: string; model?: string; workload?: string; volume?: number; compare?: string[]; board?: { slug: string; measure: string }; gpu?: Gpu; gpuDraft?: { memory?: string; price?: string } }
 /** Requests a month, the unit a bill is approved in (the original's choices). */
 export const VOLUMES = [10_000, 100_000, 1_000_000, 10_000_000];
 /** At most this many models side by side. */
@@ -17,12 +19,12 @@ export interface Compared { detail: ModelDetail; facts: Facts | null; abilities:
 /** One model opened on the Models view. */
 export interface Opened { detail: ModelDetail; offers: Offer[]; facts: Facts | null; scores: Score[]; history: Point[]; spans: Span[]; events: Record<string, unknown>[] }
 /** Everything the views read: the pipeline snapshot, the model list and the opened model. */
-export interface Loaded { snap: Snapshot; models: ModelRow[]; open: Opened | null; compared: Compared[]; boards: Board[]; board: Entry[] }
-export const NOTHING: Loaded = { snap: EMPTY, models: [], open: null, compared: [], boards: [], board: [] };
+export interface Loaded { snap: Snapshot; models: ModelRow[]; open: Opened | null; compared: Compared[]; boards: Board[]; board: Entry[]; weights: OpenModel[]; weightReads: Record<string, unknown>[] }
+export const NOTHING: Loaded = { snap: EMPTY, models: [], open: null, compared: [], boards: [], board: [], weights: [], weightReads: [] };
 interface Node { id: string; type: string; props?: Record<string, unknown>; children?: string[] | { each: string; template: string } }
 export interface Update { surface: string; nodes: Node[]; data: { op: 'replace'; path: '/'; value: Record<string, unknown> }[] }
 
-export const TITLES: Record<string, string> = { overview: 'Overview', models: 'Models', costs: 'Costs', compare: 'Compare', benchmarks: 'Benchmarks', changes: 'Changes', pipeline: 'Pipeline' };
+export const TITLES: Record<string, string> = { overview: 'Overview', models: 'Models', costs: 'Costs', compare: 'Compare', benchmarks: 'Benchmarks', weights: 'Open weights', changes: 'Changes', pipeline: 'Pipeline' };
 
 export const TYPES: Record<string, string> = {
   repriced: 'Repriced', model_added: 'Model added', provider_added: 'New provider', deprecated: 'Deprecated',
@@ -46,7 +48,12 @@ export function normalize(input: unknown): State {
   const compare = Array.isArray(s.compare) ? [...new Set(s.compare.filter(id) as string[])].slice(0, MAX_COMPARED) : [];
   const b = s.board as { slug?: unknown; measure?: unknown } | undefined;
   const board = b && typeof b === 'object' && id(b.slug) && typeof b.measure === 'string' && b.measure.length <= 120 ? { slug: b.slug as string, measure: b.measure } : undefined;
-  return { type, ...(model ? { model } : {}), workload: chosen, volume, compare, ...(board ? { board } : {}) };
+  const g = s.gpu as { memoryGb?: unknown; usdPerHour?: unknown } | undefined;
+  const gpu = g && typeof g === 'object' && typeof g.memoryGb === 'number' && g.memoryGb > 0 && g.memoryGb <= 1_000 && typeof g.usdPerHour === 'number' && g.usdPerHour > 0 && g.usdPerHour <= 1_000 ? { memoryGb: g.memoryGb, usdPerHour: g.usdPerHour } : undefined;
+  const d = s.gpuDraft as { memory?: unknown; price?: unknown } | undefined;
+  const text = (v: unknown) => (typeof v === 'string' ? v.slice(0, 20) : typeof v === 'number' && Number.isFinite(v) ? String(v) : undefined);
+  const gpuDraft = { memory: text(d?.memory) ?? (gpu ? String(gpu.memoryGb) : ''), price: text(d?.price) ?? (gpu ? String(gpu.usdPerHour) : '') };
+  return { type, ...(model ? { model } : {}), workload: chosen, volume, compare, ...(board ? { board } : {}), ...(gpu ? { gpu } : {}), gpuDraft };
 }
 
 const int = (v: unknown) => Number(v ?? 0);
@@ -153,7 +160,7 @@ function changes(s: State, snap: Snapshot): Update {
   return { surface: 'changes', nodes, data: replace(rows.length ? { events: rows, shown: `${rows.length} of the latest ${RECENT}` } : {}) };
 }
 
-function pipeline(snap: Snapshot): Update {
+function pipeline(snap: Snapshot, weightReads: Record<string, unknown>[] = []): Update {
   const latest = snap.latest;
   const nodes: Node[] = [
     { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: ['pl-stats', 'pl-tabs'] },
@@ -162,7 +169,11 @@ function pipeline(snap: Snapshot): Update {
     { id: 'pl-took', type: 'stat', props: { label: 'Took', value: '{/stats/took}' } },
     { id: 'pl-reads', type: 'stat', props: { label: 'Source reads', value: '{/stats/reads}' } },
     { id: 'pl-checks', type: 'stat', props: { label: 'Check findings', value: '{/stats/findings}', tone: '{/stats/findingTone}' } },
-    { id: 'pl-tabs', type: 'tabs', children: ['pl-runs', 'pl-findings', 'pl-receipts', 'pl-method'] },
+    { id: 'pl-tabs', type: 'tabs', children: ['pl-runs', 'pl-findings', 'pl-receipts', 'pl-weights', 'pl-method'] },
+    { id: 'pl-weights', type: 'section', props: { title: 'Weights reads', description: 'Access, licence and size from the weights host, an organisation per read, the longest unread first, each hour while Keep running is on. Facts are read again after 20 hours.' }, children: [weightReads.length ? 'pl-weight-table' : 'pl-no-weights'] },
+    weightReads.length
+      ? { id: 'pl-weight-table', type: 'table', props: { rows: '{/weightReads}', columns: [{ key: 'org', label: 'Organisation' }, { key: 'when', label: 'Read' }, { key: 'rows', label: 'Models', align: 'end' }, { key: 'took', label: 'Took', align: 'end' }, { key: 'status', label: 'Result' }], searchable: true, pageSize: 15 } }
+      : { id: 'pl-no-weights', type: 'text', props: { content: 'No weights reads yet. They run hourly while Keep running is on, or from Operation Center.', variant: 'caption' } },
     { id: 'pl-runs', type: 'section', props: { title: 'Refreshes' }, children: [snap.runs.length ? 'pl-run-table' : 'pl-no-runs'] },
     snap.runs.length
       ? { id: 'pl-run-table', type: 'table', props: { rows: '{/runs}', columns: [{ key: 'when', label: 'Started' }, { key: 'status', label: 'Result' }, { key: 'listings', label: 'Listings', align: 'end' }, { key: 'events', label: 'Changes', align: 'end' }, { key: 'note', label: 'Note' }], pageSize: 10 } }
@@ -194,6 +205,7 @@ function pipeline(snap: Snapshot): Update {
     },
     ...(snap.runs.length ? { runs: snap.runs.map((r) => ({ when: when(r.started_at), status: STATUS[String(r.status)] ?? String(r.status), listings: r.listings === null ? '—' : whole(int(r.listings)), events: whole(int(r.events)), note: String(r.note ?? '') })) } : {}),
     ...(snap.findings.length ? { findings: snap.findings.map((f) => ({ level: f.level === 'fail' ? 'Failed' : 'Warning', check: String(f.check_id), message: String(f.message) })) } : {}),
+    ...(weightReads.length ? { weightReads: weightReads.map((r) => ({ org: String(r.org), when: when(r.read_at), rows: whole(int(r.rows)), took: `${(int(r.ms) / 1000).toFixed(1)} s`, status: String(r.status) })) } : {}),
     ...(snap.receipts.length ? { receipts: snap.receipts.map((r) => ({ what: String(r.what), url: String(r.url), pages: whole(int(r.pages)), rows: `${whole(int(r.rows))} of ${whole(int(r.total))}`, took: `${(int(r.ms) / 1000).toFixed(1)} s`, status: String(r.status) })) } : {}),
   };
   return { surface: 'pipeline', nodes, data: replace(data) };
@@ -201,7 +213,7 @@ function pipeline(snap: Snapshot): Update {
 
 export function view(state: unknown, loaded: Loaded = NOTHING): Update[] {
   const s = normalize(state), w = workload(s.workload);
-  return [overview(loaded.snap, loaded.models, w), modelsView(loaded, s), costs(loaded, s), compare(loaded, s), benchmarksView(loaded, s), changes(s, loaded.snap), pipeline(loaded.snap)];
+  return [overview(loaded.snap, loaded.models, w), modelsView(loaded, s), costs(loaded, s), compare(loaded, s), benchmarksView(loaded, s), weightsView(loaded, s), changes(s, loaded.snap), pipeline(loaded.snap, loaded.weightReads)];
 }
 
 /** A price per million tokens the way the original wrote it: cents for small, two places for large. */
@@ -521,4 +533,75 @@ function benchmarksView(l: Loaded, s: State): Update {
     kinds: kinds.map((k) => ({ title: PROVENANCE_LABEL[k as Provenance] ?? k, body: PROVENANCE_NOTE[k as Provenance] ?? '' })),
   };
   return { surface: 'benchmarks', nodes, data: replace(data) };
+}
+
+/** 1.2 billion tokens as "1.2B", 450 million as "450M". */
+export function many(n: number | null): string {
+  if (n === null || !Number.isFinite(n)) return '—';
+  if (n >= 1e12) return `${Number((n / 1e12).toPrecision(3))}T`;
+  if (n >= 1e9) return `${Number((n / 1e9).toPrecision(3))}B`;
+  if (n >= 1e6) return `${Number((n / 1e6).toPrecision(3))}M`;
+  if (n >= 1e3) return `${Math.round(n / 1e3)}K`;
+  return String(Math.round(n));
+}
+const VERDICT: Record<string, string> = { 'break-even': '', 'api-only': 'Pay per token: the licence rules out commercial self-hosting', cluster: `Needs more than ${MAX_GPUS} of your GPUs`, 'set-gpu': 'Enter your GPU above', missing: 'Parameters or price not published' };
+
+/** Open-weights models: what the licence allows, how to get the weights, and the self-host floor on your GPU. */
+function weightsView(l: Loaded, s: State): Update {
+  const w = workload(s.workload), gpu = s.gpu ?? null;
+  const price = new Map(l.models.filter((m) => m.comparable && m.pick_rate !== null).map((m) => [m.id, m.pick_rate!]));
+  const rows = l.weights.map((m) => {
+    const licence = m.license ?? m.host_license;
+    const kind = classify(licence);
+    const access: AccessClass = m.read_at ? (m.gated === 'gated' ? 'gated' : m.gated === 'open' ? 'open' : 'unknown') : 'unknown';
+    const c = floor(m.parameters === null ? null : Number(m.parameters), kind, price.get(m.id) ?? null, gpu);
+    return { m, licence, kind, access, c };
+  });
+  const read = l.weights.filter((m) => m.read_at).length, linked = l.weights.filter((m) => m.repo).length;
+  // A repository whose organisation has been read but which was not in its listing is not on the host.
+  const orgsRead = new Set(l.weightReads.filter((r) => r.status === 'Read').map((r) => String(r.org).toLowerCase()));
+  const missing = (m: OpenModel) => Boolean(m.repo && !m.read_at && orgsRead.has(m.repo.split('/')[0]!.toLowerCase()));
+  const notFound = l.weights.filter(missing).length;
+  const count = (k: LicenceClass) => rows.filter((r) => r.kind === k).length;
+  const nodes: Node[] = [
+    { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: [...(l.weights.length ? ['ow-stats'] : []), 'ow-gpu-section', l.weights.length ? 'ow-table' : 'ow-none', 'ow-kinds'] },
+    { id: 'ow-gpu-section', type: 'section', props: { title: 'Your GPU', description: '{/gpuNote}' }, children: ['ow-gpu'] },
+    { id: 'ow-gpu', type: 'stack', props: { direction: 'horizontal', gap: 'sm', wrap: true, align: 'end' }, children: ['ow-memory', 'ow-price', 'ow-save'] },
+    { id: 'ow-memory', type: 'input', props: { label: 'Memory per GPU', bind: '/gpuDraft/memory', kind: 'number', min: 1, max: 1000, unit: 'GB', maxWidth: 'sm' } },
+    { id: 'ow-price', type: 'input', props: { label: 'Rent per GPU-hour', bind: '/gpuDraft/price', kind: 'number', min: 0.01, max: 1000, step: 0.01, unit: 'USD', maxWidth: 'sm' } },
+    { id: 'ow-save', type: 'button', props: { label: 'Save GPU', action: 'set_gpu', style: 'primary' } },
+    l.weights.length
+      ? { id: 'ow-table', type: 'table', props: { rows: '{/rows}', columns: [{ key: 'name', label: 'Model' }, { key: 'licence', label: 'Licence' }, { key: 'access', label: 'Access' }, { key: 'parameters', label: 'Parameters', align: 'end' }, { key: 'memory', label: 'Memory', align: 'end' }, { key: 'gpus', label: 'Your GPUs', align: 'end' }, { key: 'rent', label: 'Rent a month', align: 'end' }, { key: 'price', label: 'Per-token price', align: 'end' }, { key: 'tokens', label: 'Break-even a month', align: 'end' }, { key: 'note', label: 'Note' }], searchable: true, sortable: true, pageSize: 20 } }
+      : { id: 'ow-none', type: 'text', props: { content: 'No open-weights models yet. Use Refresh in the app header to read the catalog.', variant: 'caption' } },
+    { id: 'ow-kinds', type: 'accordion', props: { items: '{/kinds}' } },
+  ];
+  if (l.weights.length) nodes.push(
+    { id: 'ow-stats', type: 'grid', props: { columns: 4, minItemWidth: 'sm', gap: 'sm' }, children: ['ow-open', 'ow-permissive', 'ow-own', 'ow-read'] },
+    { id: 'ow-open', type: 'stat', props: { label: 'Open-weights models', value: '{/stats/models}', caption: '{/stats/limited}' } },
+    { id: 'ow-permissive', type: 'stat', props: { label: 'Standard open licence', value: '{/stats/permissive}' } },
+    { id: 'ow-own', type: 'stat', props: { label: "The lab's own licence", value: '{/stats/own}', caption: '{/stats/none}' } },
+    { id: 'ow-read', type: 'stat', props: { label: 'Access and size read', value: '{/stats/read}', caption: '{/stats/readNote}' } },
+  );
+  const data: Record<string, unknown> = {
+    gpuDraft: s.gpuDraft,
+    gpuNote: gpu
+      ? `${gpu.memoryGb} GB at $${gpu.usdPerHour} an hour, up to ${MAX_GPUS} on one machine. Break-even is the monthly tokens at which paying per token for ${article(w)} costs the same as the rent: a lower bound on when self-hosting could start to pay, on a GPU kept fully busy, never a claim that it does.`
+      : 'Enter one GPU\'s memory and hourly rent to see the self-host floor. No prices are assumed. Memory needed is 16-bit weights plus a quarter for serving.',
+    kinds: (['permissive', 'own', 'non-commercial', 'none'] as LicenceClass[]).map((k) => ({ title: LICENCE_LABEL[k], body: LICENCE_NOTE[k] })),
+  };
+  if (l.weights.length) {
+    const lastRead = l.weightReads[0];
+    data.stats = {
+      models: l.weights.length.toLocaleString('en-US'), limited: `${count('non-commercial')} non-commercial`, permissive: count('permissive').toLocaleString('en-US'), own: count('own').toLocaleString('en-US'), none: `${count('none')} with no licence published`,
+      read: `${read} of ${linked}`,
+      readNote: read + notFound < linked ? 'Read hourly while Keep running is on' : notFound ? `${notFound} not found on the weights host` : lastRead ? `Last read ${when(lastRead.read_at)}` : '—',
+    };
+    data.rows = rows.map(({ m, licence, kind, access, c }) => ({
+      name: m.name, licence: named(licence) ? `${LICENCE_LABEL[kind]}: ${named(licence)}` : LICENCE_LABEL[kind], access: !m.repo ? 'No weights link' : missing(m) ? 'Not on the weights host' : ACCESS_LABEL[access],
+      parameters: m.parameters === null ? '—' : many(Number(m.parameters)), memory: c.memory === null ? '—' : `${Math.round(c.memory).toLocaleString('en-US')} GB`,
+      gpus: c.gpus === null ? '—' : String(c.gpus), rent: c.rent === null ? '—' : dollars(c.rent), price: money(price.get(m.id) ?? null), tokens: many(c.tokens),
+      note: VERDICT[c.verdict] || (access === 'gated' ? 'Weights need an access request' : '—'),
+    }));
+  }
+  return { surface: 'weights', nodes, data: replace(data) };
 }

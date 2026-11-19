@@ -9,6 +9,7 @@ The AI model market as a local data pipeline. Model Desk reads the open model ca
 - **Costs**: what a month of your traffic costs on every language model, at its best full-context offer. Choose the request (Chat, Retrieval, Agentic, Heavy reasoning or Long context) and the volume (10K to 10M requests a month); each row gives the offer, the price per request, per month and per million tokens, and notes a price set by a context price tier. Models whose context cannot hold the request are left out, and the count is given. The request you choose prices every view: Overview, Models, history and Compare.
 - **Compare**: up to four models side by side, added from a model's page: price for the chosen request and per month, the lab's own price, context, output limit, reasoning, tool calls, structured output, attachments, open weights, licence, release, knowledge cutoff and benchmark scores they report.
 - **Benchmarks**: every benchmark, one per metric (a pass@1 and an avg@3 of one benchmark are different boards), with how many models were measured independently. Opening one lists every score with who published it, the cost of one request for the chosen request shape, and, for independently measured scores only, points per dollar; a benchmark with at least four independently measured models also shows the five best values. A model's Benchmarks tab says who published each of its scores.
+- **Open weights**: every open-weights model with what its licence allows, whether the weights download freely or need an access request, its parameter count, and the self-host floor on your GPU: the memory it needs, how many of your GPUs hold it, their monthly rent, and the monthly tokens at which paying per token for the chosen request costs the same. Enter one GPU's memory and hourly rent once; no prices are assumed.
 - **Changes**: the latest 300 change events, filtered by kind (repriced, model added, new provider, deprecated, limits changed, details changed, model removed, provider left), searchable and sortable.
 - **Pipeline**: the last refresh's result, time, reads and check findings; the latest 30 refreshes; each read with its pages and rows; and the method.
 
@@ -20,9 +21,15 @@ Prices are US dollars per million tokens. To compare offers, each is priced for 
 
 Only independently measured scores are ranked; a lab's figures for its own model are shown and labelled. Who published a score is read from the catalog, never from a list of names. A score's publisher is its source's host, or, on a hosting site (a host whose folders each publish only one lab's models), the host and folder. A lab's own sites are the domains of providers that sell only that lab's models, of the lab's own provider, and hosts named after the lab. Then: **Self-reported** is from the model's own lab; **Another lab** is from a different lab's own comparison; **Marketplace** is from the site of a seller of several labs' models; **Independent** is from a publisher that scores models of three or more labs and is none of these; **Unclassified** is anything the catalog cannot place; **Unsourced** has no source. Where a model has several scores on one board, an independent one is shown before a higher claim.
 
+## Open weights and self-hosting
+
+Licences come from the catalog, or from the weights host when the catalog gives none. Standard open licences are recognised by their standard identifiers; a licence whose own name says non-commercial, research or non-production is read as that; every other licence is the lab's own, and the desk says to read it; nothing is guessed. Access and parameter counts come from the weights host for the exact repository the catalog links to, read an organisation at a time.
+
+The self-host figure is a floor, as in the original: memory is 16-bit weights plus a quarter for serving; the fewest of your GPUs that hold it, up to eight on one machine, rent for 730 hours a month; break-even is that rent over the per-token price of the chosen request at the best full-context offer. It is a lower bound on when self-hosting could start to pay on a fully busy GPU, never a claim that it does. A non-commercial licence means paying per token; a model too large for one machine needs a cluster.
+
 ## Data and schedule
 
-A refresh runs once a day at 09:00 and whenever you press Refresh in the app header. It makes about 13 reads of `models.dev` through the Web pages integration (the price document is 6.8 MB, read as tables of at most 240 KB a page) and takes under a minute. The first refresh is the baseline; each later one is compared with the snapshot before it.
+A refresh runs once a day at 09:00 and whenever you press Refresh in the app header. Open-weights facts are read each hour while Keep running is on (or from Operation Center), up to 16 organisations a run, the longest unread first, and again after 20 hours. It makes about 13 reads of `models.dev` through the Web pages integration (the price document is 6.8 MB, read as tables of at most 240 KB a page) and takes under a minute. The first refresh is the baseline; each later one is compared with the snapshot before it.
 
 Price spans are the permanent record: a span opens when a listing's prices change and closes when they change again or the listing leaves, and none is ever pruned. A day's history point is what the spans held at that day's last refresh, judged by the same rules as today's prices where prices alone can say (outliers, confirmation, the lab's own offer); context and status are not kept in a span, so past offers are not judged on them.
 
@@ -30,8 +37,8 @@ A refresh is applied in one transaction or not at all. If a quality check fails 
 
 ## Tools and skills
 
-Model Desk calls `web__fetch_page` only, for `https://models.dev/api.json` and `https://models.dev/models.json`. It exports no tools or skills.
+Model Desk calls `web__fetch_page` only: for `https://models.dev/api.json` and `https://models.dev/models.json`, and for `https://huggingface.co/api/models`, one organisation per read. It exports no tools or skills.
 
 ## Access and operation
 
-Access in the app header controls the Web pages tool and the `models.dev` destination. Background operation, run receipts and recovery are the host's shared controls; the app owns no timers.
+Access in the app header controls the Web pages tool and its two destinations, `models.dev` and `huggingface.co`. Background operation, run receipts and recovery are the host's shared controls; the app owns no timers.

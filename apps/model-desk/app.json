@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "channel": "dev",
   "name": "Model Desk",
-  "description": "The AI model market as a local data pipeline: every provider's prices, limits and capabilities from the open model catalog, checked, matched to their underlying models and kept as a change log and price history in DuckDB.",
+  "description": "The AI model market as a local data pipeline: every provider's prices, limits and capabilities from the open model catalog, checked, matched to their underlying models and kept as a change log and price history in DuckDB, with open-weights licences, access and a self-host floor.",
   "author": "Vakyartha",
   "icon": "chart",
   "brand": "#0f766e",
@@ -34,11 +34,14 @@
     "toolActions": {
       "refresh": [
         "web__fetch_page"
+      ],
+      "refreshWeights": [
+        "web__fetch_page"
       ]
     },
     "toolPurposes": {
       "web__fetch_page": {
-        "reason": "Read the open model catalog's price and model documents as tables, once a day and when you press Refresh.",
+        "reason": "Read the open model catalog's price and model documents once a day and when you press Refresh, and, each hour while Keep running is on, the weights host's access, licence and size for the open-weights models the catalog links to.",
         "optional": false
       }
     }
@@ -49,6 +52,13 @@
       "kind": "cron",
       "expression": "0 9 * * *",
       "action": "refresh",
+      "maxDurationSec": 120
+    },
+    {
+      "id": "weights",
+      "kind": "cron",
+      "expression": "20 * * * *",
+      "action": "refreshWeights",
       "maxDurationSec": 120
     }
   ]

@@ -12,9 +12,10 @@ Read Building a Vakyartha app (Vakyartha's app-building guide), then README.md, 
 6. Context price tiers are one normalized list per listing and per price span (`tiers` in `source.ts`: the catalog's tier list wins over its older 200K card). The workload's context picks the tier; a rate the tier leaves out falls back to the base card. An offer the catalog marks as another kind than a language model is listed, never kept, confirmed or picked; a model whose context cannot hold the request has no price for it in Costs and Compare.
 7. Market judgements (`market.ts`) are SQL over the snapshot, one rule set for the list and the opened model: the lab's own offer is read from the catalog's ids (provider equals the lab, or starts with the lab and a hyphen), never from a list of companies; outliers, confirmation, full context and the pick follow the README's rules. The model list is read in chunks of 400, because each query result is bounded to 256 KiB.
 8. Score provenance (`provenance.ts`) is read from the catalog at each refresh and stored with the score: no list of evaluators, labs or sellers, ever. Only `independent` scores get points per dollar or a rank; boards are per benchmark and metric, and need four independently measured models to be ranked.
-9. The price history is never pruned. Events are kept with their run.
-10. No model requests, no chat, no exported assistant tools or skills.
-11. Only Projection's basic catalog components. Regenerate `surface.json` from `surfaceFile()` after any view change.
+9. Licence classes (`licence.ts`) recognise standard open licences by their standard identifiers and non-commercial ones by their own words; every other licence is the lab's own. No vendor licence names, no guessing. GPU rent is the person's own figure (`state.gpu`); no table of GPU products or prices is kept. The weights host is read only for repositories the catalog links to, an organisation per read (`refreshWeights`), never by name search.
+10. The price history is never pruned. Events are kept with their run.
+11. No model requests, no chat, no exported assistant tools or skills.
+12. Only Projection's basic catalog components. Regenerate `surface.json` from `surfaceFile()` after any view change.
 
 ## Change and acceptance
 

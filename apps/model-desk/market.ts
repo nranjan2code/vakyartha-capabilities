@@ -277,3 +277,10 @@ export async function board(db: Database, slug: string, measure: string): Promis
     SELECT e.model, coalesce(m.name, e.model) model_name, e.score, e.provenance, e.publisher, e.source, e.date
     FROM entries e LEFT JOIN models m ON m.id = e.model WHERE e.slug = ? AND e.measure = ? ORDER BY e.score DESC, model_name LIMIT 500`, [slug, measure]) as unknown as Entry[];
 }
+
+export interface OpenModel { id: string; name: string; lab: string; license: string | null; repo: string | null; gated: string | null; parameters: number | null; host_license: string | null; read_at: string | null }
+/** Every open-weights model with what the weights host said about its repository, if read. */
+export async function openModels(db: Database): Promise<OpenModel[]> {
+  return await db.query(`SELECT m.id, coalesce(m.name, m.id) name, m.lab, m.license, m.repo, w.gated, w.parameters, w.license host_license, w.read_at
+    FROM models m LEFT JOIN weights w ON lower(w.repo) = lower(m.repo) WHERE m.open_weights ORDER BY name, m.id LIMIT 5000`) as unknown as OpenModel[];
+}

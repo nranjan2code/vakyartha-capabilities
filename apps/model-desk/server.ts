@@ -9,11 +9,11 @@ import { createHash } from 'node:crypto';
 import { identity } from './identity.ts';
 import { provenance } from './provenance.ts';
 import {
-  benchmark, BENCHMARK_COLUMNS, listing, LISTING_COLUMNS, MAX_CALLS, model, MODEL_COLUMNS, MODELS_URL, PRICES_URL, provider, PROVIDER_COLUMNS, readAll,
+  benchmark, BENCHMARK_COLUMNS, listing, LISTING_COLUMNS, MAX_CALLS, model, MODEL_COLUMNS, MODELS_URL, PRICES_URL, provider, PROVIDER_COLUMNS, readAll, WEIGHT_COLUMNS, weights, weightsUrl,
   type Call, type Read, type Receipt,
 } from './source.ts';
-import { abilities, board as boardEntries, boards, catalog, detail, history, model as about, offers, spans, workload, WORKLOADS } from './market.ts';
-import { apply, failed, modelEvents, snapshot, type Database } from './store.ts';
+import { abilities, board as boardEntries, boards, catalog, detail, history, model as about, offers, openModels, spans, workload, WORKLOADS } from './market.ts';
+import { apply, dueOrganisations, failed, modelEvents, saveWeights, snapshot, weightsFailed, type Database } from './store.ts';
 import { MAX_COMPARED, normalize, NOTHING, TITLES, TYPES, view, VOLUMES, type Compared, type Loaded, type State } from './views.ts';
 
 export { view, TITLES };
@@ -32,6 +32,8 @@ export async function load(db: Database, state: State): Promise<Loaded> {
   const snap = await snapshot(db);
   const models = await catalog(db, w);
   const shelf = await boards(db);
+  const open_weights = await openModels(db);
+  const reads = await db.query('SELECT org, read_at, rows, ms, status FROM weight_reads ORDER BY read_at DESC LIMIT 60');
   const board = state.board ? await boardEntries(db, state.board.slug, state.board.measure) : [];
   const compared: Compared[] = [];
   for (const id of state.compare ?? []) {
@@ -40,12 +42,13 @@ export async function load(db: Database, state: State): Promise<Loaded> {
     const facts = await about(db, id);
     compared.push({ detail: d, facts: facts?.facts ?? null, abilities: await abilities(db, id), scores: facts?.scores ?? [] });
   }
-  if (!state.model) return { snap, models, open: null, compared, boards: shelf, board };
+  const rest = { compared, boards: shelf, board, weights: open_weights, weightReads: reads };
+  if (!state.model) return { snap, models, open: null, ...rest };
   const d = await detail(db, state.model, w);
-  if (!d) return { snap, models, open: null, compared, boards: shelf, board };
+  if (!d) return { snap, models, open: null, ...rest };
   const list = await offers(db, state.model, w), facts = await about(db, state.model);
   const past = await history(db, state.model, w), kept = await spans(db, state.model), events = await modelEvents(db, state.model);
-  return { snap, models, open: { detail: d, offers: list, facts: facts?.facts ?? null, scores: facts?.scores ?? [], history: past, spans: kept, events }, compared, boards: shelf, board };
+  return { snap, models, open: { detail: d, offers: list, facts: facts?.facts ?? null, scores: facts?.scores ?? [], history: past, spans: kept, events }, ...rest };
 }
 
 const reason = (e: unknown) => String((e as Error)?.message ?? e).replace(/^Error:\s*/, '').slice(0, 400);
@@ -95,9 +98,46 @@ export async function refresh(ctx: Context): Promise<{ updates: ReturnType<typeo
   return { updates: view(ctx.state, await load(ctx.database, ctx.state)) };
 }
 
+/**
+ * The weights host's facts (access, licence, parameters), an organisation at a time, the longest
+ * unread first: the hourly trigger. Each organisation is one read, so one failing leaves the others.
+ */
+export async function refreshWeights(ctx: Context): Promise<{ updates: ReturnType<typeof view> }> {
+  ctx.state = normalize(ctx.state);
+  const now = new Date().toISOString();
+  let calls = 0;
+  const call: Call = (name, args) => { calls++; return ctx.callTool(name, args); };
+  for (const org of await dueOrganisations(ctx.database, now, MAX_CALLS)) {
+    if (calls >= MAX_CALLS) break;
+    const started = Date.now();
+    try {
+      const got = await readAll(call, `Weights: ${org}`, weightsUrl(org), '/*', WEIGHT_COLUMNS, weights, MAX_CALLS - calls);
+      await saveWeights(ctx.database, org, got.rows, now, Date.now() - started);
+    } catch (e) {
+      await weightsFailed(ctx.database, org, now, Date.now() - started, reason(e));
+    }
+  }
+  return { updates: view(ctx.state, await load(ctx.database, ctx.state)).filter((u) => u.surface === 'weights' || u.surface === 'pipeline') };
+}
+
+/** A GPU figure from the form: a positive number within reason, or nothing. */
+const figure = (v: unknown, max: number) => { const n = typeof v === 'number' ? v : Number(String(v ?? '').trim()); return Number.isFinite(n) && n > 0 && n <= max ? n : null; };
+
 export async function handleAction(controlId: string, value: unknown, ctx: Context, action?: string) {
   ctx.state = normalize(ctx.state);
+  // The GPU form's fields save as they are typed; the view changes only when they are saved.
+  if (!action && (controlId === '/gpuDraft/memory' || controlId === '/gpuDraft/price')) {
+    ctx.state.gpuDraft = { ...ctx.state.gpuDraft, [controlId === '/gpuDraft/memory' ? 'memory' : 'price']: value === '' || value === null ? '' : String(value).slice(0, 20) };
+    return { updates: [] };
+  }
   switch (action) {
+    case 'set_gpu': {
+      const memoryGb = figure(ctx.state.gpuDraft?.memory, 1_000), usdPerHour = figure(ctx.state.gpuDraft?.price, 1_000);
+      if (memoryGb === null) throw new Error('Enter the memory of one GPU in gigabytes, a number up to 1,000');
+      if (usdPerHour === null) throw new Error('Enter the rent of one GPU per hour in US dollars, a number up to 1,000');
+      ctx.state.gpu = { memoryGb, usdPerHour };
+      return { updates: view(ctx.state, await load(ctx.database, ctx.state)).filter((u) => u.surface === 'weights') };
+    }
     case 'show_changes': {
       const type = String((value as { type?: unknown } | null)?.type ?? 'all');
       if (type !== 'all' && !Object.hasOwn(TYPES, type)) throw new Error('That kind of change is not one this desk records');

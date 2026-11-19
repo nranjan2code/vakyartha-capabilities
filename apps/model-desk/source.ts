@@ -148,15 +148,30 @@ export function listing(r: unknown[]): ListingRow | undefined {
   return [p, m, ...(values as (string | number | boolean | null)[])];
 }
 
-export interface Model { id: string; name: string | null; family: string | null; license: string | null; openWeights: boolean | null; knowledge: string | null; releaseDate: string | null; lastUpdated: string | null; context: number | null; output: number | null }
-export const MODEL_COLUMNS = ['/name', '/family', '/license', '/open_weights', '/knowledge', '/release_date', '/last_updated', '/limit/context', '/limit/output'];
+export interface Model { id: string; name: string | null; family: string | null; license: string | null; openWeights: boolean | null; knowledge: string | null; releaseDate: string | null; lastUpdated: string | null; context: number | null; output: number | null; repo: string | null }
+export const MODEL_COLUMNS = ['/name', '/family', '/license', '/open_weights', '/knowledge', '/release_date', '/last_updated', '/limit/context', '/limit/output', '/weights'];
+
+export const WEIGHTS_HOST = 'https://huggingface.co';
+/** A repository name as the weights host writes it: an organisation and a model, each plain. */
+const REPO = /^([A-Za-z0-9][A-Za-z0-9._-]{0,95})\/([A-Za-z0-9][A-Za-z0-9._-]{0,95})$/;
+/** The first weights link the catalog gives on the weights host, as "organisation/model". */
+export function repoOf(links: unknown): string | null {
+  if (!Array.isArray(links)) return null;
+  for (const link of links) {
+    const url = (link as { url?: unknown } | null)?.url;
+    if (typeof url !== 'string' || !url.startsWith(`${WEIGHTS_HOST}/`)) continue;
+    const path = url.slice(WEIGHTS_HOST.length + 1).split(/[?#]/)[0]!.split('/').slice(0, 2).join('/');
+    if (REPO.test(path)) return path;
+  }
+  return null;
+}
 export function model(r: unknown[]): Model | undefined {
   const key = id(r[0]);
   if (!key || !key.includes('/')) return undefined;
   const values = [str(r[1], 200), str(r[2], 120), str(r[3], 120), bool(r[4]), day(r[5]), day(r[6]), day(r[7]), num(r[8]), num(r[9])];
-  if (bad(r.slice(1), values)) return undefined;
+  if (bad(r.slice(1, 10), values)) return undefined;
   const [name, family, license, openWeights, knowledge, releaseDate, lastUpdated, context, output] = values as [string | null, string | null, string | null, boolean | null, string | null, string | null, string | null, number | null, number | null];
-  return { id: key, name, family, license, openWeights, knowledge, releaseDate, lastUpdated, context, output };
+  return { id: key, name, family, license, openWeights, knowledge, releaseDate, lastUpdated, context, output, repo: repoOf(r[10]) };
 }
 
 export interface Benchmark { model: string; position: number; name: string; score: number; metric: string | null; source: string | null; date: string | null }
@@ -168,4 +183,26 @@ export function benchmark(r: unknown[]): Benchmark | undefined {
   const metric = str(r[4], 120), source = str(r[5], 500), date = day(r[6]);
   if (bad(r.slice(4), [metric, source, date])) return undefined;
   return { model: m, position, name, score, metric, source, date };
+}
+
+/** An organisation on the weights host, as the catalog names it, plain enough to put in an address. */
+export const ORG = /^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/;
+/** One read lists every model an organisation publishes, with only the three facts kept. */
+export function weightsUrl(org: string): string {
+  if (!ORG.test(org)) throw new Error(`${org} is not an organisation name the weights host uses`);
+  return `${WEIGHTS_HOST}/api/models?author=${encodeURIComponent(org)}&limit=1000&expand%5B%5D=gated&expand%5B%5D=safetensors&expand%5B%5D=cardData`;
+}
+export const WEIGHT_COLUMNS = ['/id', '/gated', '/safetensors/total', '/cardData/license'];
+
+/** What the weights host says about one repository. */
+export interface Weights { repo: string; gated: 'open' | 'gated' | null; parameters: number | null; license: string | null }
+export function weights(r: unknown[]): Weights | undefined {
+  const repo = typeof r[1] === 'string' && REPO.test(r[1]) ? r[1] : undefined;
+  if (!repo) return undefined;
+  // The host writes false, "auto" or "manual"; a license may be one id or a list of them.
+  const gated = r[2] === false ? 'open' : r[2] === 'auto' || r[2] === 'manual' || r[2] === true ? 'gated' : r[2] === null || r[2] === undefined ? null : undefined;
+  const parameters = r[3] === null || r[3] === undefined ? null : num(r[3]);
+  const license = r[4] === null || r[4] === undefined ? null : Array.isArray(r[4]) ? (r[4].every((x) => typeof x === 'string' && x.length <= 120) ? r[4].join(', ') : undefined) : str(r[4], 120);
+  if (gated === undefined || (r[3] !== null && r[3] !== undefined && parameters === null) || license === undefined || (r[4] !== null && r[4] !== undefined && license === null)) return undefined;
+  return { repo, gated, parameters, license };
 }

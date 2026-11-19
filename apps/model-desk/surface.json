@@ -343,6 +343,127 @@
     ]
   },
   {
+    "id": "weights",
+    "title": "Open weights",
+    "data": {
+      "gpuDraft": {
+        "memory": "",
+        "price": ""
+      },
+      "gpuNote": "Enter one GPU's memory and hourly rent to see the self-host floor. No prices are assumed. Memory needed is 16-bit weights plus a quarter for serving.",
+      "kinds": [
+        {
+          "title": "Standard open licence",
+          "body": "A standard open-source licence: commercial use without extra conditions."
+        },
+        {
+          "title": "The lab's own licence",
+          "body": "Terms the lab wrote itself, often with conditions such as user counts or use policies: read them before shipping."
+        },
+        {
+          "title": "Non-commercial",
+          "body": "Its own terms limit it to non-commercial, research or non-production use."
+        },
+        {
+          "title": "No licence published",
+          "body": "Neither the catalog nor the weights host publishes a licence: check the model page before relying on it."
+        }
+      ]
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "ow-gpu-section",
+          "ow-none",
+          "ow-kinds"
+        ]
+      },
+      {
+        "id": "ow-gpu-section",
+        "type": "section",
+        "props": {
+          "title": "Your GPU",
+          "description": "{/gpuNote}"
+        },
+        "children": [
+          "ow-gpu"
+        ]
+      },
+      {
+        "id": "ow-gpu",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true,
+          "align": "end"
+        },
+        "children": [
+          "ow-memory",
+          "ow-price",
+          "ow-save"
+        ]
+      },
+      {
+        "id": "ow-memory",
+        "type": "input",
+        "props": {
+          "label": "Memory per GPU",
+          "bind": "/gpuDraft/memory",
+          "kind": "number",
+          "min": 1,
+          "max": 1000,
+          "unit": "GB",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "ow-price",
+        "type": "input",
+        "props": {
+          "label": "Rent per GPU-hour",
+          "bind": "/gpuDraft/price",
+          "kind": "number",
+          "min": 0.01,
+          "max": 1000,
+          "step": 0.01,
+          "unit": "USD",
+          "maxWidth": "sm"
+        }
+      },
+      {
+        "id": "ow-save",
+        "type": "button",
+        "props": {
+          "label": "Save GPU",
+          "action": "set_gpu",
+          "style": "primary"
+        }
+      },
+      {
+        "id": "ow-none",
+        "type": "text",
+        "props": {
+          "content": "No open-weights models yet. Use Refresh in the app header to read the catalog.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "ow-kinds",
+        "type": "accordion",
+        "props": {
+          "items": "{/kinds}"
+        }
+      }
+    ]
+  },
+  {
     "id": "changes",
     "title": "Changes",
     "data": {},
@@ -452,8 +573,28 @@
           "pl-runs",
           "pl-findings",
           "pl-receipts",
+          "pl-weights",
           "pl-method"
         ]
+      },
+      {
+        "id": "pl-weights",
+        "type": "section",
+        "props": {
+          "title": "Weights reads",
+          "description": "Access, licence and size from the weights host, an organisation per read, the longest unread first, each hour while Keep running is on. Facts are read again after 20 hours."
+        },
+        "children": [
+          "pl-no-weights"
+        ]
+      },
+      {
+        "id": "pl-no-weights",
+        "type": "text",
+        "props": {
+          "content": "No weights reads yet. They run hourly while Keep running is on, or from Operation Center.",
+          "variant": "caption"
+        }
       },
       {
         "id": "pl-runs",

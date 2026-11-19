@@ -26,7 +26,7 @@ const LISTING_FIELDS: [string, string][] = [
 ];
 const LISTING_TABLE: [string, string][] = [['provider', 'VARCHAR'], ['model', 'VARCHAR'], ['canonical', 'VARCHAR'], ['lab', 'VARCHAR'], ...LISTING_FIELDS];
 const PROVIDER_TABLE: [string, string][] = [['id', 'VARCHAR'], ['name', 'VARCHAR'], ['doc', 'VARCHAR'], ['api', 'VARCHAR']];
-const MODEL_TABLE: [string, string][] = [['id', 'VARCHAR'], ['lab', 'VARCHAR'], ['name', 'VARCHAR'], ['family', 'VARCHAR'], ['license', 'VARCHAR'], ['open_weights', 'BOOLEAN'], ['knowledge', 'VARCHAR'], ['release_date', 'VARCHAR'], ['last_updated', 'VARCHAR'], ['context', 'BIGINT'], ['output_limit', 'BIGINT']];
+const MODEL_TABLE: [string, string][] = [['id', 'VARCHAR'], ['lab', 'VARCHAR'], ['name', 'VARCHAR'], ['family', 'VARCHAR'], ['license', 'VARCHAR'], ['open_weights', 'BOOLEAN'], ['knowledge', 'VARCHAR'], ['release_date', 'VARCHAR'], ['last_updated', 'VARCHAR'], ['context', 'BIGINT'], ['output_limit', 'BIGINT'], ['repo', 'VARCHAR']];
 const BENCHMARK_TABLE: [string, string][] = [['model', 'VARCHAR'], ['position', 'INTEGER'], ['name', 'VARCHAR'], ['score', 'DOUBLE'], ['metric', 'VARCHAR'], ['source', 'VARCHAR'], ['date', 'VARCHAR'], ['provenance', 'VARCHAR'], ['publisher', 'VARCHAR']];
 /** The prices a listing's history follows, per million tokens. */
 const PRICES = ['input', 'output', 'cache_read', 'cache_write', 'reasoning_price', 'tiers'];
@@ -51,6 +51,9 @@ export async function initialize(db: Database) {
   await db.run(`CREATE TABLE IF NOT EXISTS models(${columns(MODEL_TABLE)})`);
   await db.run(`CREATE TABLE IF NOT EXISTS benchmarks(${columns(BENCHMARK_TABLE)})`);
   await db.run('CREATE TABLE IF NOT EXISTS events(id VARCHAR PRIMARY KEY, run INTEGER, day VARCHAR, type VARCHAR, provider VARCHAR, model VARCHAR, canonical VARCHAR, lab VARCHAR, name VARCHAR, changes JSON)');
+  // Facts from the weights host, kept across refreshes and read an organisation at a time.
+  await db.run('CREATE TABLE IF NOT EXISTS weights(repo VARCHAR, org VARCHAR, gated VARCHAR, parameters BIGINT, license VARCHAR, read_at VARCHAR)');
+  await db.run('CREATE TABLE IF NOT EXISTS weight_reads(org VARCHAR, read_at VARCHAR, rows INTEGER, ms INTEGER, status VARCHAR)');
   await db.run(`CREATE TABLE IF NOT EXISTS price_history(provider VARCHAR, model VARCHAR, canonical VARCHAR, valid_from VARCHAR, valid_to VARCHAR, ${PRICES.map((p) => `${p} ${p === 'tiers' ? 'VARCHAR' : 'DOUBLE'}`).join(', ')})`);
 }
 
@@ -85,7 +88,7 @@ async function stage(db: Database, c: Candidate) {
   await db.run(`CREATE OR REPLACE TEMP TABLE stage_benchmarks(${columns(BENCHMARK_TABLE)})`);
   await load(db, 'stage_providers', PROVIDER_TABLE, c.providers.map((p) => [p.id, p.name, p.doc, p.api]));
   await load(db, 'stage_listings', LISTING_TABLE, c.listings.map(({ row, canonical }) => [row[0], row[1], canonical, canonical ? canonical.split('/')[0]! : null, ...row.slice(2)]));
-  await load(db, 'stage_models', MODEL_TABLE, c.models.map((m) => [m.id, m.id.split('/')[0]!, m.name, m.family, m.license, m.openWeights, m.knowledge, m.releaseDate, m.lastUpdated, m.context, m.output]));
+  await load(db, 'stage_models', MODEL_TABLE, c.models.map((m) => [m.id, m.id.split('/')[0]!, m.name, m.family, m.license, m.openWeights, m.knowledge, m.releaseDate, m.lastUpdated, m.context, m.output, m.repo]));
   await load(db, 'stage_benchmarks', BENCHMARK_TABLE, c.benchmarks.map((b) => [b.model, b.position, b.name, b.score, b.metric, b.source, b.date, b.provenance, b.publisher]));
 }
 
@@ -254,4 +257,36 @@ export const EMPTY: Snapshot = { totals: { providers: 0, listings: 0, priced: 0,
 export async function modelEvents(db: Database, id: string, limit = 100): Promise<Record<string, unknown>[]> {
   return await db.query(`SELECT e.id, e.run, e.day, e.type, e.provider, e.model, e.canonical, e.name, e.changes::VARCHAR changes, coalesce(p.name, e.provider) provider_name
     FROM events e LEFT JOIN providers p ON p.id = e.provider WHERE e.canonical = ? ORDER BY e.run DESC, e.type, e.provider, e.model LIMIT ${Math.max(1, Math.floor(limit))}`, [id]);
+}
+
+/** Facts a day old are read again; a read that failed is tried at the next run. */
+export const WEIGHTS_FRESH_HOURS = 20;
+
+/** Organisations whose facts are due, the longest unread first. */
+export async function dueOrganisations(db: Database, now: string, limit: number): Promise<string[]> {
+  await initialize(db);
+  const rows = await db.query(`
+    WITH orgs AS (SELECT DISTINCT split_part(repo, '/', 1) org FROM models WHERE repo IS NOT NULL AND open_weights),
+    last AS (SELECT org, max(read_at) FILTER (WHERE status = 'Read') ok, max(read_at) tried FROM weight_reads GROUP BY org)
+    SELECT o.org FROM orgs o LEFT JOIN last l USING (org)
+    WHERE l.ok IS NULL OR l.ok < ?
+    ORDER BY l.tried NULLS FIRST, o.org LIMIT ${Math.max(0, Math.floor(limit))}`, [new Date(Date.parse(now) - WEIGHTS_FRESH_HOURS * 3_600_000).toISOString()]);
+  return rows.map((r) => String(r.org));
+}
+
+/** One organisation's facts, replacing what was read before; and the read, whatever it found. */
+export async function saveWeights(db: Database, org: string, rows: { repo: string; gated: string | null; parameters: number | null; license: string | null }[], at: string, ms: number) {
+  await db.run('BEGIN TRANSACTION');
+  try {
+    await db.run('DELETE FROM weights WHERE org = ?', [org]);
+    for (let i = 0; i < rows.length; i += 2_000) {
+      await db.run(`INSERT INTO weights SELECT r[1]::VARCHAR, ?, r[2]::VARCHAR, r[3]::BIGINT, r[4]::VARCHAR, ? FROM (SELECT from_json(j, '["VARCHAR"]') r FROM (SELECT unnest(from_json(?::JSON, '["JSON"]')) j))`,
+        [org, at, JSON.stringify(rows.slice(i, i + 2_000).map((w) => [w.repo, w.gated, w.parameters, w.license]))]);
+    }
+    await db.run('INSERT INTO weight_reads VALUES (?,?,?,?,?)', [org, at, rows.length, ms, 'Read']);
+    await db.run('COMMIT');
+  } catch (e) { await db.run('ROLLBACK'); throw e; }
+}
+export async function weightsFailed(db: Database, org: string, at: string, ms: number, reason: string) {
+  await db.run('INSERT INTO weight_reads VALUES (?,?,?,?,?)', [org, at, 0, ms, `Failed: ${reason}`.slice(0, 300)]);
 }
