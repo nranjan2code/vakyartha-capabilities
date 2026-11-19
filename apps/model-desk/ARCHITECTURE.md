@@ -7,6 +7,7 @@
 | `server.ts` | Entry points: `refresh` (the daily and header refresh), `refreshWeights` (the hourly weights read), `handleAction`, `renderApp`, `surfaceFile` |
 | `source.ts` | Reading the catalog as tables, page by page, and checking every value |
 | `identity.ts` | Matching a provider listing to its underlying model |
+| `brief.ts` | The week's moves, launches, retirements and lab price index in SQL; the lead story's rules; the brief for the ear |
 | `licence.ts` | Licence and access classes |
 | `selfhost.ts` | The self-host floor: memory, the fewest of the person's GPUs, rent and break-even |
 | `provenance.ts` | Who published each benchmark score, read from the catalog's providers, labs and the scores' own sources |
@@ -19,7 +20,7 @@
 1. `read` (server.ts) reads, in order: models (`/*` of the model document), benchmarks (`/*/benchmarks/*`), providers (`/*` of the price document) and listings (`/*/models/*`), each with `readAll`, which follows `next` cursors and fails unless every row arrived in order. Thirteen calls in all at today's size.
 2. `identity` matches each listing and `provenance` classifies each benchmark score; the fingerprint of everything read decides whether the source changed.
 3. `apply` (store.ts) loads staging tables with chunked `from_json` inserts, runs `check`, and either records a blocked run or, in one transaction, writes change events (a full outer join of the snapshot and the candidate, field by field), closes and opens price spans, replaces the snapshot and records the run.
-4. `load` prices everything for the chosen workload. It reads the pipeline `snapshot` (totals, the latest 30 runs, the latest run's findings and reads, the latest 300 events), the model list (`catalog`, in chunks of 400) and, when a model is open, its `detail`, `offers`, facts, daily `history`, `spans` and change events (`modelEvents`); `view` builds every surface from them. each compared model's `detail`, facts and `abilities`, the benchmark `boards` and the open board's entries, the open-weights models with their host facts (`openModels`) and the latest weights reads. Clicked actions (open a model, choose a workload or volume, add or remove a compared model) return only the views they change and take about a quarter of a second on today's catalog.
+4. `load` prices everything for the chosen workload. It reads the pipeline `snapshot` (totals, the latest 30 runs, the latest run's findings and reads, the latest 300 events), the model list (`catalog`, in chunks of 400) and, when a model is open, its `detail`, `offers`, facts, daily `history`, `spans` and change events (`modelEvents`); `view` builds every surface from them. each compared model's `detail`, facts and `abilities`, the benchmark `boards` and the open board's entries, the open-weights models with their host facts (`openModels`) and the latest weights reads, and the brief for the week to the latest snapshot's day (`moves`, `launches`, `sunsets`, `priceIndex`, `lede`, `spoken`). Clicked actions (open a model, choose a workload or volume, add or remove a compared model) return only the views they change and take about a quarter of a second on today's catalog.
 
 ## Boundaries
 

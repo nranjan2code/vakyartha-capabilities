@@ -61,5 +61,12 @@
       "action": "refreshWeights",
       "maxDurationSec": 120
     }
-  ]
+  ],
+  "voice": {
+    "listen": {
+      "surface": "overview",
+      "path": "/spoken/brief",
+      "label": "Listen to the market brief"
+    }
+  }
 }

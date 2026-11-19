@@ -10,6 +10,9 @@
         "models": "—",
         "labs": "none yet",
         "matched": "—"
+      },
+      "spoken": {
+        "brief": "Model Desk has no snapshot yet. Use Refresh in the app header to read the catalog."
       }
     },
     "nodes": [

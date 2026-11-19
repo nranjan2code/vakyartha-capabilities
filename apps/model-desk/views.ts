@@ -7,6 +7,7 @@ import { SOURCE } from './source.ts';
 import { PROVENANCE_LABEL, PROVENANCE_NOTE, type Provenance } from './provenance.ts';
 import { ACCESS_LABEL, classify, LICENCE_LABEL, LICENCE_NOTE, named, type AccessClass, type LicenceClass } from './licence.ts';
 import { floor, MAX_GPUS, type Gpu } from './selfhost.ts';
+import { INDEX_MIN_DAYS, LAUNCH_DAYS, MATERIAL_MOVE, STREET_MOVE, SUNSET_WAVE, dayBefore, type Collapsed, type IndexPoint, type Lede, type WeekFacts } from './brief.ts';
 import { billable, CORROBORATION, MIN_RANKED, OUTLIER_FACTOR, spread, workload, WORKLOADS, type Abilities, type Board, type Entry, type OpenModel, type Facts, type ModelDetail, type ModelRow, type Offer, type Point, type Score, type Span, type Workload } from './market.ts';
 
 export interface State { type?: string; model?: string; workload?: string; volume?: number; compare?: string[]; board?: { slug: string; measure: string }; gpu?: Gpu; gpuDraft?: { memory?: string; price?: string } }
@@ -19,8 +20,8 @@ export interface Compared { detail: ModelDetail; facts: Facts | null; abilities:
 /** One model opened on the Models view. */
 export interface Opened { detail: ModelDetail; offers: Offer[]; facts: Facts | null; scores: Score[]; history: Point[]; spans: Span[]; events: Record<string, unknown>[] }
 /** Everything the views read: the pipeline snapshot, the model list and the opened model. */
-export interface Loaded { snap: Snapshot; models: ModelRow[]; open: Opened | null; compared: Compared[]; boards: Board[]; board: Entry[]; weights: OpenModel[]; weightReads: Record<string, unknown>[] }
-export const NOTHING: Loaded = { snap: EMPTY, models: [], open: null, compared: [], boards: [], board: [], weights: [], weightReads: [] };
+export interface Loaded { snap: Snapshot; models: ModelRow[]; open: Opened | null; compared: Compared[]; boards: Board[]; board: Entry[]; weights: OpenModel[]; weightReads: Record<string, unknown>[]; brief: { facts: WeekFacts; lede: Lede; index: IndexPoint[]; spoken: string } | null }
+export const NOTHING: Loaded = { snap: EMPTY, models: [], open: null, compared: [], boards: [], board: [], weights: [], weightReads: [], brief: null };
 interface Node { id: string; type: string; props?: Record<string, unknown>; children?: string[] | { each: string; template: string } }
 export interface Update { surface: string; nodes: Node[]; data: { op: 'replace'; path: '/'; value: Record<string, unknown> }[] }
 
@@ -96,13 +97,13 @@ export function widest(models: ModelRow[], minProviders = 6, limit = 6): ModelRo
     .sort((a, b) => spread(b)! - spread(a)! || a.name.localeCompare(b.name)).slice(0, limit);
 }
 
-function overview(snap: Snapshot, models: ModelRow[], w: Workload): Update {
+function overview(snap: Snapshot, models: ModelRow[], w: Workload, brief: Loaded['brief'] = null): Update {
   const wide = widest(models);
   const t = snap.totals, latest = snap.latest, applied = snap.applied;
   const kept = latest && latest.status !== 'applied' && latest.status !== 'unchanged';
   const appliedEvents = applied ? snap.recent.filter((e) => int(e.run) === int(applied.id)) : [];
   const nodes: Node[] = [
-    { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: [...(applied ? [] : ['ov-empty']), ...(kept ? ['ov-kept'] : []), 'ov-stats', ...(wide.length ? ['ov-spreads'] : []), ...(applied ? ['ov-latest'] : [])] },
+    { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: [...(applied ? [] : ['ov-empty']), ...(kept ? ['ov-kept'] : []), ...(brief ? ['ov-brief'] : []), 'ov-stats', ...(brief ? ['ov-week'] : []), ...(wide.length ? ['ov-spreads'] : []), ...(applied ? ['ov-latest'] : [])] },
   ];
   if (!applied) nodes.push({ id: 'ov-empty', type: 'alert', props: { tone: 'info', title: 'No snapshot yet', body: 'Use Refresh in the app header to read the open model catalog. A refresh makes about 13 reads and takes under a minute.' } });
   if (kept) nodes.push({ id: 'ov-kept', type: 'alert', props: { tone: latest!.status === 'failed' ? 'danger' : 'warning', title: `The last refresh, ${when(latest!.started_at)}, kept the previous snapshot`, body: '{/kept}' } });
@@ -113,6 +114,7 @@ function overview(snap: Snapshot, models: ModelRow[], w: Workload): Update {
     { id: 'ov-models', type: 'stat', props: { label: 'Models', value: '{/stats/models}', caption: '{/stats/labs}' } },
     { id: 'ov-matched', type: 'stat', props: { label: 'Listings matched to a model', value: '{/stats/matched}' } },
   );
+  if (brief) nodes.push(...briefNodes(brief));
   if (wide.length) nodes.push(
     { id: 'ov-spreads', type: 'section', props: { title: 'Where shopping around pays', description: `The same model across providers, priced for ${article(w)}. Prices are US dollars per million tokens.` }, children: ['ov-spread-table'] },
     { id: 'ov-spread-table', type: 'table', props: { rows: '{/spreads}', columns: [{ key: 'name', label: 'Model' }, { key: 'priced', label: 'Priced by', align: 'end' }, { key: 'from', label: 'From', align: 'end' }, { key: 'to', label: 'Up to', align: 'end' }, { key: 'spread', label: 'Spread', align: 'end' }] } },
@@ -133,6 +135,7 @@ function overview(snap: Snapshot, models: ModelRow[], w: Workload): Update {
       providers: t.providers ? whole(t.providers) : '—', listings: t.listings ? whole(t.listings) : '—', priced: t.listings ? `${whole(t.priced)} with prices` : 'none yet',
       models: t.models ? whole(t.models) : '—', labs: t.models ? `from ${whole(t.labs)} labs` : 'none yet', matched,
     },
+    ...(brief ? briefData(brief, w) : { spoken: { brief: 'Model Desk has no snapshot yet. Use Refresh in the app header to read the catalog.' } }),
     ...(wide.length ? { spreads: wide.map((m) => ({ name: m.name, priced: `${m.priced} providers`, from: money(m.credible_rate ?? m.low_rate), to: money(m.high_rate), spread: times(spread(m)) })) } : {}),
     ...(kept ? { kept: `${String(latest!.note ?? '')}${firstFail ? `. ${String(firstFail.message)}.` : '.'} See Pipeline for every check.` } : {}),
     ...(applied ? {
@@ -213,7 +216,7 @@ function pipeline(snap: Snapshot, weightReads: Record<string, unknown>[] = []): 
 
 export function view(state: unknown, loaded: Loaded = NOTHING): Update[] {
   const s = normalize(state), w = workload(s.workload);
-  return [overview(loaded.snap, loaded.models, w), modelsView(loaded, s), costs(loaded, s), compare(loaded, s), benchmarksView(loaded, s), weightsView(loaded, s), changes(s, loaded.snap), pipeline(loaded.snap, loaded.weightReads)];
+  return [overview(loaded.snap, loaded.models, w, loaded.brief), modelsView(loaded, s), costs(loaded, s), compare(loaded, s), benchmarksView(loaded, s), weightsView(loaded, s), changes(s, loaded.snap), pipeline(loaded.snap, loaded.weightReads)];
 }
 
 /** A price per million tokens the way the original wrote it: cents for small, two places for large. */
@@ -604,4 +607,49 @@ function weightsView(l: Loaded, s: State): Update {
     }));
   }
   return { surface: 'weights', nodes, data: replace(data) };
+}
+
+const movePct = (m: Collapsed) => `${m.pct < 0 ? 'down' : 'up'} ${Math.round(Math.abs(m.pct) * 100)}%`;
+function moveRows(list: Collapsed[]) {
+  return list.slice(0, 50).map((m) => ({ name: m.name, provider: m.venues > 1 ? `${m.providerName} and ${m.venues - 1} more` : m.providerName, from: money(m.from), to: money(m.to), change: movePct(m), day: m.day }));
+}
+const MOVE_COLUMNS = [{ key: 'name', label: 'Model' }, { key: 'provider', label: 'Provider' }, { key: 'from', label: 'Input before', align: 'end' }, { key: 'to', label: 'Input now', align: 'end' }, { key: 'change', label: 'Change', align: 'end' }, { key: 'day', label: 'Day' }];
+
+/** The lead story, the week's moves (labs apart from resellers) and the lab price index. */
+function briefNodes(b: NonNullable<Loaded['brief']>): Node[] {
+  const ready = b.index.length >= INDEX_MIN_DAYS;
+  return [
+    { id: 'ov-brief', type: 'section', props: { title: '{/brief/headline}', description: '{/brief/body}' }, children: ['ov-rule', ...(b.lede.model ? ['ov-open'] : [])] },
+    { id: 'ov-rule', type: 'text', props: { content: '{/brief/rule}', variant: 'caption' } },
+    ...(b.lede.model ? [{ id: 'ov-open', type: 'button', props: { label: 'Open the model', action: 'open_model', payload: { id: b.lede.model, focus: true }, style: 'secondary' } }] : []),
+    { id: 'ov-week', type: 'section', props: { title: 'This week', description: '{/brief/week}' }, children: ['ov-week-tabs'] },
+    ...tabbed('ov-week-tabs', [
+      [`Labs' own prices (${b.facts.labs.length})`, b.facts.labs.length ? ['ov-labs'] : ['ov-labs-none']],
+      [`Resellers (${b.facts.street.length})`, b.facts.street.length ? ['ov-street'] : ['ov-street-none']],
+      ['Lab price index', ready ? ['ov-index-note', 'ov-index'] : ['ov-index-note']],
+    ]),
+    b.facts.labs.length ? { id: 'ov-labs', type: 'table', props: { rows: '{/brief/labs}', columns: MOVE_COLUMNS, searchable: true, pageSize: 10 } } : { id: 'ov-labs-none', type: 'text', props: { content: 'No lab changed its own input price this week.', variant: 'caption' } },
+    b.facts.street.length ? { id: 'ov-street', type: 'table', props: { rows: '{/brief/street}', columns: MOVE_COLUMNS, searchable: true, pageSize: 10 } } : { id: 'ov-street-none', type: 'text', props: { content: 'No reseller changed an input price this week.', variant: 'caption' } },
+    { id: 'ov-index-note', type: 'text', props: { content: '{/brief/indexNote}', variant: 'caption' } },
+    ...(ready ? [{ id: 'ov-index', type: 'chart', props: { kind: 'line', xScale: 'time', yScale: 'auto', labels: '{/brief/indexDays}', series: '{/brief/indexSeries}', yLabel: 'US dollars per million tokens', height: 'sm' } }] : []),
+  ];
+}
+
+function briefData(b: NonNullable<Loaded['brief']>, w: Workload): Record<string, unknown> {
+  const ready = b.index.length >= INDEX_MIN_DAYS;
+  const first = b.index[0], last = b.index.at(-1);
+  const change = ready && first && last && first.median > 0 ? (last.median - first.median) / first.median : null;
+  const startsOn = !ready && last ? dayBefore(last.day, -(INDEX_MIN_DAYS - b.index.length)) : null;
+  return {
+    brief: {
+      headline: b.lede.headline, body: b.lede.body, rule: `Chosen by the rule: ${b.lede.rule}`,
+      week: `The week to ${b.facts.day}. A lab's own input price move of ${Math.round(MATERIAL_MOVE * 100)}% or more, a launch in the last ${LAUNCH_DAYS} days, ${SUNSET_WAVE} or more retirements and a reseller move of ${Math.round(STREET_MOVE * 100)}% or more can lead the brief; moves are one row per model, the middle move of every provider that made it.`,
+      labs: moveRows(b.facts.labs), street: moveRows(b.facts.street),
+      indexNote: ready
+        ? `The median across models of their own lab's cheapest price for ${article(w)}, at each day's last refresh: ${money(last!.median)} per million tokens across ${last!.models} models, ${change! < 0 ? 'down' : change! > 0 ? 'up' : 'unchanged'}${change ? ` ${Math.round(Math.abs(change) * 100)}%` : ''} over ${b.index.length} days. Resellers' margins do not move it.`
+        : `The lab price index needs ${INDEX_MIN_DAYS} days of history and has ${b.index.length}; it starts on ${startsOn ?? 'the fourteenth day of refreshes'}.`,
+      ...(ready ? { indexDays: b.index.map((p) => p.day), indexSeries: [{ name: "Labs' own price, median", values: b.index.map((p) => p.median) }] } : {}),
+    },
+    spoken: { brief: b.spoken },
+  };
 }

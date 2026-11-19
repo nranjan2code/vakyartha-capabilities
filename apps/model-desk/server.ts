@@ -7,6 +7,7 @@
 
 import { createHash } from 'node:crypto';
 import { identity } from './identity.ts';
+import { collapse, dayBefore, launches, LAUNCH_DAYS, lede, moves, priceIndex, spoken, sunsets, WEEK_DAYS } from './brief.ts';
 import { provenance } from './provenance.ts';
 import {
   benchmark, BENCHMARK_COLUMNS, listing, LISTING_COLUMNS, MAX_CALLS, model, MODEL_COLUMNS, MODELS_URL, PRICES_URL, provider, PROVIDER_COLUMNS, readAll, WEIGHT_COLUMNS, weights, weightsUrl,
@@ -42,7 +43,17 @@ export async function load(db: Database, state: State): Promise<Loaded> {
     const facts = await about(db, id);
     compared.push({ detail: d, facts: facts?.facts ?? null, abilities: await abilities(db, id), scores: facts?.scores ?? [] });
   }
-  const rest = { compared, boards: shelf, board, weights: open_weights, weightReads: reads };
+  // The brief covers the week to the latest snapshot's day: the desk speaks for its data, not the clock.
+  const day = snap.applied ? String(snap.applied.started_at).slice(0, 10) : null;
+  let brief: Loaded['brief'] = null;
+  if (day) {
+    const all = await moves(db, dayBefore(day, WEEK_DAYS - 1));
+    const facts = { day, labs: collapse(all.filter((m) => m.firstParty)), street: collapse(all.filter((m) => !m.firstParty)), launches: await launches(db, dayBefore(day, LAUNCH_DAYS - 1)), sunsets: await sunsets(db, dayBefore(day, WEEK_DAYS - 1)),
+      changes: Number((await db.query('SELECT count(*)::INTEGER n FROM events WHERE day >= ?', [dayBefore(day, WEEK_DAYS - 1)]))[0]!.n) };
+    const story = lede(facts), index = await priceIndex(db, w);
+    brief = { facts, lede: story, index, spoken: spoken(facts, story, index) };
+  }
+  const rest = { compared, boards: shelf, board, weights: open_weights, weightReads: reads, brief };
   if (!state.model) return { snap, models, open: null, ...rest };
   const d = await detail(db, state.model, w);
   if (!d) return { snap, models, open: null, ...rest };
@@ -176,9 +187,10 @@ export async function handleAction(controlId: string, value: unknown, ctx: Conte
     }
     case 'open_model': {
       const id = String((value as { id?: unknown } | null)?.id ?? '');
+      const focus = (value as { focus?: unknown } | null)?.focus === true;
       if (!id || id.length > 200 || !(await detail(ctx.database, id))) throw new Error('That model is not in the current snapshot; refresh and choose again');
       ctx.state.model = id;
-      return { updates: view(ctx.state, await load(ctx.database, ctx.state)).filter((u) => u.surface === 'models') };
+      return { updates: view(ctx.state, await load(ctx.database, ctx.state)).filter((u) => u.surface === 'models'), ...(focus ? { focusSurface: 'models' } : {}) };
     }
     default: throw new Error(`Model Desk has no action ${action ?? controlId}`);
   }
