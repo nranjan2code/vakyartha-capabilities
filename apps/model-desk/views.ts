@@ -4,9 +4,10 @@
 import type { Snapshot } from './store.ts';
 import { EMPTY, RECENT } from './store.ts';
 import { SOURCE } from './source.ts';
-import { billable, CORROBORATION, OUTLIER_FACTOR, spread, workload, WORKLOADS, type Abilities, type Facts, type ModelDetail, type ModelRow, type Offer, type Point, type Score, type Span, type Workload } from './market.ts';
+import { PROVENANCE_LABEL, PROVENANCE_NOTE, type Provenance } from './provenance.ts';
+import { billable, CORROBORATION, MIN_RANKED, OUTLIER_FACTOR, spread, workload, WORKLOADS, type Abilities, type Board, type Entry, type Facts, type ModelDetail, type ModelRow, type Offer, type Point, type Score, type Span, type Workload } from './market.ts';
 
-export interface State { type?: string; model?: string; workload?: string; volume?: number; compare?: string[] }
+export interface State { type?: string; model?: string; workload?: string; volume?: number; compare?: string[]; board?: { slug: string; measure: string } }
 /** Requests a month, the unit a bill is approved in (the original's choices). */
 export const VOLUMES = [10_000, 100_000, 1_000_000, 10_000_000];
 /** At most this many models side by side. */
@@ -16,12 +17,12 @@ export interface Compared { detail: ModelDetail; facts: Facts | null; abilities:
 /** One model opened on the Models view. */
 export interface Opened { detail: ModelDetail; offers: Offer[]; facts: Facts | null; scores: Score[]; history: Point[]; spans: Span[]; events: Record<string, unknown>[] }
 /** Everything the views read: the pipeline snapshot, the model list and the opened model. */
-export interface Loaded { snap: Snapshot; models: ModelRow[]; open: Opened | null; compared: Compared[] }
-export const NOTHING: Loaded = { snap: EMPTY, models: [], open: null, compared: [] };
+export interface Loaded { snap: Snapshot; models: ModelRow[]; open: Opened | null; compared: Compared[]; boards: Board[]; board: Entry[] }
+export const NOTHING: Loaded = { snap: EMPTY, models: [], open: null, compared: [], boards: [], board: [] };
 interface Node { id: string; type: string; props?: Record<string, unknown>; children?: string[] | { each: string; template: string } }
 export interface Update { surface: string; nodes: Node[]; data: { op: 'replace'; path: '/'; value: Record<string, unknown> }[] }
 
-export const TITLES: Record<string, string> = { overview: 'Overview', models: 'Models', costs: 'Costs', compare: 'Compare', changes: 'Changes', pipeline: 'Pipeline' };
+export const TITLES: Record<string, string> = { overview: 'Overview', models: 'Models', costs: 'Costs', compare: 'Compare', benchmarks: 'Benchmarks', changes: 'Changes', pipeline: 'Pipeline' };
 
 export const TYPES: Record<string, string> = {
   repriced: 'Repriced', model_added: 'Model added', provider_added: 'New provider', deprecated: 'Deprecated',
@@ -43,7 +44,9 @@ export function normalize(input: unknown): State {
   const chosen = workload(s.workload).id;
   const volume = VOLUMES.includes(Number(s.volume)) ? Number(s.volume) : 100_000;
   const compare = Array.isArray(s.compare) ? [...new Set(s.compare.filter(id) as string[])].slice(0, MAX_COMPARED) : [];
-  return { type, ...(model ? { model } : {}), workload: chosen, volume, compare };
+  const b = s.board as { slug?: unknown; measure?: unknown } | undefined;
+  const board = b && typeof b === 'object' && id(b.slug) && typeof b.measure === 'string' && b.measure.length <= 120 ? { slug: b.slug as string, measure: b.measure } : undefined;
+  return { type, ...(model ? { model } : {}), workload: chosen, volume, compare, ...(board ? { board } : {}) };
 }
 
 const int = (v: unknown) => Number(v ?? 0);
@@ -198,7 +201,7 @@ function pipeline(snap: Snapshot): Update {
 
 export function view(state: unknown, loaded: Loaded = NOTHING): Update[] {
   const s = normalize(state), w = workload(s.workload);
-  return [overview(loaded.snap, loaded.models, w), modelsView(loaded, s), costs(loaded, s), compare(loaded, s), changes(s, loaded.snap), pipeline(loaded.snap)];
+  return [overview(loaded.snap, loaded.models, w), modelsView(loaded, s), costs(loaded, s), compare(loaded, s), benchmarksView(loaded, s), changes(s, loaded.snap), pipeline(loaded.snap)];
 }
 
 /** A price per million tokens the way the original wrote it: cents for small, two places for large. */
@@ -297,7 +300,7 @@ function modelsView(l: Loaded, s: State): Update {
       ...(open!.spans.length ? [{ id: 'md-export', type: 'button', props: { label: 'Export price history', action: 'file.save', payload: { name: '{/open/file}', text: '/open/csv' }, style: 'link' } }] : []),
       ...(open!.events.length ? [{ id: 'md-changes', type: 'table', props: { rows: '{/open/events}', columns: [{ key: 'day', label: 'Day' }, { key: 'type', label: 'Change' }, { key: 'provider', label: 'Provider' }, { key: 'change', label: 'What changed' }], searchable: true, pageSize: 15 } }] : []),
     );
-    if (open!.scores.length) nodes.push({ id: 'md-scores', type: 'table', props: { rows: '{/open/scores}', columns: [{ key: 'name', label: 'Benchmark' }, { key: 'score', label: 'Score', align: 'end' }, { key: 'metric', label: 'Measure' }, { key: 'date', label: 'Date' }, { key: 'source', label: 'Source' }] } });
+    if (open!.scores.length) nodes.push({ id: 'md-scores', type: 'table', props: { rows: '{/open/scores}', columns: [{ key: 'name', label: 'Benchmark' }, { key: 'score', label: 'Score', align: 'end' }, { key: 'metric', label: 'Measure' }, { key: 'kind', label: 'Published by' }, { key: 'date', label: 'Date' }, { key: 'source', label: 'Source' }] } });
   }
   const data: Record<string, unknown> = {
     count: `${l.models.length.toLocaleString('en-US')} models; ${withOwn.toLocaleString('en-US')} sold by their own lab. Prices are US dollars per million tokens, for ${article(w)}: ${shape(w)}. Choose the request under Costs.`,
@@ -322,7 +325,7 @@ function modelsView(l: Loaded, s: State): Update {
       ...(open!.history.length >= 2 ? { days: open!.history.map((p) => p.day), series: [{ name: 'Cheapest confirmed', values: open!.history.map((p) => p.best) }, { name: "The lab's own", values: open!.history.map((p) => p.own) }] } : {}),
       ...(open!.spans.length ? { file: `model-desk-${d.id.replace(/[^A-Za-z0-9]+/g, '-')}-prices`, csv: spansCsv(open!.spans) } : {}),
       ...(open!.events.length ? { events: eventRows(open!.events) } : {}),
-      ...(open!.scores.length ? { scores: open!.scores.map((x) => ({ name: x.name, score: String(x.score), metric: x.metric ?? '—', date: x.date ?? '—', source: x.source ?? '—' })) } : {}),
+      ...(open!.scores.length ? { scores: open!.scores.map((x) => ({ name: x.name, score: String(x.score), metric: x.metric ?? '—', kind: kindOf(x.provenance, x.publisher), date: x.date ?? '—', source: x.source ?? '—' })) } : {}),
     };
   }
   return { surface: 'models', nodes, data: replace(data) };
@@ -450,4 +453,72 @@ function compare(l: Loaded, s: State): Update {
     rows,
   };
   return { surface: 'compare', nodes, data: replace(data) };
+}
+
+/** "Independent: scale.com" — who published a score, in words. */
+export function kindOf(p: string, publisher: string | null): string {
+  const label = PROVENANCE_LABEL[p as Provenance] ?? PROVENANCE_LABEL.unclassified;
+  return publisher ? `${label}: ${publisher}` : label;
+}
+const boardTitle = (b: { name: string; measure: string }) => (b.measure ? `${b.name} (${b.measure})` : b.name);
+
+export interface Ranked { entry: Entry; perRun: number | null; perDollar: number | null }
+/**
+ * Points per dollar on a board, for the chosen request at each model's best full-context offer.
+ * Only independently measured scores are ranked: a lab's figure for its own model is shown,
+ * labelled, never ranked against a measurement.
+ */
+export function valued(entries: Entry[], models: ModelRow[], w: Workload): Ranked[] {
+  const price = new Map(models.filter((m) => m.comparable && m.pick_rate !== null).map((m) => [m.id, m.pick_rate!]));
+  return entries.map((entry) => {
+    const rate = price.get(entry.model);
+    const perRun = rate === undefined ? null : (rate * billable(w)) / 1_000_000;
+    return { entry, perRun, perDollar: entry.provenance === 'independent' && perRun ? entry.score / perRun : null };
+  });
+}
+
+function benchmarksView(l: Loaded, s: State): Update {
+  const w = workload(s.workload);
+  const ranked = l.boards.filter((b) => b.independent >= MIN_RANKED).length;
+  const open = s.board ? l.boards.find((b) => b.slug === s.board!.slug && b.measure === s.board!.measure) : undefined;
+  const nodes: Node[] = [{ id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: [l.boards.length ? 'bm-work' : 'bm-none'] }];
+  if (!l.boards.length) {
+    nodes.push({ id: 'bm-none', type: 'text', props: { content: 'No benchmark scores yet. Use Refresh in the app header to read the catalog.', variant: 'caption' } });
+    return { surface: 'benchmarks', nodes, data: replace({}) };
+  }
+  nodes.push(
+    { id: 'bm-work', type: 'split', props: { ratio: '1:2', gap: 'lg' }, children: ['bm-browse', open ? 'bm-open' : 'bm-pick'] },
+    { id: 'bm-browse', type: 'stack', props: { gap: 'sm' }, children: ['bm-count', 'bm-list'] },
+    { id: 'bm-count', type: 'text', props: { content: '{/count}', variant: 'caption' } },
+    { id: 'bm-list', type: 'grid', props: { columns: 1, gap: 'sm', searchable: true, pageSize: 15 }, children: { each: '/boards', template: 'bm-card' } },
+    { id: 'bm-card', type: 'card', props: { title: '{title}', subtitle: '{line}', badge: '{badge}', layout: 'row', titleLines: 2, action: 'open_board', payload: { slug: '{slug}', measure: '{measure}' }, actionLabel: 'Open' } },
+  );
+  const data: Record<string, unknown> = {
+    count: `${l.boards.length} benchmarks, ${ranked} with at least ${MIN_RANKED} independently measured models. Only independent scores are ranked; a lab's figures for its own model are shown and labelled.`,
+    boards: l.boards.map((b) => ({ slug: b.slug, measure: b.measure, title: boardTitle(b), line: `${b.models} model${b.models === 1 ? '' : 's'}, ${b.independent} measured independently`, badge: b.independent >= MIN_RANKED ? 'Ranked' : '' })),
+  };
+  if (!open) {
+    nodes.push({ id: 'bm-pick', type: 'text', props: { content: 'Choose a benchmark to see every score, who published it, and what a point costs.', variant: 'caption' } });
+    return { surface: 'benchmarks', nodes, data: replace(data) };
+  }
+  const rows = valued(l.board, l.models, w);
+  const leaders = open.independent >= MIN_RANKED ? rows.filter((r) => r.perDollar !== null).sort((a, b) => b.perDollar! - a.perDollar! || a.entry.model_name.localeCompare(b.entry.model_name)).slice(0, 5) : [];
+  const kinds = [...new Set(l.board.map((e) => e.provenance))].sort();
+  nodes.push(
+    { id: 'bm-open', type: 'section', props: { title: boardTitle(open), description: '{/board/about}' }, children: [...(leaders.length ? ['bm-leaders'] : ['bm-unranked']), 'bm-entries', 'bm-kinds'] },
+    leaders.length
+      ? { id: 'bm-leaders', type: 'table', props: { rows: '{/board/leaders}', columns: [{ key: 'rank', label: '', align: 'end' }, { key: 'model', label: 'Best value, independently measured' }, { key: 'score', label: 'Score', align: 'end' }, { key: 'run', label: 'Cost per request', align: 'end' }, { key: 'points', label: 'Points per dollar', align: 'end' }] } }
+      : { id: 'bm-unranked', type: 'text', props: { content: '{/board/unranked}', variant: 'caption' } },
+    { id: 'bm-entries', type: 'table', props: { rows: '{/board/entries}', columns: [{ key: 'model', label: 'Model' }, { key: 'score', label: 'Score', align: 'end' }, { key: 'kind', label: 'Published by' }, { key: 'run', label: 'Cost per request', align: 'end' }, { key: 'points', label: 'Points per dollar', align: 'end' }, { key: 'date', label: 'Date' }, { key: 'source', label: 'Source' }], searchable: true, sortable: true, pageSize: 15 } },
+    { id: 'bm-kinds', type: 'accordion', props: { items: '{/board/kinds}' } },
+  );
+  const points = (n: number | null) => (n === null ? '—' : n >= 100 ? Math.round(n).toLocaleString('en-US') : n.toFixed(1));
+  data.board = {
+    about: `${open.models} models, ${open.independent} measured independently. Cost per request is for ${article(w)} at each model's best full-context offer; choose the request under Costs.`,
+    ...(leaders.length ? { leaders: leaders.map((r, i) => ({ rank: String(i + 1), model: r.entry.model_name, score: String(r.entry.score), run: dollars(r.perRun), points: points(r.perDollar) })) }
+      : { unranked: `Not ranked: fewer than ${MIN_RANKED} models on this benchmark were measured independently, and figures from labs and sellers are not ranked against each other.` }),
+    entries: rows.map((r) => ({ model: r.entry.model_name, score: String(r.entry.score), kind: kindOf(r.entry.provenance, r.entry.publisher), run: dollars(r.perRun), points: points(r.perDollar), date: r.entry.date ?? '—', source: r.entry.source ?? '—' })),
+    kinds: kinds.map((k) => ({ title: PROVENANCE_LABEL[k as Provenance] ?? k, body: PROVENANCE_NOTE[k as Provenance] ?? '' })),
+  };
+  return { surface: 'benchmarks', nodes, data: replace(data) };
 }

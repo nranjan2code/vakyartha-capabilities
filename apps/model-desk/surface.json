@@ -317,6 +317,32 @@
     ]
   },
   {
+    "id": "benchmarks",
+    "title": "Benchmarks",
+    "data": {},
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "bm-none"
+        ]
+      },
+      {
+        "id": "bm-none",
+        "type": "text",
+        "props": {
+          "content": "No benchmark scores yet. Use Refresh in the app header to read the catalog.",
+          "variant": "caption"
+        }
+      }
+    ]
+  },
+  {
     "id": "changes",
     "title": "Changes",
     "data": {},

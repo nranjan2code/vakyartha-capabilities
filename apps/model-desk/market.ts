@@ -198,12 +198,12 @@ export async function offers(db: Database, id: string, w: Workload = CHAT): Prom
 }
 
 export interface Facts { id: string; name: string; lab: string; family: string | null; license: string | null; open_weights: boolean | null; knowledge: string | null; release_date: string | null; last_updated: string | null; context: number | null; output_limit: number | null }
-export interface Score { name: string; score: number; metric: string | null; source: string | null; date: string | null }
+export interface Score { name: string; score: number; metric: string | null; source: string | null; date: string | null; provenance: string; publisher: string | null }
 
 export async function model(db: Database, id: string): Promise<{ facts: Facts; scores: Score[] } | null> {
   const [facts] = await db.query('SELECT id, coalesce(name, id) name, lab, family, license, open_weights, knowledge, release_date, last_updated, context, output_limit FROM models WHERE id = ?', [id]);
   if (!facts) return null;
-  const scores = await db.query('SELECT name, score, metric, source, date FROM benchmarks WHERE model = ? ORDER BY position LIMIT 100', [id]);
+  const scores = await db.query('SELECT name, score, metric, source, date, provenance, publisher FROM benchmarks WHERE model = ? ORDER BY position LIMIT 100', [id]);
   return { facts: facts as unknown as Facts, scores: scores as unknown as Score[] };
 }
 
@@ -249,4 +249,31 @@ export async function abilities(db: Database, id: string): Promise<Abilities> {
   const [row] = await db.query(`SELECT bool_or(reasoning) reasoning, bool_or(tool_call) tool_call, bool_or(structured_output) structured_output, bool_or(attachment) attachment
     FROM listings WHERE canonical = ? AND coalesce(status, '') <> 'deprecated'`, [id]);
   return (row as unknown as Abilities) ?? { reasoning: null, tool_call: null, structured_output: null, attachment: null };
+}
+
+/**
+ * A benchmark board is one benchmark measured one way: the same name (punctuation aside) and the
+ * same metric. A board holds one entry per model, preferring an independently measured score,
+ * then the highest; a pass@1 and an avg@3 of one benchmark are different boards.
+ */
+const BOARD = `
+  WITH b AS (SELECT b.*, trim(regexp_replace(lower(b.name), '[^\\p{L}\\p{N}]+', '-', 'g'), '-') slug, coalesce(b.metric, '') measure FROM benchmarks b),
+  entries AS (
+    SELECT * FROM (SELECT b.*, row_number() OVER (PARTITION BY slug, measure, model ORDER BY provenance = 'independent' DESC, score DESC, position) n FROM b) WHERE n = 1)`;
+
+/** Only boards with this many independently measured models are ranked by value. */
+export const MIN_RANKED = 4;
+
+export interface Board { slug: string; measure: string; name: string; models: number; independent: number }
+export async function boards(db: Database): Promise<Board[]> {
+  return await db.query(`${BOARD}
+    SELECT slug, measure, mode(name) name, count(*)::INTEGER models, count(*) FILTER (WHERE provenance = 'independent')::INTEGER independent
+    FROM entries GROUP BY slug, measure ORDER BY independent DESC, models DESC, name LIMIT 1000`) as unknown as Board[];
+}
+
+export interface Entry { model: string; model_name: string; score: number; provenance: string; publisher: string | null; source: string | null; date: string | null }
+export async function board(db: Database, slug: string, measure: string): Promise<Entry[]> {
+  return await db.query(`${BOARD}
+    SELECT e.model, coalesce(m.name, e.model) model_name, e.score, e.provenance, e.publisher, e.source, e.date
+    FROM entries e LEFT JOIN models m ON m.id = e.model WHERE e.slug = ? AND e.measure = ? ORDER BY e.score DESC, model_name LIMIT 500`, [slug, measure]) as unknown as Entry[];
 }

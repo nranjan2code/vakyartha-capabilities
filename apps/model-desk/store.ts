@@ -27,7 +27,7 @@ const LISTING_FIELDS: [string, string][] = [
 const LISTING_TABLE: [string, string][] = [['provider', 'VARCHAR'], ['model', 'VARCHAR'], ['canonical', 'VARCHAR'], ['lab', 'VARCHAR'], ...LISTING_FIELDS];
 const PROVIDER_TABLE: [string, string][] = [['id', 'VARCHAR'], ['name', 'VARCHAR'], ['doc', 'VARCHAR'], ['api', 'VARCHAR']];
 const MODEL_TABLE: [string, string][] = [['id', 'VARCHAR'], ['lab', 'VARCHAR'], ['name', 'VARCHAR'], ['family', 'VARCHAR'], ['license', 'VARCHAR'], ['open_weights', 'BOOLEAN'], ['knowledge', 'VARCHAR'], ['release_date', 'VARCHAR'], ['last_updated', 'VARCHAR'], ['context', 'BIGINT'], ['output_limit', 'BIGINT']];
-const BENCHMARK_TABLE: [string, string][] = [['model', 'VARCHAR'], ['position', 'INTEGER'], ['name', 'VARCHAR'], ['score', 'DOUBLE'], ['metric', 'VARCHAR'], ['source', 'VARCHAR'], ['date', 'VARCHAR']];
+const BENCHMARK_TABLE: [string, string][] = [['model', 'VARCHAR'], ['position', 'INTEGER'], ['name', 'VARCHAR'], ['score', 'DOUBLE'], ['metric', 'VARCHAR'], ['source', 'VARCHAR'], ['date', 'VARCHAR'], ['provenance', 'VARCHAR'], ['publisher', 'VARCHAR']];
 /** The prices a listing's history follows, per million tokens. */
 const PRICES = ['input', 'output', 'cache_read', 'cache_write', 'reasoning_price', 'tiers'];
 /** What a change event compares, with the field name it reports. */
@@ -67,7 +67,8 @@ export interface Candidate {
   /** Each listing with its canonical model id (or null) after the source columns. */
   listings: { row: ListingRow; canonical: string | null }[];
   models: Model[];
-  benchmarks: Benchmark[];
+  /** Each score with who published it (provenance.ts), in the order of `benchmarks`. */
+  benchmarks: (Benchmark & { provenance: string; publisher: string | null })[];
   receipts: Receipt[];
   /** Malformed rows the reads left out, across all reads, and the rows they read. */
   dropped: number;
@@ -85,7 +86,7 @@ async function stage(db: Database, c: Candidate) {
   await load(db, 'stage_providers', PROVIDER_TABLE, c.providers.map((p) => [p.id, p.name, p.doc, p.api]));
   await load(db, 'stage_listings', LISTING_TABLE, c.listings.map(({ row, canonical }) => [row[0], row[1], canonical, canonical ? canonical.split('/')[0]! : null, ...row.slice(2)]));
   await load(db, 'stage_models', MODEL_TABLE, c.models.map((m) => [m.id, m.id.split('/')[0]!, m.name, m.family, m.license, m.openWeights, m.knowledge, m.releaseDate, m.lastUpdated, m.context, m.output]));
-  await load(db, 'stage_benchmarks', BENCHMARK_TABLE, c.benchmarks.map((b) => [b.model, b.position, b.name, b.score, b.metric, b.source, b.date]));
+  await load(db, 'stage_benchmarks', BENCHMARK_TABLE, c.benchmarks.map((b) => [b.model, b.position, b.name, b.score, b.metric, b.source, b.date, b.provenance, b.publisher]));
 }
 
 const int = (v: unknown) => Number(v ?? 0);

@@ -7,11 +7,12 @@
 
 import { createHash } from 'node:crypto';
 import { identity } from './identity.ts';
+import { provenance } from './provenance.ts';
 import {
   benchmark, BENCHMARK_COLUMNS, listing, LISTING_COLUMNS, MAX_CALLS, model, MODEL_COLUMNS, MODELS_URL, PRICES_URL, provider, PROVIDER_COLUMNS, readAll,
   type Call, type Read, type Receipt,
 } from './source.ts';
-import { abilities, catalog, detail, history, model as about, offers, spans, workload, WORKLOADS } from './market.ts';
+import { abilities, board as boardEntries, boards, catalog, detail, history, model as about, offers, spans, workload, WORKLOADS } from './market.ts';
 import { apply, failed, modelEvents, snapshot, type Database } from './store.ts';
 import { MAX_COMPARED, normalize, NOTHING, TITLES, TYPES, view, VOLUMES, type Compared, type Loaded, type State } from './views.ts';
 
@@ -30,6 +31,8 @@ export async function load(db: Database, state: State): Promise<Loaded> {
   const w = workload(state.workload);
   const snap = await snapshot(db);
   const models = await catalog(db, w);
+  const shelf = await boards(db);
+  const board = state.board ? await boardEntries(db, state.board.slug, state.board.measure) : [];
   const compared: Compared[] = [];
   for (const id of state.compare ?? []) {
     const d = await detail(db, id, w);
@@ -37,12 +40,12 @@ export async function load(db: Database, state: State): Promise<Loaded> {
     const facts = await about(db, id);
     compared.push({ detail: d, facts: facts?.facts ?? null, abilities: await abilities(db, id), scores: facts?.scores ?? [] });
   }
-  if (!state.model) return { snap, models, open: null, compared };
+  if (!state.model) return { snap, models, open: null, compared, boards: shelf, board };
   const d = await detail(db, state.model, w);
-  if (!d) return { snap, models, open: null, compared };
+  if (!d) return { snap, models, open: null, compared, boards: shelf, board };
   const list = await offers(db, state.model, w), facts = await about(db, state.model);
   const past = await history(db, state.model, w), kept = await spans(db, state.model), events = await modelEvents(db, state.model);
-  return { snap, models, open: { detail: d, offers: list, facts: facts?.facts ?? null, scores: facts?.scores ?? [], history: past, spans: kept, events }, compared };
+  return { snap, models, open: { detail: d, offers: list, facts: facts?.facts ?? null, scores: facts?.scores ?? [], history: past, spans: kept, events }, compared, boards: shelf, board };
 }
 
 const reason = (e: unknown) => String((e as Error)?.message ?? e).replace(/^Error:\s*/, '').slice(0, 400);
@@ -81,7 +84,13 @@ export async function refresh(ctx: Context): Promise<{ updates: ReturnType<typeo
     const fingerprint = createHash('sha256').update(JSON.stringify([got.providers.rows, got.listings.rows, got.models.rows, got.benchmarks.rows])).digest('hex');
     const dropped = got.models.dropped + got.benchmarks.dropped + got.providers.dropped + got.listings.dropped;
     const read = got.receipts.reduce((n, r) => n + r.total, 0);
-    await apply(ctx.database, { providers: got.providers.rows, listings, models: got.models.rows, benchmarks: got.benchmarks.rows, receipts: got.receipts, dropped, read, fingerprint }, started);
+    // Who published each score, from the catalog: each provider's labs come from its matched listings.
+    const labsBy = new Map<string, Set<string>>();
+    for (const { row, canonical } of listings) if (canonical) (labsBy.get(row[0]) ?? labsBy.set(row[0], new Set()).get(row[0])!).add(canonical.split('/')[0]!);
+    const sellers = got.providers.rows.map((p) => ({ id: p.id, doc: p.doc, api: p.api, labs: [...(labsBy.get(p.id) ?? [])] }));
+    const kinds = provenance(got.benchmarks.rows, sellers, new Set(got.models.rows.map((m) => m.id.split('/')[0]!)));
+    const benchmarks = got.benchmarks.rows.map((b, i) => ({ ...b, ...kinds[i]! }));
+    await apply(ctx.database, { providers: got.providers.rows, listings, models: got.models.rows, benchmarks, receipts: got.receipts, dropped, read, fingerprint }, started);
   }
   return { updates: view(ctx.state, await load(ctx.database, ctx.state)) };
 }
@@ -117,6 +126,13 @@ export async function handleAction(controlId: string, value: unknown, ctx: Conte
         ctx.state.compare = [...new Set([...list, id])];
       } else ctx.state.compare = list.filter((x) => x !== id);
       return { updates: view(ctx.state, await load(ctx.database, ctx.state)).filter((u) => u.surface === 'compare' || u.surface === 'models') };
+    }
+    case 'open_board': {
+      const v = (value ?? {}) as { slug?: unknown; measure?: unknown };
+      const slug = String(v.slug ?? ''), measure = String(v.measure ?? '');
+      if (!(await boards(ctx.database)).some((b) => b.slug === slug && b.measure === measure)) throw new Error('That benchmark is not in the current snapshot; refresh and choose again');
+      ctx.state.board = { slug, measure };
+      return { updates: view(ctx.state, await load(ctx.database, ctx.state)).filter((u) => u.surface === 'benchmarks') };
     }
     case 'open_model': {
       const id = String((value as { id?: unknown } | null)?.id ?? '');
