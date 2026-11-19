@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { CHAT, rateSql, spread, type ModelDetail } from '../market.ts';
+import { CHAT, rateSql, spread, workload, WORKLOADS, type ModelDetail } from '../market.ts';
 import { money, sentence, tokens, widest } from '../views.ts';
 
 const base: ModelDetail = {
-  id: 'lab/m', name: 'M 1', lab: 'lab', providers: 4, priced: 4, comparable: true,
-  own_provider: 'Lab', own_rate: 4, pick_provider: 'Host A', pick_rate: 1, credible_rate: 1, low_rate: 1, high_rate: 4,
+  id: 'lab/m', name: 'M 1', lab: 'lab', providers: 4, priced: 4, comparable: true, kind: null,
+  own_provider: 'Lab', own_rate: 4, pick_provider: 'Host A', pick_rate: 1, pick_tier: null, credible_rate: 1, low_rate: 1, high_rate: 4,
   own_input: 3, own_output: 6, pick_input: 0.8, pick_output: 1.6, low_provider: 'Host A', low_context: 128000, low_fits: true, low_status: null, full_context: 128000, outliers: 0,
 };
 
@@ -16,7 +16,8 @@ test('the summary names what to buy, how it compares with the lab, and the catch
   assert.match(sentence({ ...base, own_provider: null, own_rate: null }), /tokens\. Prices span/);
   assert.match(sentence({ ...base, outliers: 2 }), /2 prices more than 20x from the middle are set aside as likely errors\.$/);
   assert.equal(sentence({ ...base, priced: 0 }), '4 providers list M 1; none publishes a price.');
-  assert.match(sentence({ ...base, comparable: false }), /not compared/);
+  assert.match(sentence({ ...base, comparable: false }), /other units than text tokens/);
+  assert.equal(sentence({ ...base, comparable: false, kind: 'embedding' }), 'M 1 is an embedding model, so its prices are listed but not compared with language models.');
 });
 
 test('prices and contexts read the way the original wrote them', () => {
@@ -34,7 +35,11 @@ test('the spread floor is the cheapest confirmed price, and the widest list keep
 test('a chat request is priced per million billable tokens, unpublished cache rates at the full input rate', () => {
   const sql = rateSql(CHAT);
   assert.match(sql, /^CASE WHEN l\.input IS NULL OR l\.output IS NULL OR \(l\.input = 0 AND l\.output = 0\) THEN NULL/);
-  assert.match(sql, /1200 \* l\.input \+ 300 \* coalesce\(l\.cache_read, l\.input\) \+ 75 \* coalesce\(l\.cache_write, l\.input\)/);
-  assert.match(rateSql({ ...CHAT, contextTokens: 250_000 }), /coalesce\(l\.input_200k, l\.input\)/, 'a long request uses the long-context price');
+  assert.ok(sql.includes('lambda tier_: tier_.size <= 8000'), 'the tier for the request\'s context');
+  assert.ok(sql.includes("'cache_read'), l.cache_read, coalesce(struct_extract("), 'an unpublished cache rate falls back to the input rate in force');
+  assert.ok(sql.startsWith('CASE WHEN l.input IS NULL OR l.output IS NULL OR (l.input = 0 AND l.output = 0) THEN NULL ELSE (1200 * '), 'four fifths of 1,500 input tokens at the input rate');
+  assert.ok(sql.endsWith(' + 500 * coalesce(struct_extract(list_last(list_filter(from_json(l.tiers, \'[{"size":"BIGINT","input":"DOUBLE","output":"DOUBLE","cache_read":"DOUBLE","cache_write":"DOUBLE","reasoning":"DOUBLE"}]\'), lambda tier_: tier_.size <= 8000)), \'output\'), l.output)) / 2000 END'), 'per million of 2,000 billable tokens');
+  assert.equal(WORKLOADS.map((w) => w.id).join(), 'chat,rag,agentic,reasoning,long-context');
+  assert.equal(workload('nonsense'), CHAT);
   assert.throws(() => rateSql({ ...CHAT, inputTokens: 0, outputTokens: 0 }), /needs some tokens/);
 });

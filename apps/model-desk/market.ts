@@ -8,11 +8,25 @@ import type { Database } from './store.ts';
 /** A request shape: what a price is measured against. */
 export interface Workload { id: string; name: string; description: string; inputTokens: number; outputTokens: number; reasoningTokens: number; cacheHitRate: number; cacheWriteRate: number; contextTokens: number }
 
-/** Short turns, light history, little caching: an assistant in a product. */
-export const CHAT: Workload = { id: 'chat', name: 'Chat', description: 'Short turns, light history, little caching: an assistant in a product.', inputTokens: 1_500, outputTokens: 500, reasoningTokens: 0, cacheHitRate: 0.2, cacheWriteRate: 0.05, contextTokens: 8_000 };
+/** The original's request shapes. Chat is the default, as there. */
+export const WORKLOADS: Workload[] = [
+  { id: 'chat', name: 'Chat', description: 'Short turns, light history, little caching: an assistant in a product.', inputTokens: 1_500, outputTokens: 500, reasoningTokens: 0, cacheHitRate: 0.2, cacheWriteRate: 0.05, contextTokens: 8_000 },
+  { id: 'rag', name: 'Retrieval', description: 'Retrieved passages dominate the bill; answers are short and the prefix caches well.', inputTokens: 20_000, outputTokens: 800, reasoningTokens: 0, cacheHitRate: 0.5, cacheWriteRate: 0.1, contextTokens: 24_000 },
+  { id: 'agentic', name: 'Agentic', description: 'Tool loops send a growing transcript again and think between calls.', inputTokens: 12_000, outputTokens: 2_000, reasoningTokens: 3_000, cacheHitRate: 0.7, cacheWriteRate: 0.15, contextTokens: 32_000 },
+  { id: 'reasoning', name: 'Heavy reasoning', description: 'Thinking tokens outnumber the answer several times over.', inputTokens: 2_000, outputTokens: 1_500, reasoningTokens: 8_000, cacheHitRate: 0, cacheWriteRate: 0, contextTokens: 12_000 },
+  { id: 'long-context', name: 'Long context', description: 'A whole codebase or filing per request: the case context price tiers exist for.', inputTokens: 250_000, outputTokens: 2_000, reasoningTokens: 0, cacheHitRate: 0.3, cacheWriteRate: 0.1, contextTokens: 256_000 },
+];
+export const CHAT = WORKLOADS[0]!;
+export const workload = (id: unknown) => WORKLOADS.find((w) => w.id === id) ?? CHAT;
+/** Tokens a request is billed for: the unit a price per million tokens is stated in. */
+export const billable = (w: Workload) => w.inputTokens + w.outputTokens + w.reasoningTokens;
 
-/** The context a listing's long-context prices start at. */
-const LONG_CONTEXT = 200_000;
+const TIER_SCHEMA = `'[{"size":"BIGINT","input":"DOUBLE","output":"DOUBLE","cache_read":"DOUBLE","cache_write":"DOUBLE","reasoning":"DOUBLE"}]'`;
+/** The tier in force for a request of this context: the largest threshold at or below it. */
+const tierSql = (a: string, context: number) => `list_last(list_filter(from_json(${a}.tiers, ${TIER_SCHEMA}), lambda tier_: tier_.size <= ${num(context)}))`;
+/** The largest tier threshold the workload reaches, or NULL: shown where a tier set the price. */
+export const tierUsedSql = (w: Workload, a = 'l') => `struct_extract(${tierSql(a, w.contextTokens)}, 'size')`;
+
 /** Listings this far from the model's median price are taken as data errors, not prices. */
 export const OUTLIER_FACTOR = 20;
 /** Below this many priced listings there is no median worth trusting. */
@@ -30,24 +44,28 @@ const num = (n: number) => { if (!Number.isFinite(n)) throw new Error('A workloa
 
 /**
  * US dollars per million billable tokens for one request of the workload, or NULL when the
- * listing publishes no price. An unpublished cache or reasoning rate is charged at the full input
- * or output rate: assuming a discount nobody published would recommend the wrong provider.
+ * listing publishes no price (the original's `costOf`). The tier for the request's context
+ * applies, each rate it leaves out falling back to the base card; an unpublished cache or
+ * reasoning rate is charged at the full input or output rate: assuming a discount nobody
+ * published would recommend the wrong provider.
  */
 export function rateSql(w: Workload, a = 'l'): string {
-  const long = w.contextTokens >= LONG_CONTEXT;
-  const input = long ? `coalesce(${a}.input_200k, ${a}.input)` : `${a}.input`;
-  const output = long ? `coalesce(${a}.output_200k, ${a}.output)` : `${a}.output`;
-  const hit = Math.min(1, Math.max(0, w.cacheHitRate)), write = Math.min(1, Math.max(0, w.cacheWriteRate));
-  const billable = w.inputTokens + w.outputTokens + w.reasoningTokens;
-  if (billable <= 0) throw new Error('A workload needs some tokens');
+  const tier = (f: string) => `struct_extract(${tierSql(a, w.contextTokens)}, '${f}')`;
+  const input = `coalesce(${tier('input')}, ${a}.input)`;
+  const output = `coalesce(${tier('output')}, ${a}.output)`;
+  const read = `coalesce(${tier('cache_read')}, ${a}.cache_read, ${input})`;
+  const write = `coalesce(${tier('cache_write')}, ${a}.cache_write, ${input})`;
+  const reason = `coalesce(${tier('reasoning')}, ${a}.reasoning_price, ${output})`;
+  const hit = Math.min(1, Math.max(0, w.cacheHitRate)), wrote = Math.min(1, Math.max(0, w.cacheWriteRate));
+  if (billable(w) <= 0) throw new Error('A workload needs some tokens');
   const total = [
     `${num(w.inputTokens * (1 - hit))} * ${input}`,
-    `${num(w.inputTokens * hit)} * coalesce(${a}.cache_read, ${input})`,
-    `${num(w.inputTokens * write)} * coalesce(${a}.cache_write, ${input})`,
-    `${num(w.reasoningTokens)} * coalesce(${a}.reasoning_price, ${output})`,
+    `${num(w.inputTokens * hit)} * ${read}`,
+    `${num(w.inputTokens * wrote)} * ${write}`,
+    `${num(w.reasoningTokens)} * ${reason}`,
     `${num(w.outputTokens)} * ${output}`,
   ].join(' + ');
-  return `CASE WHEN ${a}.input IS NULL OR ${a}.output IS NULL OR (${a}.input = 0 AND ${a}.output = 0) THEN NULL ELSE (${total}) / ${num(billable)} END`;
+  return `CASE WHEN ${a}.input IS NULL OR ${a}.output IS NULL OR (${a}.input = 0 AND ${a}.output = 0) THEN NULL ELSE (${total}) / ${num(billable(w))} END`;
 }
 
 /**
@@ -56,14 +74,18 @@ export function rateSql(w: Workload, a = 'l'): string {
  */
 export const firstPartySql = (a = 'l') => `(${a}.provider = ${a}.lab OR starts_with(${a}.provider, ${a}.lab || '-'))`;
 
-/** Text in, text out: only then is a token the same unit at every provider. */
-const comparableSql = (a = 'l') => `(coalesce(${a}.modalities_in, '') LIKE '%text%' AND coalesce(${a}.modalities_out, '') = 'text')`;
+/**
+ * A language model, text in and text out: only then does a request's price mean the same at
+ * every provider. The catalog marks other kinds (embedding, reranking, image, speech and so on),
+ * whose prices are listed but not compared with language models.
+ */
+const comparableSql = (a = 'l') => `(coalesce(${a}.kind, 'chat') = 'chat' AND coalesce(${a}.modalities_in, '') LIKE '%text%' AND coalesce(${a}.modalities_out, '') = 'text')`;
 
 /** Every live listing of matched models, priced and judged: outlier, confirmed, full context. */
 function judged(w: Workload, where = 'TRUE') {
   return `
     WITH live AS (
-      SELECT l.*, ${rateSql(w)} rate, ${firstPartySql()} first_party, ${comparableSql()} comparable
+      SELECT l.*, ${rateSql(w)} rate, ${tierUsedSql(w)} tier_used, ${firstPartySql()} first_party, ${comparableSql()} comparable
       FROM listings l WHERE l.canonical IS NOT NULL AND coalesce(l.status, '') <> 'deprecated' AND ${where}),
     -- A model's full context, as its sources establish it: the largest plausible value, once
     -- three or more sources have spoken, leaving out any over ${CONTEXT_OUTLIER} times their
@@ -76,15 +98,16 @@ function judged(w: Workload, where = 'TRUE') {
       SELECT c.canonical, max(c.v) FILTER (WHERE s.n < 3 OR c.v <= s.median * ${CONTEXT_OUTLIER}) full_context
       FROM contexts c JOIN spans s USING (canonical) GROUP BY c.canonical),
     stats AS (
-      SELECT live.canonical, median(live.rate) median, count(live.rate)::INTEGER priced, any_value(w.full_context) full_context
+      SELECT live.canonical, median(live.rate) FILTER (WHERE live.comparable) median, count(live.rate) FILTER (WHERE live.comparable)::INTEGER priced, any_value(w.full_context) full_context
       FROM live LEFT JOIN widest w USING (canonical) GROUP BY live.canonical),
     flagged AS (
       SELECT live.*, s.median, s.priced, s.full_context,
-        rate IS NOT NULL AND NOT (s.priced >= ${MIN_FOR_MEDIAN} AND s.median > 0 AND (rate > s.median * ${OUTLIER_FACTOR} OR rate < s.median / ${OUTLIER_FACTOR})) inside
+        rate IS NOT NULL AND comparable AND NOT (s.priced >= ${MIN_FOR_MEDIAN} AND s.median > 0 AND (rate > s.median * ${OUTLIER_FACTOR} OR rate < s.median / ${OUTLIER_FACTOR})) inside
       FROM live JOIN stats s USING (canonical)),
     kept AS (
       -- With fewer than two prices left inside the band, the band says nothing: keep them all.
-      SELECT *, rate IS NOT NULL AND (inside OR count(*) FILTER (WHERE inside) OVER (PARTITION BY canonical) < 2) kept FROM flagged)
+      -- An offer of another kind (an embedding listing of a language model) is shown, never compared.
+      SELECT *, rate IS NOT NULL AND comparable AND (inside OR count(*) FILTER (WHERE inside) OVER (PARTITION BY canonical) < 2) kept FROM flagged)
     SELECT k.*,
       k.kept AND EXISTS (SELECT 1 FROM kept o WHERE o.canonical = k.canonical AND o.kept AND o.provider <> k.provider AND o.rate <= k.rate * ${CORROBORATION}) confirmed,
       k.full_context IS NULL OR coalesce(k.context, 0) >= k.full_context * ${CONTEXT_TOLERANCE} fits
@@ -93,14 +116,14 @@ function judged(w: Workload, where = 'TRUE') {
 
 /** A model in the list: just what its card and the spread ranking need. */
 export interface ModelRow {
-  id: string; name: string; lab: string; providers: number; priced: number; comparable: boolean;
-  own_provider: string | null; own_rate: number | null; pick_provider: string | null; pick_rate: number | null;
-  credible_rate: number | null; low_rate: number | null; high_rate: number | null;
+  id: string; name: string; lab: string; providers: number; priced: number; comparable: boolean; kind: string | null;
+  own_provider: string | null; own_rate: number | null; pick_provider: string | null; pick_rate: number | null; pick_tier: number | null;
+  credible_rate: number | null; low_rate: number | null; high_rate: number | null; full_context: number | null;
 }
 /** One model in full: the list's row, the prices behind its picks and why the cheapest was passed over. */
 export interface ModelDetail extends ModelRow {
   own_input: number | null; own_output: number | null; pick_input: number | null; pick_output: number | null;
-  low_provider: string | null; low_context: number | null; low_fits: boolean | null; low_status: string | null; full_context: number | null; outliers: number;
+  low_provider: string | null; low_context: number | null; low_fits: boolean | null; low_status: string | null; outliers: number;
 }
 
 const ROUND = (x: string) => `round(${x}, 4)`;
@@ -119,13 +142,13 @@ function rows(w: Workload, one: boolean) {
         CASE WHEN rate IS NOT NULL AND first_party THEN row_number() OVER (PARTITION BY canonical, rate IS NOT NULL AND first_party ORDER BY rate, provider) END own_rank
       FROM j LEFT JOIN providers p ON p.id = j.provider)
     SELECT m.id, coalesce(m.name, m.id) name, m.lab,
-      count(DISTINCT r.provider)::INTEGER providers, count(DISTINCT r.provider) FILTER (WHERE r.rate IS NOT NULL)::INTEGER priced, bool_or(r.comparable) comparable,
+      count(DISTINCT r.provider)::INTEGER providers, count(DISTINCT r.provider) FILTER (WHERE r.rate IS NOT NULL)::INTEGER priced, bool_or(r.comparable) comparable, mode(r.kind) FILTER (WHERE r.kind <> 'chat') kind,
       ${at('own_rank', 'provider_name', 'own_provider')}, ${at('own_rank', 'rate', 'own_rate', true)},
-      ${at('pick_rank', 'provider_name', 'pick_provider')}, ${at('pick_rank', 'rate', 'pick_rate', true)},
-      ${at('credible_rank', 'rate', 'credible_rate', true)}, ${at('low_rank', 'rate', 'low_rate', true)}, ${ROUND('max(r.rate) FILTER (WHERE r.kept)')} high_rate
+      ${at('pick_rank', 'provider_name', 'pick_provider')}, ${at('pick_rank', 'rate', 'pick_rate', true)}, ${at('pick_rank', 'tier_used', 'pick_tier')},
+      ${at('credible_rank', 'rate', 'credible_rate', true)}, ${at('low_rank', 'rate', 'low_rate', true)}, ${ROUND('max(r.rate) FILTER (WHERE r.kept)')} high_rate, any_value(r.full_context)::BIGINT full_context
       ${one ? `, ${at('own_rank', 'input', 'own_input')}, ${at('own_rank', 'output', 'own_output')}, ${at('pick_rank', 'input', 'pick_input')}, ${at('pick_rank', 'output', 'pick_output')},
       ${at('low_rank', 'provider_name', 'low_provider')}, ${at('low_rank', 'context', 'low_context')}, ${at('low_rank', 'fits', 'low_fits')}, ${at('low_rank', 'status', 'low_status')},
-      any_value(r.full_context) full_context, count(*) FILTER (WHERE r.rate IS NOT NULL AND NOT r.kept)::INTEGER outliers` : ''}
+      count(*) FILTER (WHERE r.rate IS NOT NULL AND NOT r.kept)::INTEGER outliers` : ''}
     FROM models m JOIN ranked r ON r.canonical = m.id
     GROUP BY m.id, m.name, m.lab ORDER BY providers DESC, name, m.id`;
 }
@@ -161,7 +184,7 @@ export const spread = (r: ModelRow) => {
 export interface Offer {
   provider: string; provider_name: string; model: string; name: string | null; status: string | null;
   input: number | null; output: number | null; cache_read: number | null; context: number | null; output_limit: number | null;
-  rate: number | null; first_party: boolean; kept: boolean; confirmed: boolean; fits: boolean; comparable: boolean;
+  rate: number | null; tier_used: number | null; first_party: boolean; kept: boolean; confirmed: boolean; fits: boolean; comparable: boolean;
 }
 
 /** Every live listing of one model, cheapest first, with how it was judged. */
@@ -169,7 +192,7 @@ export async function offers(db: Database, id: string, w: Workload = CHAT): Prom
   return await db.query(`
     WITH j AS (${judged(w, 'l.canonical = ?')})
     SELECT j.provider, coalesce(p.name, j.provider) provider_name, j.model, j.name, j.status, j.input, j.output, j.cache_read, j.context, j.output_limit,
-      j.rate, j.first_party, j.kept, j.confirmed, j.fits, j.comparable
+      j.rate, j.tier_used, j.first_party, j.kept, j.confirmed, j.fits, j.comparable
     FROM j LEFT JOIN providers p ON p.id = j.provider
     ORDER BY j.rate IS NULL, j.rate, j.provider, j.model LIMIT 500`, [id]) as unknown as Offer[];
 }
@@ -212,10 +235,18 @@ export async function history(db: Database, id: string, w: Workload = CHAT, days
   return rows as unknown as Point[];
 }
 
-export interface Span { provider: string; model: string; valid_from: string; valid_to: string | null; input: number | null; output: number | null; cache_read: number | null; cache_write: number | null; reasoning_price: number | null; input_200k: number | null; output_200k: number | null }
+export interface Span { provider: string; model: string; valid_from: string; valid_to: string | null; input: number | null; output: number | null; cache_read: number | null; cache_write: number | null; reasoning_price: number | null; tiers: string | null }
 
 /** Every price span of the model's listings, oldest first: the complete record, for export. */
 export async function spans(db: Database, id: string, limit = 5_000): Promise<Span[]> {
-  return await db.query(`SELECT provider, model, valid_from, valid_to, input, output, cache_read, cache_write, reasoning_price, input_200k, output_200k
+  return await db.query(`SELECT provider, model, valid_from, valid_to, input, output, cache_read, cache_write, reasoning_price, tiers
     FROM price_history WHERE canonical = ? ORDER BY provider, model, valid_from LIMIT ${Math.max(1, Math.floor(limit))}`, [id]) as unknown as Span[];
+}
+
+export interface Abilities { reasoning: boolean | null; tool_call: boolean | null; structured_output: boolean | null; attachment: boolean | null }
+/** What any live listing of the model offers: a capability one host has, the model has. */
+export async function abilities(db: Database, id: string): Promise<Abilities> {
+  const [row] = await db.query(`SELECT bool_or(reasoning) reasoning, bool_or(tool_call) tool_call, bool_or(structured_output) structured_output, bool_or(attachment) attachment
+    FROM listings WHERE canonical = ? AND coalesce(status, '') <> 'deprecated'`, [id]);
+  return (row as unknown as Abilities) ?? { reasoning: null, tool_call: null, structured_output: null, attachment: null };
 }

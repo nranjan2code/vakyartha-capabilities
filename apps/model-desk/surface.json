@@ -112,6 +112,211 @@
     ]
   },
   {
+    "id": "costs",
+    "title": "Costs",
+    "data": {
+      "shape": "Chat: Short turns, light history, little caching: an assistant in a product. 1,500 tokens in (20% from cache), 500 out, within a 8K context, 5% written to cache. 100K requests a month, at each model's best full-context offer.",
+      "none": "No priced models yet. Use Refresh in the app header to read the catalog."
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "co-request",
+          "co-volume",
+          "co-shape",
+          "co-none"
+        ]
+      },
+      {
+        "id": "co-request",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true
+        },
+        "children": [
+          "co-w-chat",
+          "co-w-rag",
+          "co-w-agentic",
+          "co-w-reasoning",
+          "co-w-long-context"
+        ]
+      },
+      {
+        "id": "co-w-chat",
+        "type": "button",
+        "props": {
+          "label": "Chat",
+          "action": "set_workload",
+          "payload": {
+            "id": "chat"
+          },
+          "style": "primary"
+        }
+      },
+      {
+        "id": "co-w-rag",
+        "type": "button",
+        "props": {
+          "label": "Retrieval",
+          "action": "set_workload",
+          "payload": {
+            "id": "rag"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "co-w-agentic",
+        "type": "button",
+        "props": {
+          "label": "Agentic",
+          "action": "set_workload",
+          "payload": {
+            "id": "agentic"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "co-w-reasoning",
+        "type": "button",
+        "props": {
+          "label": "Heavy reasoning",
+          "action": "set_workload",
+          "payload": {
+            "id": "reasoning"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "co-w-long-context",
+        "type": "button",
+        "props": {
+          "label": "Long context",
+          "action": "set_workload",
+          "payload": {
+            "id": "long-context"
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "co-volume",
+        "type": "stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "sm",
+          "wrap": true
+        },
+        "children": [
+          "co-v-10000",
+          "co-v-100000",
+          "co-v-1000000",
+          "co-v-10000000"
+        ]
+      },
+      {
+        "id": "co-v-10000",
+        "type": "button",
+        "props": {
+          "label": "10K a month",
+          "action": "set_volume",
+          "payload": {
+            "volume": 10000
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "co-v-100000",
+        "type": "button",
+        "props": {
+          "label": "100K a month",
+          "action": "set_volume",
+          "payload": {
+            "volume": 100000
+          },
+          "style": "primary"
+        }
+      },
+      {
+        "id": "co-v-1000000",
+        "type": "button",
+        "props": {
+          "label": "1M a month",
+          "action": "set_volume",
+          "payload": {
+            "volume": 1000000
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "co-v-10000000",
+        "type": "button",
+        "props": {
+          "label": "10M a month",
+          "action": "set_volume",
+          "payload": {
+            "volume": 10000000
+          },
+          "style": "secondary"
+        }
+      },
+      {
+        "id": "co-shape",
+        "type": "text",
+        "props": {
+          "content": "{/shape}",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "co-none",
+        "type": "text",
+        "props": {
+          "content": "{/none}",
+          "variant": "caption"
+        }
+      }
+    ]
+  },
+  {
+    "id": "compare",
+    "title": "Compare",
+    "data": {},
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "cp-none"
+        ]
+      },
+      {
+        "id": "cp-none",
+        "type": "text",
+        "props": {
+          "content": "Open a model under Models and choose Add to Compare. Up to 4 models fit side by side.",
+          "variant": "caption"
+        }
+      }
+    ]
+  },
+  {
     "id": "changes",
     "title": "Changes",
     "data": {},

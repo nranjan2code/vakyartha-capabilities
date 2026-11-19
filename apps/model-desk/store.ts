@@ -15,21 +15,21 @@ export interface Database {
   query(sql: string, values?: (string | number | boolean | null)[]): Promise<Record<string, unknown>[]>;
 }
 
-/** Listing columns after provider and model, in source order (LISTING_COLUMNS), with their types. */
+/** Listing columns after provider and model, in source order (LISTING_COLUMNS, its two tier forms as one), with their types. */
 const LISTING_FIELDS: [string, string][] = [
   ['name', 'VARCHAR'], ['family', 'VARCHAR'], ['upstream', 'VARCHAR'], ['status', 'VARCHAR'], ['release_date', 'VARCHAR'], ['last_updated', 'VARCHAR'], ['knowledge', 'VARCHAR'],
   ['open_weights', 'BOOLEAN'], ['reasoning', 'BOOLEAN'], ['tool_call', 'BOOLEAN'], ['attachment', 'BOOLEAN'], ['structured_output', 'BOOLEAN'],
   ['context', 'BIGINT'], ['input_limit', 'BIGINT'], ['output_limit', 'BIGINT'],
   ['input', 'DOUBLE'], ['output', 'DOUBLE'], ['cache_read', 'DOUBLE'], ['cache_write', 'DOUBLE'], ['reasoning_price', 'DOUBLE'],
-  ['input_200k', 'DOUBLE'], ['output_200k', 'DOUBLE'],
-  ['modalities_in', 'VARCHAR'], ['modalities_out', 'VARCHAR'],
+  ['tiers', 'VARCHAR'],
+  ['modalities_in', 'VARCHAR'], ['modalities_out', 'VARCHAR'], ['kind', 'VARCHAR'],
 ];
 const LISTING_TABLE: [string, string][] = [['provider', 'VARCHAR'], ['model', 'VARCHAR'], ['canonical', 'VARCHAR'], ['lab', 'VARCHAR'], ...LISTING_FIELDS];
 const PROVIDER_TABLE: [string, string][] = [['id', 'VARCHAR'], ['name', 'VARCHAR'], ['doc', 'VARCHAR'], ['api', 'VARCHAR']];
 const MODEL_TABLE: [string, string][] = [['id', 'VARCHAR'], ['lab', 'VARCHAR'], ['name', 'VARCHAR'], ['family', 'VARCHAR'], ['license', 'VARCHAR'], ['open_weights', 'BOOLEAN'], ['knowledge', 'VARCHAR'], ['release_date', 'VARCHAR'], ['last_updated', 'VARCHAR'], ['context', 'BIGINT'], ['output_limit', 'BIGINT']];
 const BENCHMARK_TABLE: [string, string][] = [['model', 'VARCHAR'], ['position', 'INTEGER'], ['name', 'VARCHAR'], ['score', 'DOUBLE'], ['metric', 'VARCHAR'], ['source', 'VARCHAR'], ['date', 'VARCHAR']];
 /** The prices a listing's history follows, per million tokens. */
-const PRICES = ['input', 'output', 'cache_read', 'cache_write', 'reasoning_price', 'input_200k', 'output_200k'];
+const PRICES = ['input', 'output', 'cache_read', 'cache_write', 'reasoning_price', 'tiers'];
 /** What a change event compares, with the field name it reports. */
 const COMPARED: [string, string][] = [
   ['name', 'name'], ['family', 'family'], ['status', 'status'], ['knowledge', 'knowledge'], ['release_date', 'release_date'], ['last_updated', 'last_updated'],
@@ -37,7 +37,7 @@ const COMPARED: [string, string][] = [
   ['modalities_in', 'modalities.input'], ['modalities_out', 'modalities.output'],
   ['context', 'limit.context'], ['input_limit', 'limit.input'], ['output_limit', 'limit.output'],
   ['input', 'cost.input'], ['output', 'cost.output'], ['cache_read', 'cost.cache_read'], ['cache_write', 'cost.cache_write'], ['reasoning_price', 'cost.reasoning'],
-  ['input_200k', 'cost.input_over_200k'], ['output_200k', 'cost.output_over_200k'],
+  ['tiers', 'cost.tiers'], ['kind', 'type'],
 ];
 
 const columns = (cols: [string, string][]) => cols.map(([n, t]) => `${n} ${t}`).join(', ');
@@ -51,7 +51,7 @@ export async function initialize(db: Database) {
   await db.run(`CREATE TABLE IF NOT EXISTS models(${columns(MODEL_TABLE)})`);
   await db.run(`CREATE TABLE IF NOT EXISTS benchmarks(${columns(BENCHMARK_TABLE)})`);
   await db.run('CREATE TABLE IF NOT EXISTS events(id VARCHAR PRIMARY KEY, run INTEGER, day VARCHAR, type VARCHAR, provider VARCHAR, model VARCHAR, canonical VARCHAR, lab VARCHAR, name VARCHAR, changes JSON)');
-  await db.run(`CREATE TABLE IF NOT EXISTS price_history(provider VARCHAR, model VARCHAR, canonical VARCHAR, valid_from VARCHAR, valid_to VARCHAR, ${PRICES.map((p) => `${p} DOUBLE`).join(', ')})`);
+  await db.run(`CREATE TABLE IF NOT EXISTS price_history(provider VARCHAR, model VARCHAR, canonical VARCHAR, valid_from VARCHAR, valid_to VARCHAR, ${PRICES.map((p) => `${p} ${p === 'tiers' ? 'VARCHAR' : 'DOUBLE'}`).join(', ')})`);
 }
 
 const CHUNK = 2_000;

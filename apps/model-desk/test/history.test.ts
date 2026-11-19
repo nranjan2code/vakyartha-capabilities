@@ -11,13 +11,13 @@ test('the history says what it covers and how the cheapest price moved', () => {
 
 test('the export is a spreadsheet of spans that never runs a formula', () => {
   const csv = spansCsv([
-    { provider: 'p1', model: 'm', valid_from: '2026-11-17T09:00:00Z', valid_to: '2026-11-20T09:00:00Z', input: 1, output: 2, cache_read: null, cache_write: null, reasoning_price: null, input_200k: null, output_200k: null },
-    { provider: '=HYPERLINK("x")', model: 'a,b', valid_from: '2026-11-20T09:00:00Z', valid_to: null, input: 0.5, output: -1, cache_read: 0.05, cache_write: null, reasoning_price: null, input_200k: null, output_200k: null },
+    { provider: 'p1', model: 'm', valid_from: '2026-11-17T09:00:00Z', valid_to: '2026-11-20T09:00:00Z', input: 1, output: 2, cache_read: null, cache_write: null, reasoning_price: null, tiers: null },
+    { provider: '=HYPERLINK("x")', model: 'a,b', valid_from: '2026-11-20T09:00:00Z', valid_to: null, input: 0.5, output: -1, cache_read: 0.05, cache_write: null, reasoning_price: null, tiers: '[{"size":200000,"input":1}]' },
   ]);
   assert.equal(csv, [
-    'provider,model,from,to,input,output,cache_read,cache_write,reasoning,input_over_200k,output_over_200k',
-    'p1,m,2026-11-17T09:00:00Z,2026-11-20T09:00:00Z,1,2,,,,,',
-    '"\'=HYPERLINK(""x"")","a,b",2026-11-20T09:00:00Z,,0.5,-1,0.05,,,,',
+    'provider,model,from,to,input,output,cache_read,cache_write,reasoning,context_tiers',
+    'p1,m,2026-11-17T09:00:00Z,2026-11-20T09:00:00Z,1,2,,,,',
+    '"\'=HYPERLINK(""x"")","a,b",2026-11-20T09:00:00Z,,0.5,-1,0.05,,,"[{""size"":200000,""input"":1}]"',
     '',
   ].join('\n'));
 });

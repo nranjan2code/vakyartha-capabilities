@@ -11,9 +11,9 @@ import {
   benchmark, BENCHMARK_COLUMNS, listing, LISTING_COLUMNS, MAX_CALLS, model, MODEL_COLUMNS, MODELS_URL, PRICES_URL, provider, PROVIDER_COLUMNS, readAll,
   type Call, type Read, type Receipt,
 } from './source.ts';
-import { catalog, detail, history, model as about, offers, spans } from './market.ts';
+import { abilities, catalog, detail, history, model as about, offers, spans, workload, WORKLOADS } from './market.ts';
 import { apply, failed, modelEvents, snapshot, type Database } from './store.ts';
-import { normalize, NOTHING, TITLES, TYPES, view, type Loaded, type State } from './views.ts';
+import { MAX_COMPARED, normalize, NOTHING, TITLES, TYPES, view, VOLUMES, type Compared, type Loaded, type State } from './views.ts';
 
 export { view, TITLES };
 
@@ -24,16 +24,25 @@ export interface Context {
   callTool(name: string, args: Record<string, unknown>): Promise<unknown>;
 }
 
-/** Everything the views read, in bounded queries: the pipeline snapshot, the model list, the opened model. */
+/** Everything the views read, in bounded queries, priced for the chosen request: the pipeline
+ * snapshot, the model list, the opened model and the compared ones. */
 export async function load(db: Database, state: State): Promise<Loaded> {
+  const w = workload(state.workload);
   const snap = await snapshot(db);
-  const models = await catalog(db);
-  if (!state.model) return { snap, models, open: null };
-  const d = await detail(db, state.model);
-  if (!d) return { snap, models, open: null };
-  const list = await offers(db, state.model), facts = await about(db, state.model);
-  const past = await history(db, state.model), kept = await spans(db, state.model), events = await modelEvents(db, state.model);
-  return { snap, models, open: { detail: d, offers: list, facts: facts?.facts ?? null, scores: facts?.scores ?? [], history: past, spans: kept, events } };
+  const models = await catalog(db, w);
+  const compared: Compared[] = [];
+  for (const id of state.compare ?? []) {
+    const d = await detail(db, id, w);
+    if (!d) continue;
+    const facts = await about(db, id);
+    compared.push({ detail: d, facts: facts?.facts ?? null, abilities: await abilities(db, id), scores: facts?.scores ?? [] });
+  }
+  if (!state.model) return { snap, models, open: null, compared };
+  const d = await detail(db, state.model, w);
+  if (!d) return { snap, models, open: null, compared };
+  const list = await offers(db, state.model, w), facts = await about(db, state.model);
+  const past = await history(db, state.model, w), kept = await spans(db, state.model), events = await modelEvents(db, state.model);
+  return { snap, models, open: { detail: d, offers: list, facts: facts?.facts ?? null, scores: facts?.scores ?? [], history: past, spans: kept, events }, compared };
 }
 
 const reason = (e: unknown) => String((e as Error)?.message ?? e).replace(/^Error:\s*/, '').slice(0, 400);
@@ -85,6 +94,29 @@ export async function handleAction(controlId: string, value: unknown, ctx: Conte
       if (type !== 'all' && !Object.hasOwn(TYPES, type)) throw new Error('That kind of change is not one this desk records');
       ctx.state.type = type;
       return { updates: view(ctx.state, await load(ctx.database, ctx.state)).filter((u) => u.surface === 'changes') };
+    }
+    case 'set_workload': {
+      const id = String((value as { id?: unknown } | null)?.id ?? '');
+      if (!WORKLOADS.some((w) => w.id === id)) throw new Error('That request shape is not one this desk prices');
+      ctx.state.workload = id;
+      // Every price follows the request: only the pipeline's own records stay as they were.
+      return { updates: view(ctx.state, await load(ctx.database, ctx.state)).filter((u) => u.surface !== 'changes' && u.surface !== 'pipeline') };
+    }
+    case 'set_volume': {
+      const volume = Number((value as { volume?: unknown } | null)?.volume);
+      if (!VOLUMES.includes(volume)) throw new Error('Choose one of the monthly volumes shown');
+      ctx.state.volume = volume;
+      return { updates: view(ctx.state, await load(ctx.database, ctx.state)).filter((u) => u.surface === 'costs' || u.surface === 'compare') };
+    }
+    case 'compare_add': case 'compare_remove': {
+      const id = String((value as { id?: unknown } | null)?.id ?? '');
+      const list = ctx.state.compare ?? [];
+      if (action === 'compare_add') {
+        if (!id || id.length > 200 || !(await detail(ctx.database, id))) throw new Error('That model is not in the current snapshot; refresh and choose again');
+        if (!list.includes(id) && list.length >= MAX_COMPARED) throw new Error(`Compare holds ${MAX_COMPARED} models; remove one first`);
+        ctx.state.compare = [...new Set([...list, id])];
+      } else ctx.state.compare = list.filter((x) => x !== id);
+      return { updates: view(ctx.state, await load(ctx.database, ctx.state)).filter((u) => u.surface === 'compare' || u.surface === 'models') };
     }
     case 'open_model': {
       const id = String((value as { id?: unknown } | null)?.id ?? '');

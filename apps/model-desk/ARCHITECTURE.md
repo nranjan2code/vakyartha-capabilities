@@ -8,15 +8,15 @@
 | `source.ts` | Reading the catalog as tables, page by page, and checking every value |
 | `identity.ts` | Matching a provider listing to its underlying model |
 | `store.ts` | The DuckDB schema, staging, quality checks, change events, price spans, the snapshot swap, and the pipeline reads views use |
-| `market.ts` | The market as SQL: a workload's price per million tokens, the lab's own offer, outliers, confirmation, full context, the pick and the spread, for the whole list or one model; a model's daily price history from its spans, and the spans themselves for export |
-| `views.ts` | The four surfaces, derived from state and what `load` (server.ts) read |
+| `market.ts` | The market as SQL: the five workloads and a workload's tier-aware price per million tokens, the lab's own offer, outliers, confirmation, full context, the pick and the spread, for the whole list or one model; a model's daily price history from its spans, and the spans themselves for export |
+| `views.ts` | The six surfaces, derived from state (Changes filter, open model, workload, volume, compared models) and what `load` (server.ts) read |
 
 ## Flow
 
 1. `read` (server.ts) reads, in order: models (`/*` of the model document), benchmarks (`/*/benchmarks/*`), providers (`/*` of the price document) and listings (`/*/models/*`), each with `readAll`, which follows `next` cursors and fails unless every row arrived in order. Thirteen calls in all at today's size.
 2. `identity` matches each listing; the fingerprint of everything read decides whether the source changed.
 3. `apply` (store.ts) loads staging tables with chunked `from_json` inserts, runs `check`, and either records a blocked run or, in one transaction, writes change events (a full outer join of the snapshot and the candidate, field by field), closes and opens price spans, replaces the snapshot and records the run.
-4. `load` reads the pipeline `snapshot` (totals, the latest 30 runs, the latest run's findings and reads, the latest 300 events), the model list (`catalog`, in chunks of 400) and, when a model is open, its `detail`, `offers`, facts, daily `history`, `spans` and change events (`modelEvents`); `view` builds every surface from them. Opening a model is a clicked action and reads only that: about a quarter of a second on today's catalog.
+4. `load` prices everything for the chosen workload. It reads the pipeline `snapshot` (totals, the latest 30 runs, the latest run's findings and reads, the latest 300 events), the model list (`catalog`, in chunks of 400) and, when a model is open, its `detail`, `offers`, facts, daily `history`, `spans` and change events (`modelEvents`); `view` builds every surface from them. and each compared model's `detail`, facts and `abilities`. Clicked actions (open a model, choose a workload or volume, add or remove a compared model) return only the views they change and take about a quarter of a second on today's catalog.
 
 ## Boundaries
 

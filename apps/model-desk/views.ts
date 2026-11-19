@@ -4,18 +4,24 @@
 import type { Snapshot } from './store.ts';
 import { EMPTY, RECENT } from './store.ts';
 import { SOURCE } from './source.ts';
-import { CHAT, CORROBORATION, OUTLIER_FACTOR, spread, type Facts, type ModelDetail, type ModelRow, type Offer, type Point, type Score, type Span } from './market.ts';
+import { billable, CORROBORATION, OUTLIER_FACTOR, spread, workload, WORKLOADS, type Abilities, type Facts, type ModelDetail, type ModelRow, type Offer, type Point, type Score, type Span, type Workload } from './market.ts';
 
-export interface State { type?: string; model?: string }
+export interface State { type?: string; model?: string; workload?: string; volume?: number; compare?: string[] }
+/** Requests a month, the unit a bill is approved in (the original's choices). */
+export const VOLUMES = [10_000, 100_000, 1_000_000, 10_000_000];
+/** At most this many models side by side. */
+export const MAX_COMPARED = 4;
+/** A model in Compare: its judgement, facts, capabilities and scores. */
+export interface Compared { detail: ModelDetail; facts: Facts | null; abilities: Abilities; scores: Score[] }
 /** One model opened on the Models view. */
 export interface Opened { detail: ModelDetail; offers: Offer[]; facts: Facts | null; scores: Score[]; history: Point[]; spans: Span[]; events: Record<string, unknown>[] }
 /** Everything the views read: the pipeline snapshot, the model list and the opened model. */
-export interface Loaded { snap: Snapshot; models: ModelRow[]; open: Opened | null }
-export const NOTHING: Loaded = { snap: EMPTY, models: [], open: null };
+export interface Loaded { snap: Snapshot; models: ModelRow[]; open: Opened | null; compared: Compared[] }
+export const NOTHING: Loaded = { snap: EMPTY, models: [], open: null, compared: [] };
 interface Node { id: string; type: string; props?: Record<string, unknown>; children?: string[] | { each: string; template: string } }
 export interface Update { surface: string; nodes: Node[]; data: { op: 'replace'; path: '/'; value: Record<string, unknown> }[] }
 
-export const TITLES: Record<string, string> = { overview: 'Overview', models: 'Models', changes: 'Changes', pipeline: 'Pipeline' };
+export const TITLES: Record<string, string> = { overview: 'Overview', models: 'Models', costs: 'Costs', compare: 'Compare', changes: 'Changes', pipeline: 'Pipeline' };
 
 export const TYPES: Record<string, string> = {
   repriced: 'Repriced', model_added: 'Model added', provider_added: 'New provider', deprecated: 'Deprecated',
@@ -23,7 +29,7 @@ export const TYPES: Record<string, string> = {
 };
 const FIELDS: Record<string, string> = {
   'cost.input': 'input price', 'cost.output': 'output price', 'cost.cache_read': 'cache read price', 'cost.cache_write': 'cache write price', 'cost.reasoning': 'reasoning price',
-  'cost.input_over_200k': 'input price over 200k', 'cost.output_over_200k': 'output price over 200k',
+  'cost.tiers': 'context price tiers',
   'limit.context': 'context', 'limit.input': 'input limit', 'limit.output': 'output limit', 'modalities.input': 'inputs', 'modalities.output': 'outputs',
   release_date: 'release date', last_updated: 'last updated', open_weights: 'open weights', tool_call: 'tool calls', structured_output: 'structured output',
 };
@@ -32,8 +38,12 @@ const STATUS: Record<string, string> = { applied: 'Applied', unchanged: 'No chan
 export function normalize(input: unknown): State {
   const s = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
   const type = typeof s.type === 'string' && (s.type === 'all' || Object.hasOwn(TYPES, s.type)) ? s.type : 'all';
-  const model = typeof s.model === 'string' && s.model.length > 0 && s.model.length <= 200 ? s.model : undefined;
-  return model ? { type, model } : { type };
+  const id = (v: unknown) => typeof v === 'string' && v.length > 0 && v.length <= 200;
+  const model = id(s.model) ? s.model as string : undefined;
+  const chosen = workload(s.workload).id;
+  const volume = VOLUMES.includes(Number(s.volume)) ? Number(s.volume) : 100_000;
+  const compare = Array.isArray(s.compare) ? [...new Set(s.compare.filter(id) as string[])].slice(0, MAX_COMPARED) : [];
+  return { type, ...(model ? { model } : {}), workload: chosen, volume, compare };
 }
 
 const int = (v: unknown) => Number(v ?? 0);
@@ -76,7 +86,7 @@ export function widest(models: ModelRow[], minProviders = 6, limit = 6): ModelRo
     .sort((a, b) => spread(b)! - spread(a)! || a.name.localeCompare(b.name)).slice(0, limit);
 }
 
-function overview(snap: Snapshot, models: ModelRow[]): Update {
+function overview(snap: Snapshot, models: ModelRow[], w: Workload): Update {
   const wide = widest(models);
   const t = snap.totals, latest = snap.latest, applied = snap.applied;
   const kept = latest && latest.status !== 'applied' && latest.status !== 'unchanged';
@@ -94,7 +104,7 @@ function overview(snap: Snapshot, models: ModelRow[]): Update {
     { id: 'ov-matched', type: 'stat', props: { label: 'Listings matched to a model', value: '{/stats/matched}' } },
   );
   if (wide.length) nodes.push(
-    { id: 'ov-spreads', type: 'section', props: { title: 'Where shopping around pays', description: `The same model across providers, priced for a chat request. Prices are US dollars per million tokens.` }, children: ['ov-spread-table'] },
+    { id: 'ov-spreads', type: 'section', props: { title: 'Where shopping around pays', description: `The same model across providers, priced for ${article(w)}. Prices are US dollars per million tokens.` }, children: ['ov-spread-table'] },
     { id: 'ov-spread-table', type: 'table', props: { rows: '{/spreads}', columns: [{ key: 'name', label: 'Model' }, { key: 'priced', label: 'Priced by', align: 'end' }, { key: 'from', label: 'From', align: 'end' }, { key: 'to', label: 'Up to', align: 'end' }, { key: 'spread', label: 'Spread', align: 'end' }] } },
   );
   if (applied) {
@@ -187,8 +197,8 @@ function pipeline(snap: Snapshot): Update {
 }
 
 export function view(state: unknown, loaded: Loaded = NOTHING): Update[] {
-  const s = normalize(state);
-  return [overview(loaded.snap, loaded.models), modelsView(loaded), changes(s, loaded.snap), pipeline(loaded.snap)];
+  const s = normalize(state), w = workload(s.workload);
+  return [overview(loaded.snap, loaded.models, w), modelsView(loaded, s), costs(loaded, s), compare(loaded, s), changes(s, loaded.snap), pipeline(loaded.snap)];
 }
 
 /** A price per million tokens the way the original wrote it: cents for small, two places for large. */
@@ -210,7 +220,7 @@ export function tokens(n: unknown): string {
 
 /** The sentence a buyer needs (the original's summary): what to buy, against the lab, and the catch. */
 export function sentence(d: ModelDetail): string {
-  if (!d.comparable) return `Providers bill ${d.name} in other units than text tokens (images, audio or video), so its prices are listed but not compared.`;
+  if (!d.comparable) return d.kind ? `${d.name} is ${/^[aeiou]/i.test(d.kind) ? 'an' : 'a'} ${d.kind} model, so its prices are listed but not compared with language models.` : `Providers bill ${d.name} in other units than text tokens (images, audio or video), so its prices are listed but not compared.`;
   const parts = [d.priced === d.providers ? `${d.providers} providers list ${d.name}.` : `${d.priced} of ${d.providers} providers publish a price for ${d.name}.`];
   if (!d.priced) return `${d.providers} providers list ${d.name}; none publishes a price.`;
   const pickName = d.pick_provider ?? d.low_provider;
@@ -232,6 +242,7 @@ function note(o: Offer): string {
   const n: string[] = [];
   if (o.first_party) n.push("Lab's own");
   if (o.rate === null) n.push('No published price');
+  else if (!o.comparable) n.push('Not a language-model offer; not compared');
   else if (!o.kept) n.push('Set aside: far from the middle price');
   else if (!o.confirmed) n.push(`Unconfirmed: no other provider within ${CORROBORATION}x`);
   if (!o.fits) n.push('Smaller context');
@@ -239,7 +250,8 @@ function note(o: Offer): string {
   return n.join('; ') || '—';
 }
 
-function modelsView(l: Loaded): Update {
+function modelsView(l: Loaded, s: State): Update {
+  const w = workload(s.workload);
   const open = l.open, d = open?.detail;
   const withOwn = l.models.filter((m) => m.own_rate !== null).length;
   const nodes: Node[] = [
@@ -259,14 +271,20 @@ function modelsView(l: Loaded): Update {
   if (!d) nodes.push({ id: 'md-pick', type: 'text', props: { content: 'Choose a model to see every provider\'s offer, the lab\'s own price and its benchmark scores.', variant: 'caption' } });
   else {
     const charted = open!.history.length >= 2;
+    const comparing = s.compare!.includes(d.id), full = s.compare!.length >= MAX_COMPARED;
     nodes.push(
-      { id: 'md-open', type: 'section', props: { title: d.name, description: '{/open/about}' }, children: ['md-stats', 'md-sentence', 'md-tabs'] },
+      { id: 'md-open', type: 'section', props: { title: d.name, description: '{/open/about}' }, children: ['md-stats', 'md-sentence', 'md-compare', 'md-tabs'] },
       { id: 'md-stats', type: 'grid', props: { columns: 4, minItemWidth: 'sm', gap: 'sm' }, children: ['md-providers', 'md-pick-stat', 'md-own', 'md-context'] },
       { id: 'md-providers', type: 'stat', props: { label: 'Providers', value: '{/open/providers}', caption: '{/open/priced}' } },
       { id: 'md-pick-stat', type: 'stat', props: { label: 'Best full-context offer', value: '{/open/pick}', caption: '{/open/pickBy}' } },
       { id: 'md-own', type: 'stat', props: { label: "The lab's own price", value: '{/open/own}', caption: '{/open/ownBy}' } },
       { id: 'md-context', type: 'stat', props: { label: 'Context', value: '{/open/context}', caption: '{/open/output}' } },
       { id: 'md-sentence', type: 'text', props: { content: '{/open/sentence}' } },
+      comparing
+        ? { id: 'md-compare', type: 'button', props: { label: 'Remove from Compare', action: 'compare_remove', payload: { id: d.id }, style: 'secondary' } }
+        : full
+          ? { id: 'md-compare', type: 'text', props: { content: `Compare holds ${MAX_COMPARED} models; remove one there to add this one.`, variant: 'caption' } }
+          : { id: 'md-compare', type: 'button', props: { label: 'Add to Compare', action: 'compare_add', payload: { id: d.id }, style: 'secondary' } },
       ...tabbed('md-tabs', [
         ['Offers', ['md-offers']],
         ['History', ['md-history-note', ...(charted ? ['md-history'] : []), ...(open!.spans.length ? ['md-export'] : [])]],
@@ -282,7 +300,7 @@ function modelsView(l: Loaded): Update {
     if (open!.scores.length) nodes.push({ id: 'md-scores', type: 'table', props: { rows: '{/open/scores}', columns: [{ key: 'name', label: 'Benchmark' }, { key: 'score', label: 'Score', align: 'end' }, { key: 'metric', label: 'Measure' }, { key: 'date', label: 'Date' }, { key: 'source', label: 'Source' }] } });
   }
   const data: Record<string, unknown> = {
-    count: `${l.models.length.toLocaleString('en-US')} models; ${withOwn.toLocaleString('en-US')} sold by their own lab. Prices are US dollars per million tokens, blended for a chat request: ${CHAT.inputTokens.toLocaleString('en-US')} tokens in (a fifth from cache), ${CHAT.outputTokens} out.`,
+    count: `${l.models.length.toLocaleString('en-US')} models; ${withOwn.toLocaleString('en-US')} sold by their own lab. Prices are US dollars per million tokens, for ${article(w)}: ${shape(w)}. Choose the request under Costs.`,
     models: l.models.map((m) => ({
       id: m.id, name: m.name,
       line: `${m.lab} · ${m.providers} provider${m.providers === 1 ? '' : 's'} · ${m.pick_rate !== null ? `from ${money(m.pick_rate)}` : m.priced ? `from ${money(m.low_rate)}` : 'no published price'}`,
@@ -300,7 +318,7 @@ function modelsView(l: Loaded): Update {
       context: tokens(d.full_context ?? f?.context), output: f?.output_limit ? `${tokens(f.output_limit)} output` : 'Output limit not published',
       sentence: sentence(d),
       offers: open!.offers.map((o) => ({ provider: o.provider_name, input: money(o.input), output: money(o.output), cache: money(o.cache_read), context: tokens(o.context), chat: money(o.rate), note: note(o) })),
-      historyNote: historyNote(open!.history),
+      historyNote: historyNote(open!.history, w),
       ...(open!.history.length >= 2 ? { days: open!.history.map((p) => p.day), series: [{ name: 'Cheapest confirmed', values: open!.history.map((p) => p.best) }, { name: "The lab's own", values: open!.history.map((p) => p.own) }] } : {}),
       ...(open!.spans.length ? { file: `model-desk-${d.id.replace(/[^A-Za-z0-9]+/g, '-')}-prices`, csv: spansCsv(open!.spans) } : {}),
       ...(open!.events.length ? { events: eventRows(open!.events) } : {}),
@@ -317,17 +335,17 @@ function tabbed(id: string, panels: [string, string[]][]): Node[] {
 }
 
 /** What the history shows and from when, in words. */
-export function historyNote(points: { day: string; best: number | null; own: number | null }[]): string {
+export function historyNote(points: { day: string; best: number | null; own: number | null }[], w: Workload = WORKLOADS[0]!): string {
   if (!points.length) return 'No price history yet: it starts with the first refresh.';
   const first = points[0]!, last = points.at(-1)!;
   const span = points.length === 1 ? `one day, ${first.day}` : `${points.length} days, ${first.day} to ${last.day}`;
   const move = points.length >= 2 && first.best !== null && last.best !== null && first.best > 0
     ? ` The cheapest confirmed price went from ${money(first.best)} to ${money(last.best)}${last.best === first.best ? ', unchanged' : `, ${last.best < first.best ? 'down' : 'up'} ${Math.round(Math.abs(last.best / first.best - 1) * 100)}%`}.` : '';
   const chart = points.length < 2 ? ' A chart appears from the second day.' : '';
-  return `Prices for a chat request at each day's last refresh, over ${span}.${move}${chart} The export holds every price span with its dates.`;
+  return `Prices for ${article(w)} at each day's last refresh, over ${span}.${move}${chart} The export holds every price span with its dates.`;
 }
 
-const CSV_HEAD = ['provider', 'model', 'from', 'to', 'input', 'output', 'cache_read', 'cache_write', 'reasoning', 'input_over_200k', 'output_over_200k'];
+const CSV_HEAD = ['provider', 'model', 'from', 'to', 'input', 'output', 'cache_read', 'cache_write', 'reasoning', 'context_tiers'];
 /** A cell a spreadsheet reads as text: quoted when needed, and never as a formula. */
 function cell(v: unknown): string {
   if (v === null || v === undefined) return '';
@@ -337,5 +355,99 @@ function cell(v: unknown): string {
 }
 /** Every price span as CSV, prices in US dollars per million tokens, times in UTC. */
 export function spansCsv(rows: Span[]): string {
-  return [CSV_HEAD.join(','), ...rows.map((r) => [r.provider, r.model, r.valid_from, r.valid_to, r.input, r.output, r.cache_read, r.cache_write, r.reasoning_price, r.input_200k, r.output_200k].map(cell).join(','))].join('\n') + '\n';
+  return [CSV_HEAD.join(','), ...rows.map((r) => [r.provider, r.model, r.valid_from, r.valid_to, r.input, r.output, r.cache_read, r.cache_write, r.reasoning_price, r.tiers].map(cell).join(','))].join('\n') + '\n';
+}
+
+/** "a chat request", "an agentic request": how a price's workload reads in a sentence. */
+export const article = (w: Workload) => `${/^[aeiou]/i.test(w.name) ? 'an' : 'a'} ${w.name.toLowerCase()} request`;
+/** "1,500 tokens in (20% from cache), 500 out": a request's shape in words. */
+export function shape(w: Workload): string {
+  const parts = [`${w.inputTokens.toLocaleString('en-US')} tokens in${w.cacheHitRate ? ` (${Math.round(w.cacheHitRate * 100)}% from cache)` : ''}`, `${w.outputTokens.toLocaleString('en-US')} out`];
+  if (w.reasoningTokens) parts.push(`${w.reasoningTokens.toLocaleString('en-US')} reasoning`);
+  return `${parts.join(', ')}, within a ${tokens(w.contextTokens)} context`;
+}
+/** A bill in US dollars: whole dollars once it is large, cents below. */
+export function dollars(v: number | null): string {
+  if (v === null || !Number.isFinite(v)) return '—';
+  if (v >= 100) return `$${Math.round(v).toLocaleString('en-US')}`;
+  if (v >= 0.01) return `$${v.toFixed(2)}`;
+  return v === 0 ? '$0' : `$${v.toPrecision(2)}`;
+}
+const volumeLabel = (n: number) => (n >= 1_000_000 ? `${n / 1_000_000}M` : `${n / 1_000}K`);
+
+/** Every model's monthly bill for the chosen request and volume, at its best full-context offer (the original's calculator). */
+function costs(l: Loaded, s: State): Update {
+  const w = workload(s.workload), volume = s.volume!;
+  const perRequest = (rate: number) => (rate * billable(w)) / 1_000_000;
+  const priced = l.models.filter((m) => m.comparable && m.pick_rate !== null);
+  // A model whose full context cannot hold the request has no price for it, however cheap.
+  const fits = (m: ModelRow) => m.full_context === null || Number(m.full_context) >= w.contextTokens;
+  const small = priced.filter((m) => !fits(m)).length;
+  const rows = priced.filter(fits)
+    .map((m) => ({ m, request: perRequest(m.pick_rate!) }))
+    .sort((a, b) => a.request - b.request || a.m.name.localeCompare(b.m.name));
+  const tiered = rows.filter((r) => r.m.pick_tier !== null).length;
+  const nodes: Node[] = [
+    { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: ['co-request', 'co-volume', 'co-shape', rows.length ? 'co-table' : 'co-none'] },
+    { id: 'co-request', type: 'stack', props: { direction: 'horizontal', gap: 'sm', wrap: true }, children: WORKLOADS.map((x) => `co-w-${x.id}`) },
+    ...WORKLOADS.map((x) => ({ id: `co-w-${x.id}`, type: 'button', props: { label: x.name, action: 'set_workload', payload: { id: x.id }, style: x.id === w.id ? 'primary' : 'secondary' } })),
+    { id: 'co-volume', type: 'stack', props: { direction: 'horizontal', gap: 'sm', wrap: true }, children: VOLUMES.map((v) => `co-v-${v}`) },
+    ...VOLUMES.map((v) => ({ id: `co-v-${v}`, type: 'button', props: { label: `${volumeLabel(v)} a month`, action: 'set_volume', payload: { volume: v }, style: v === volume ? 'primary' : 'secondary' } })),
+    { id: 'co-shape', type: 'text', props: { content: '{/shape}', variant: 'caption' } },
+    rows.length
+      ? { id: 'co-table', type: 'table', props: { rows: '{/rows}', columns: [{ key: 'name', label: 'Model' }, { key: 'lab', label: 'Lab' }, { key: 'provider', label: 'Best full-context offer' }, { key: 'request', label: 'Per request', align: 'end' }, { key: 'month', label: 'Per month', align: 'end' }, { key: 'rate', label: 'Per million tokens', align: 'end' }, { key: 'note', label: 'Note' }], searchable: true, sortable: true, pageSize: 20 } }
+      : { id: 'co-none', type: 'text', props: { content: '{/none}', variant: 'caption' } },
+  ];
+  const data = {
+    shape: `${w.name}: ${w.description} ${shape(w)}, ${Math.round(w.cacheWriteRate * 100)}% written to cache. ${volumeLabel(volume)} requests a month, at each model's best full-context offer${tiered ? `; ${tiered} of these prices come from a context price tier` : ''}.${small ? ` ${small} models whose context is smaller than ${tokens(w.contextTokens)} are left out.` : ''}`,
+    ...(rows.length ? {} : { none: priced.length ? `No priced model's context holds ${article(w)} of ${tokens(w.contextTokens)}.` : 'No priced models yet. Use Refresh in the app header to read the catalog.' }),
+    ...(rows.length ? { rows: rows.map(({ m, request }) => ({ name: m.name, lab: m.lab, provider: m.pick_provider ?? '—', request: dollars(request), month: dollars(request * volume), rate: money(m.pick_rate), note: m.pick_tier !== null ? `${tokens(m.pick_tier)}+ context price` : '—' })) } : {}),
+  };
+  return { surface: 'costs', nodes, data: replace(data) };
+}
+
+const yes = (v: boolean | null | undefined) => (v === true ? 'Yes' : v === false ? 'No' : '—');
+/** Up to four models side by side: price for the chosen request, limits, capabilities and shared benchmarks. */
+function compare(l: Loaded, s: State): Update {
+  const w = workload(s.workload), volume = s.volume!, cs = l.compared;
+  if (!cs.length) return { surface: 'compare', nodes: [
+    { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: ['cp-none'] },
+    { id: 'cp-none', type: 'text', props: { content: `Open a model under Models and choose Add to Compare. Up to ${MAX_COMPARED} models fit side by side.`, variant: 'caption' } },
+  ], data: replace({}) };
+  const key = (i: number) => `m${i}`;
+  const row = (label: string, f: (c: Compared) => string) => ({ label, ...Object.fromEntries(cs.map((c, i) => [key(i), f(c)])) });
+  const holds = (c: Compared) => c.detail.full_context === null || Number(c.detail.full_context) >= w.contextTokens;
+  const perMonth = (c: Compared) => (!holds(c) ? `Context under ${tokens(w.contextTokens)}` : c.detail.pick_rate === null ? '—' : dollars((c.detail.pick_rate * billable(w)) / 1_000_000 * volume));
+  const scoreNames = [...new Set(cs.flatMap((c) => c.scores.map((x) => x.name)))].slice(0, 20);
+  const rows = [
+    row('Lab', (c) => c.detail.lab),
+    row('Providers', (c) => `${c.detail.providers} (${c.detail.priced} priced)`),
+    row('Best full-context offer', (c) => c.detail.pick_provider ?? '—'),
+    row(`Price, ${w.name.toLowerCase()} request`, (c) => money(c.detail.pick_rate)),
+    row(`Per month, ${volumeLabel(volume)} requests`, perMonth),
+    row("The lab's own price", (c) => money(c.detail.own_rate)),
+    row('Context', (c) => tokens(c.detail.full_context ?? c.facts?.context)),
+    row('Output limit', (c) => tokens(c.facts?.output_limit)),
+    row('Reasoning', (c) => yes(c.abilities.reasoning)),
+    row('Tool calls', (c) => yes(c.abilities.tool_call)),
+    row('Structured output', (c) => yes(c.abilities.structured_output)),
+    row('Attachments', (c) => yes(c.abilities.attachment)),
+    row('Open weights', (c) => yes(c.facts?.open_weights)),
+    row('Licence', (c) => c.facts?.license ?? '—'),
+    row('Released', (c) => c.facts?.release_date ?? '—'),
+    row('Knowledge to', (c) => c.facts?.knowledge ?? '—'),
+    ...scoreNames.map((name) => row(name, (c) => { const x = c.scores.find((y) => y.name === name); return x ? `${x.score}${x.metric ? ` ${x.metric}` : ''}` : '—'; })),
+  ];
+  const nodes: Node[] = [
+    { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: ['cp-caption', 'cp-table', 'cp-remove'] },
+    { id: 'cp-caption', type: 'text', props: { content: '{/caption}', variant: 'caption' } },
+    { id: 'cp-table', type: 'table', props: { rows: '{/rows}', columns: [{ key: 'label', label: '' }, ...cs.map((c, i) => ({ key: key(i), label: c.detail.name }))] } },
+    { id: 'cp-remove', type: 'stack', props: { direction: 'horizontal', gap: 'sm', wrap: true }, children: cs.map((c, i) => `cp-remove-${i}`) },
+    ...cs.map((c, i) => ({ id: `cp-remove-${i}`, type: 'button', props: { label: `Remove ${c.detail.name}`, action: 'compare_remove', payload: { id: c.detail.id }, style: 'secondary' } })),
+  ];
+  const data = {
+    caption: `Prices are US dollars per million tokens for ${article(w)}, at each model's best full-context offer; change the request and volume under Costs.${scoreNames.length ? ' Benchmark scores are as each lab or evaluator published them.' : ''}`,
+    rows,
+  };
+  return { surface: 'compare', nodes, data: replace(data) };
 }

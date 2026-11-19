@@ -82,8 +82,8 @@ export const LISTING_COLUMNS = [
   '/open_weights', '/reasoning', '/tool_call', '/attachment', '/structured_output',
   '/limit/context', '/limit/input', '/limit/output',
   '/cost/input', '/cost/output', '/cost/cache_read', '/cost/cache_write', '/cost/reasoning',
-  '/cost/context_over_200k/input', '/cost/context_over_200k/output',
-  '/modalities/input', '/modalities/output',
+  '/cost/tiers', '/cost/context_over_200k',
+  '/modalities/input', '/modalities/output', '/type',
 ] as const;
 export type ListingRow = [provider: string, model: string, ...values: (string | number | boolean | null)[]];
 const LISTING_CHECKS: ((v: unknown) => unknown)[] = [
@@ -91,15 +91,61 @@ const LISTING_CHECKS: ((v: unknown) => unknown)[] = [
   bool, bool, bool, bool, bool,
   num, num, num,
   num, num, num, num, num,
-  num, num,
-  list, list,
+  (v) => (Array.isArray(v) ? v : null), (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : null),
+  list, list, (v) => str(v, 40),
 ];
+const TIERED = LISTING_COLUMNS.indexOf('/cost/tiers');
+
+export interface Tier { size: number; input: number | null; output: number | null; cache_read: number | null; cache_write: number | null; reasoning: number | null }
+const RATES = ['input', 'output', 'cache_read', 'cache_write', 'reasoning'] as const;
+function rates(raw: Record<string, unknown>): Omit<Tier, 'size'> | undefined {
+  const out = {} as Omit<Tier, 'size'>;
+  for (const k of RATES) {
+    const v = raw[k];
+    if (v !== undefined && v !== null && num(v) === null) return undefined;
+    out[k] = v === undefined ? null : num(v);
+  }
+  return out;
+}
+/**
+ * One list of context price tiers, smallest first. The catalog states them twice: a list of
+ * thresholds and an older card for contexts over 200,000 tokens that repeats the first of them;
+ * the list wins, as in the original. A tier without a threshold is left out; a price that is not
+ * a price makes the listing malformed.
+ */
+export function tiers(list: unknown, over200k: unknown): string | null | undefined {
+  const out: Tier[] = [];
+  if (Array.isArray(list)) {
+    if (list.length > 20) return undefined;
+    for (const raw of list) {
+      if (!raw || typeof raw !== 'object') return undefined;
+      const tier = (raw as { tier?: { type?: unknown; size?: unknown } }).tier;
+      const size = num(tier?.size);
+      if (tier?.type !== undefined && tier.type !== 'context') continue;
+      if (!size) continue;
+      const r = rates(raw as Record<string, unknown>);
+      if (!r) return undefined;
+      out.push({ size, ...r });
+    }
+  }
+  if (!out.length && over200k && typeof over200k === 'object') {
+    const r = rates(over200k as Record<string, unknown>);
+    if (!r) return undefined;
+    out.push({ size: 200_000, ...r });
+  }
+  return out.length ? JSON.stringify(out.sort((a, b) => a.size - b.size)) : null;
+}
+
 export function listing(r: unknown[]): ListingRow | undefined {
   const p = id(r[0]), m = id(r[1]);
   if (!p || !m) return undefined;
-  const values = r.slice(2).map((v, i) => LISTING_CHECKS[i]!(v)) as (string | number | boolean | null)[];
+  const values = r.slice(2).map((v, i) => LISTING_CHECKS[i]!(v)) as unknown[];
   if (bad(r.slice(2), values)) return undefined;
-  return [p, m, ...values];
+  const tiered = tiers(values[TIERED], values[TIERED + 1]);
+  if (tiered === undefined) return undefined;
+  // The two tier forms become one column, in the database's order.
+  values.splice(TIERED, 2, tiered);
+  return [p, m, ...(values as (string | number | boolean | null)[])];
 }
 
 export interface Model { id: string; name: string | null; family: string | null; license: string | null; openWeights: boolean | null; knowledge: string | null; releaseDate: string | null; lastUpdated: string | null; context: number | null; output: number | null }
