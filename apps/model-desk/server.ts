@@ -11,8 +11,8 @@ import {
   benchmark, BENCHMARK_COLUMNS, listing, LISTING_COLUMNS, MAX_CALLS, model, MODEL_COLUMNS, MODELS_URL, PRICES_URL, provider, PROVIDER_COLUMNS, readAll,
   type Call, type Read, type Receipt,
 } from './source.ts';
-import { catalog, detail, model as about, offers } from './market.ts';
-import { apply, failed, snapshot, type Database } from './store.ts';
+import { catalog, detail, history, model as about, offers, spans } from './market.ts';
+import { apply, failed, modelEvents, snapshot, type Database } from './store.ts';
 import { normalize, NOTHING, TITLES, TYPES, view, type Loaded, type State } from './views.ts';
 
 export { view, TITLES };
@@ -31,8 +31,9 @@ export async function load(db: Database, state: State): Promise<Loaded> {
   if (!state.model) return { snap, models, open: null };
   const d = await detail(db, state.model);
   if (!d) return { snap, models, open: null };
-  const [list, facts] = await Promise.all([offers(db, state.model), about(db, state.model)]);
-  return { snap, models, open: { detail: d, offers: list, facts: facts?.facts ?? null, scores: facts?.scores ?? [] } };
+  const list = await offers(db, state.model), facts = await about(db, state.model);
+  const past = await history(db, state.model), kept = await spans(db, state.model), events = await modelEvents(db, state.model);
+  return { snap, models, open: { detail: d, offers: list, facts: facts?.facts ?? null, scores: facts?.scores ?? [], history: past, spans: kept, events } };
 }
 
 const reason = (e: unknown) => String((e as Error)?.message ?? e).replace(/^Error:\s*/, '').slice(0, 400);

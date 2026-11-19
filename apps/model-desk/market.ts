@@ -183,3 +183,39 @@ export async function model(db: Database, id: string): Promise<{ facts: Facts; s
   const scores = await db.query('SELECT name, score, metric, source, date FROM benchmarks WHERE model = ? ORDER BY position LIMIT 100', [id]);
   return { facts: facts as unknown as Facts, scores: scores as unknown as Score[] };
 }
+
+export interface Point { day: string; best: number | null; own: number | null; offers: number }
+
+/**
+ * The model's prices over time, one point per day: what the price spans held at that day's last
+ * refresh. The same rules as today apply where the spans can say (outliers, confirmation, the
+ * lab's own offer); a span keeps prices only, so context and status are not judged in the past.
+ */
+export async function history(db: Database, id: string, w: Workload = CHAT, days = 365): Promise<Point[]> {
+  const rows = await db.query(`
+    WITH points AS (
+      SELECT day, max(started_at) t FROM runs WHERE status IN ('applied', 'unchanged') GROUP BY day ORDER BY day DESC LIMIT ${Math.max(1, Math.floor(days))}),
+    held AS (
+      SELECT p.day, h.provider, ${rateSql(w, 'h')} rate, (h.provider = split_part(h.canonical, '/', 1) OR starts_with(h.provider, split_part(h.canonical, '/', 1) || '-')) first_party
+      FROM points p JOIN price_history h ON h.canonical = ? AND h.valid_from <= p.t AND (h.valid_to IS NULL OR h.valid_to > p.t)),
+    stats AS (SELECT day, median(rate) median, count(rate) n FROM held GROUP BY day),
+    flagged AS (
+      SELECT held.*, rate IS NOT NULL AND NOT (s.n >= ${MIN_FOR_MEDIAN} AND s.median > 0 AND (rate > s.median * ${OUTLIER_FACTOR} OR rate < s.median / ${OUTLIER_FACTOR})) inside
+      FROM held JOIN stats s USING (day)),
+    kept AS (SELECT *, rate IS NOT NULL AND (inside OR count(*) FILTER (WHERE inside) OVER (PARTITION BY day) < 2) kept FROM flagged),
+    judged AS (
+      SELECT k.*, k.kept AND EXISTS (SELECT 1 FROM kept o WHERE o.day = k.day AND o.kept AND o.provider <> k.provider AND o.rate <= k.rate * ${CORROBORATION}) confirmed
+      FROM kept k)
+    SELECT day, round(min(rate) FILTER (WHERE confirmed), 4) best, round(min(rate) FILTER (WHERE first_party AND rate IS NOT NULL), 4) own,
+      count(*) FILTER (WHERE rate IS NOT NULL)::INTEGER offers
+    FROM judged GROUP BY day ORDER BY day`, [id]);
+  return rows as unknown as Point[];
+}
+
+export interface Span { provider: string; model: string; valid_from: string; valid_to: string | null; input: number | null; output: number | null; cache_read: number | null; cache_write: number | null; reasoning_price: number | null; input_200k: number | null; output_200k: number | null }
+
+/** Every price span of the model's listings, oldest first: the complete record, for export. */
+export async function spans(db: Database, id: string, limit = 5_000): Promise<Span[]> {
+  return await db.query(`SELECT provider, model, valid_from, valid_to, input, output, cache_read, cache_write, reasoning_price, input_200k, output_200k
+    FROM price_history WHERE canonical = ? ORDER BY provider, model, valid_from LIMIT ${Math.max(1, Math.floor(limit))}`, [id]) as unknown as Span[];
+}

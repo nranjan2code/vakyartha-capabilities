@@ -248,3 +248,9 @@ export async function snapshot(db: Database): Promise<Snapshot> {
 }
 
 export const EMPTY: Snapshot = { totals: { providers: 0, listings: 0, priced: 0, models: 0, labs: 0, attributed: 0, benchmarks: 0, spans: 0, events: 0 }, latest: null, applied: null, runs: [], findings: [], receipts: [], recent: [], byType: [] };
+
+/** The latest change events of one model, newest first. */
+export async function modelEvents(db: Database, id: string, limit = 100): Promise<Record<string, unknown>[]> {
+  return await db.query(`SELECT e.id, e.run, e.day, e.type, e.provider, e.model, e.canonical, e.name, e.changes::VARCHAR changes, coalesce(p.name, e.provider) provider_name
+    FROM events e LEFT JOIN providers p ON p.id = e.provider WHERE e.canonical = ? ORDER BY e.run DESC, e.type, e.provider, e.model LIMIT ${Math.max(1, Math.floor(limit))}`, [id]);
+}

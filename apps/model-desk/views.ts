@@ -4,11 +4,11 @@
 import type { Snapshot } from './store.ts';
 import { EMPTY, RECENT } from './store.ts';
 import { SOURCE } from './source.ts';
-import { CHAT, CORROBORATION, OUTLIER_FACTOR, spread, type Facts, type ModelDetail, type ModelRow, type Offer, type Score } from './market.ts';
+import { CHAT, CORROBORATION, OUTLIER_FACTOR, spread, type Facts, type ModelDetail, type ModelRow, type Offer, type Point, type Score, type Span } from './market.ts';
 
 export interface State { type?: string; model?: string }
 /** One model opened on the Models view. */
-export interface Opened { detail: ModelDetail; offers: Offer[]; facts: Facts | null; scores: Score[] }
+export interface Opened { detail: ModelDetail; offers: Offer[]; facts: Facts | null; scores: Score[]; history: Point[]; spans: Span[]; events: Record<string, unknown>[] }
 /** Everything the views read: the pipeline snapshot, the model list and the opened model. */
 export interface Loaded { snap: Snapshot; models: ModelRow[]; open: Opened | null }
 export const NOTHING: Loaded = { snap: EMPTY, models: [], open: null };
@@ -258,15 +258,26 @@ function modelsView(l: Loaded): Update {
   );
   if (!d) nodes.push({ id: 'md-pick', type: 'text', props: { content: 'Choose a model to see every provider\'s offer, the lab\'s own price and its benchmark scores.', variant: 'caption' } });
   else {
+    const charted = open!.history.length >= 2;
     nodes.push(
-      { id: 'md-open', type: 'section', props: { title: d.name, description: '{/open/about}' }, children: ['md-stats', 'md-sentence', 'md-offers', ...(open!.scores.length ? ['md-scores'] : [])] },
+      { id: 'md-open', type: 'section', props: { title: d.name, description: '{/open/about}' }, children: ['md-stats', 'md-sentence', 'md-tabs'] },
       { id: 'md-stats', type: 'grid', props: { columns: 4, minItemWidth: 'sm', gap: 'sm' }, children: ['md-providers', 'md-pick-stat', 'md-own', 'md-context'] },
       { id: 'md-providers', type: 'stat', props: { label: 'Providers', value: '{/open/providers}', caption: '{/open/priced}' } },
       { id: 'md-pick-stat', type: 'stat', props: { label: 'Best full-context offer', value: '{/open/pick}', caption: '{/open/pickBy}' } },
       { id: 'md-own', type: 'stat', props: { label: "The lab's own price", value: '{/open/own}', caption: '{/open/ownBy}' } },
       { id: 'md-context', type: 'stat', props: { label: 'Context', value: '{/open/context}', caption: '{/open/output}' } },
       { id: 'md-sentence', type: 'text', props: { content: '{/open/sentence}' } },
+      ...tabbed('md-tabs', [
+        ['Offers', ['md-offers']],
+        ['History', ['md-history-note', ...(charted ? ['md-history'] : []), ...(open!.spans.length ? ['md-export'] : [])]],
+        [`Changes (${open!.events.length})`, open!.events.length ? ['md-changes'] : []],
+        [`Benchmarks (${open!.scores.length})`, open!.scores.length ? ['md-scores'] : []],
+      ]),
       { id: 'md-offers', type: 'table', props: { rows: '{/open/offers}', columns: [{ key: 'provider', label: 'Provider' }, { key: 'input', label: 'Input', align: 'end' }, { key: 'output', label: 'Output', align: 'end' }, { key: 'cache', label: 'Cache read', align: 'end' }, { key: 'context', label: 'Context', align: 'end' }, { key: 'chat', label: 'Chat price', align: 'end' }, { key: 'note', label: 'Note' }], searchable: true, sortable: true, pageSize: 15 } },
+      { id: 'md-history-note', type: 'text', props: { content: '{/open/historyNote}', variant: 'caption' } },
+      ...(charted ? [{ id: 'md-history', type: 'chart', props: { kind: 'line', xScale: 'time', yScale: 'auto', missing: 'gap', labels: '{/open/days}', series: '{/open/series}', yLabel: 'US dollars per million tokens', height: 'md' } }] : []),
+      ...(open!.spans.length ? [{ id: 'md-export', type: 'button', props: { label: 'Export price history', action: 'file.save', payload: { name: '{/open/file}', text: '/open/csv' }, style: 'link' } }] : []),
+      ...(open!.events.length ? [{ id: 'md-changes', type: 'table', props: { rows: '{/open/events}', columns: [{ key: 'day', label: 'Day' }, { key: 'type', label: 'Change' }, { key: 'provider', label: 'Provider' }, { key: 'change', label: 'What changed' }], searchable: true, pageSize: 15 } }] : []),
     );
     if (open!.scores.length) nodes.push({ id: 'md-scores', type: 'table', props: { rows: '{/open/scores}', columns: [{ key: 'name', label: 'Benchmark' }, { key: 'score', label: 'Score', align: 'end' }, { key: 'metric', label: 'Measure' }, { key: 'date', label: 'Date' }, { key: 'source', label: 'Source' }] } });
   }
@@ -289,8 +300,42 @@ function modelsView(l: Loaded): Update {
       context: tokens(d.full_context ?? f?.context), output: f?.output_limit ? `${tokens(f.output_limit)} output` : 'Output limit not published',
       sentence: sentence(d),
       offers: open!.offers.map((o) => ({ provider: o.provider_name, input: money(o.input), output: money(o.output), cache: money(o.cache_read), context: tokens(o.context), chat: money(o.rate), note: note(o) })),
+      historyNote: historyNote(open!.history),
+      ...(open!.history.length >= 2 ? { days: open!.history.map((p) => p.day), series: [{ name: 'Cheapest confirmed', values: open!.history.map((p) => p.best) }, { name: "The lab's own", values: open!.history.map((p) => p.own) }] } : {}),
+      ...(open!.spans.length ? { file: `model-desk-${d.id.replace(/[^A-Za-z0-9]+/g, '-')}-prices`, csv: spansCsv(open!.spans) } : {}),
+      ...(open!.events.length ? { events: eventRows(open!.events) } : {}),
       ...(open!.scores.length ? { scores: open!.scores.map((x) => ({ name: x.name, score: String(x.score), metric: x.metric ?? '—', date: x.date ?? '—', source: x.source ?? '—' })) } : {}),
     };
   }
   return { surface: 'models', nodes, data: replace(data) };
+}
+
+function tabbed(id: string, panels: [string, string[]][]): Node[] {
+  const live = panels.filter(([, children]) => children.length);
+  const pid = (title: string) => `${id}-${title.toLowerCase().replace(/\s*\(\d+\)$/, '').replace(/[^a-z0-9]+/g, '-')}`;
+  return [{ id, type: 'tabs', children: live.map(([t]) => pid(t)) }, ...live.map(([t, children]) => ({ id: pid(t), type: 'section', props: { title: t }, children }))];
+}
+
+/** What the history shows and from when, in words. */
+export function historyNote(points: { day: string; best: number | null; own: number | null }[]): string {
+  if (!points.length) return 'No price history yet: it starts with the first refresh.';
+  const first = points[0]!, last = points.at(-1)!;
+  const span = points.length === 1 ? `one day, ${first.day}` : `${points.length} days, ${first.day} to ${last.day}`;
+  const move = points.length >= 2 && first.best !== null && last.best !== null && first.best > 0
+    ? ` The cheapest confirmed price went from ${money(first.best)} to ${money(last.best)}${last.best === first.best ? ', unchanged' : `, ${last.best < first.best ? 'down' : 'up'} ${Math.round(Math.abs(last.best / first.best - 1) * 100)}%`}.` : '';
+  const chart = points.length < 2 ? ' A chart appears from the second day.' : '';
+  return `Prices for a chat request at each day's last refresh, over ${span}.${move}${chart} The export holds every price span with its dates.`;
+}
+
+const CSV_HEAD = ['provider', 'model', 'from', 'to', 'input', 'output', 'cache_read', 'cache_write', 'reasoning', 'input_over_200k', 'output_over_200k'];
+/** A cell a spreadsheet reads as text: quoted when needed, and never as a formula. */
+function cell(v: unknown): string {
+  if (v === null || v === undefined) return '';
+  let t = String(v);
+  if (/^[=+\-@\t\r]/.test(t) && typeof v !== 'number') t = `'${t}`;
+  return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+}
+/** Every price span as CSV, prices in US dollars per million tokens, times in UTC. */
+export function spansCsv(rows: Span[]): string {
+  return [CSV_HEAD.join(','), ...rows.map((r) => [r.provider, r.model, r.valid_from, r.valid_to, r.input, r.output, r.cache_read, r.cache_write, r.reasoning_price, r.input_200k, r.output_200k].map(cell).join(','))].join('\n') + '\n';
 }
