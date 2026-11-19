@@ -5,7 +5,7 @@
 // them. Articles keep their own publication and retrieval times; a failed read
 // keeps the old ones. Nothing is summarized or rewritten and no model is called.
 import { canonical, parseFeed, sourceBody, type Article } from './feed.ts';
-import { DEFAULT_WEIGHTS, discoverTopics, diverse, matches, rank, type Level, type Prefs, type Story, type Weights } from './rank.ts';
+import { DEFAULT_WEIGHTS, discoverTopics, diverse, matches, rank, searchWords, type Level, type Prefs, type Story, type Weights } from './rank.ts';
 import { bulletin, programme, storyReport } from './bulletin.ts';
 
 export type Weight = 'prefer' | 'normal' | 'less';
@@ -893,12 +893,19 @@ export async function handleQuery(toolName: string, params: Record<string, unkno
   const category = typeof params.category === 'string' ? params.category.toLowerCase().trim() : '';
   const query = typeof params.query === 'string' ? params.query.trim().slice(0, 80) : '';
   const limit = Math.max(1, Math.min(Number(params.limit) || 10, 50));
+  // A query with nothing to search for must not read as "no stories".
+  if (query && !searchWords(query).length) throw new Error('Pass a query with at least one word or name to search for');
   const story = (st: Story) => ({
     title: st.lead.title, source: st.lead.source, category: st.category, url: st.lead.url, publishedAt: st.lead.publishedAt, excerpt: st.lead.excerpt,
     publishers: st.sources, reports: st.articles.length, why: st.why,
   });
   const matching = c.stories.filter((st) => (!category || st.articles.some((a) => a.category.toLowerCase() === category)) && (!query || st.articles.some((a) => matches(query, a))));
-  if (toolName === 'get_latest_articles') return { count: matching.length, category: category || 'all', ...(query ? { query } : {}), checkedAt: s.checkedAt ?? null, stories: matching.slice(0, limit).map(story) };
+  if (toolName === 'get_latest_articles') {
+    // News Desk holds only what its feeds carry now; the period it covers keeps a reply from claiming a longer one.
+    const times = c.stories.flatMap((st) => st.articles.map((a) => a.publishedAt ?? a.retrievedAt)).filter(Boolean).sort();
+    const covers = times.length ? { from: times[0]!, to: times.at(-1)! } : null;
+    return { count: matching.length, category: category || 'all', ...(query ? { query } : {}), checkedAt: s.checkedAt ?? null, covers, stories: matching.slice(0, limit).map(story) };
+  }
   if (toolName === 'get_bulletin') {
     const ch = typeof params.channel === 'string' && params.channel ? channelStories(c, params.channel) : { name: query || (category ? matching[0]?.category ?? category : ''), stories: diverse(category || query ? matching : c.stories, 27, c.s.tuning!.perSource) };
     const top = ch.stories;

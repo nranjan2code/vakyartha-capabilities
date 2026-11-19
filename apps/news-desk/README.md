@@ -36,7 +36,7 @@ Preview cards show the original headline, publisher link, age, ranking reasons a
 - **Grouping**: headlines are reduced to significant words (case, accents, stop words and simple plurals folded; "$6.3bn" and "$6.3 billion" read alike). Two reports are the same story when they share most of those words within two days and carry no conflicting figures ("October 30" and "October 31" stay apart). An article joins a story only when it matches at least half of its reports, so loosely related headlines never chain together. Grouping is a heuristic; each report keeps its own link and time.
 - **Score** = 3 × freshness (halving every 8 hours since the newest report) + 1.5 × log₂(1 + independent publishers) + 2 per followed topic matched (up to two) + source preference (+1 preferred, −1 shown less) + section interest (±1.5) + 0.2 with an image + 0.5 when unseen. Every weight, the half-life and the per-publisher limit are the reader's to change under **Preferences**; the reasons appear on the card and Full coverage shows the score broken into its parts.
 - **Coverage** counts publishers by site, so several feeds from one outlet count once, and a headline nearly identical to one already counted from another site is syndicated wire copy that adds nothing.
-- **Topics** match when every word of the topic appears in a headline, excerpt or publisher tag.
+- **Topics** match when every word of the topic appears in a headline, excerpt or publisher tag. Short words count (AI, EU), and in scripts written without spaces a word is found inside the headline. Mutes match the same way.
 - Disabled feeds hide their stories; removing a feed drops its unsaved articles at once. Saved articles stay under Saved.
 
 ## Preferences
@@ -64,7 +64,7 @@ Feeds, articles, follows, bookmarks, preferences, feed health and receipts live 
 
 ## Cross-app MCP integration and skills
 
-- **Tool** `app-news-desk__get_latest_articles`: read-only, ranked stories with their lead headline, link, publishers and reasons; optional `category`, `query` (a topic, matched like a follow) and `limit`. NSE Market Terminal uses it for an instrument's news.
+- **Tool** `app-news-desk__get_latest_articles`: read-only, ranked stories with their lead headline, link, publishers and reasons; optional `category`, `query` (a topic, matched like a follow; a query with no words is refused rather than answered with no stories); `covers` gives the period of the stories News Desk holds and `limit`. NSE Market Terminal uses it for an instrument's news.
 - **Tool** `app-news-desk__get_bulletin`: the spoken bulletin text, the stories it covers and the same bulletin as a `programme` another app can publish at its own `voice.listen` path to play or watch; optional `category` or `query`.
 - **Tool** `app-news-desk__get_story_coverage`: every report of the best-ranked story matching `query`, in publication order, with a spoken report.
 - **Feed** `news_feed`: the stored articles, for apps with an `app-feed` trigger.

@@ -35,13 +35,33 @@ export function terms(text: string): string[] {
   return kept(TERMS, text, () => splitTerms(text)).slice();
 }
 function splitTerms(text: string): string[] {
+  return [...new Set(rawWords(text).filter((w) => !STOP.has(w) && (w.length > 2 || /\d/.test(w))).map(plural))];
+}
+const plural = (w: string) => (w.length > 4 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w);
+// Case- and accent-folded text. Marks that belong to a script (Devanagari vowel signs, for one) stay part of their word.
+const folded = (text: string) => text.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/['’]s\b/g, '');
+function rawWords(text: string): string[] {
   // "$6.3bn" and "$6.3 billion" are the same figure: keep decimals whole and spell out unit suffixes.
   const units: Record<string, string> = { bn: 'billion', b: 'billion', m: 'million', mn: 'million', k: 'thousand', cr: 'crore', tn: 'trillion' };
-  return [...new Set(text.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/['’]s\b/g, '')
+  return folded(text)
     .replace(/(\d)(bn|mn|cr|tn|b|m|k)\b/g, (_, d: string, u: string) => `${d} ${units[u]}`)
-    .split(/(?:[^\p{L}\p{N}.]|\.(?!\d))+/u).map((w) => w.replace(/^\.+|\.+$/g, ''))
-    .filter((w) => w && !STOP.has(w) && (w.length > 2 || /\d/.test(w)))
-    .map((w) => (w.length > 4 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w)))];
+    .split(/(?:[^\p{L}\p{M}\p{N}.]|\.(?!\d))+/u).map((w) => w.replace(/^\.+|\.+$/g, '')).filter(Boolean);
+}
+
+// Search (a query, a followed topic, a mute) keeps every word the person typed, however short: "AI", "EU" and a
+// two-character word in another script are whole topics. Ranking's terms() drops short words to group headlines;
+// search must not. Stop words are left out only when something else remains.
+export function searchWords(query: string): string[] {
+  const all = [...new Set(rawWords(query).map(plural))];
+  const significant = all.filter((w) => !STOP.has(w));
+  return significant.length ? significant : all;
+}
+// Scripts written without spaces between words: a searched word is found inside the text, not only as a whole word.
+const SPACELESS = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]/u;
+const SEARCHABLE = new Map<string, { words: Set<string>; text: string }>();
+function contains(need: string[], text: string): boolean {
+  const have = kept(SEARCHABLE, text, () => ({ words: new Set(rawWords(text).map(plural)), text: folded(text) }));
+  return need.every((w) => have.words.has(w) || (SPACELESS.test(w) && have.text.includes(w)));
 }
 const when = (a: Article) => Date.parse(a.publishedAt ?? a.retrievedAt) || 0;
 
@@ -95,12 +115,10 @@ export function group(articles: Article[]): Article[][] {
 
 const articleWords = (a: Article) => wordSet(`${a.title} ${a.excerpt} ${(a.tags ?? []).join(' ')}`);
 
-/** A followed topic matches when every one of its words appears in the article's headline, excerpt or tags. */
+/** A query or followed topic matches when every one of its words appears in the article's headline, excerpt or tags. */
 export function matches(topic: string, a: Article): boolean {
-  const need = terms(topic);
-  if (!need.length) return false;
-  const have = articleWords(a);
-  return need.every((w) => have.has(w));
+  const need = searchWords(topic);
+  return need.length > 0 && contains(need, `${a.title} ${a.excerpt} ${(a.tags ?? []).join(' ')}`);
 }
 
 /** The publisher behind an article: its site, so several feeds from one outlet count once. */
@@ -114,8 +132,8 @@ export function publisher(url: string): string {
 /** A muted word hides a report when it appears in the headline or publisher tags; a leading "-" is accepted and ignored. */
 export function muted(mutes: string[], a: Article): boolean {
   if (!mutes.length) return false;
-  const have = wordSet(`${a.title} ${(a.tags ?? []).join(' ')}`);
-  return mutes.some((m) => { const need = terms(m.replace(/^-/, '')); return need.length > 0 && need.every((w) => have.has(w)); });
+  const text = `${a.title} ${(a.tags ?? []).join(' ')}`;
+  return mutes.some((m) => { const need = searchWords(m.replace(/^-/, '')); return need.length > 0 && contains(need, text); });
 }
 /**
  * Coverage counts independent publishers. A headline nearly identical to one already

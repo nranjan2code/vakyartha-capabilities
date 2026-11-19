@@ -61,7 +61,7 @@
     "tools": [
       {
         "name": "get_latest_articles",
-        "description": "Ranked News Desk stories, each with its lead headline, link, publishers and why it ranks; filter by section or by a topic query",
+        "description": "Ranked News Desk stories, each with its lead headline, link, publishers and why it ranks; filter by section or by a topic query. covers gives the period of the stories News Desk holds now (it keeps only what its feeds carry)",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -75,7 +75,7 @@
             },
             "query": {
               "type": "string",
-              "description": "Optional topic: every word must appear in a headline, excerpt or publisher tag (e.g. RBI, TCS, Chandrayaan)"
+              "description": "Optional topic: every word must appear in a headline, excerpt or publisher tag; short words count (e.g. AI, RBI, TCS, Chandrayaan)"
             }
           }
         },
@@ -93,7 +93,7 @@
             },
             "query": {
               "type": "string",
-              "description": "Optional topic: every word must appear in a headline, excerpt or publisher tag (e.g. RBI, TCS, Chandrayaan)"
+              "description": "Optional topic: every word must appear in a headline, excerpt or publisher tag; short words count (e.g. AI, RBI, TCS, Chandrayaan)"
             },
             "channel": {
               "type": "string",
