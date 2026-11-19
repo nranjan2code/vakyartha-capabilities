@@ -11,8 +11,9 @@ import {
   benchmark, BENCHMARK_COLUMNS, listing, LISTING_COLUMNS, MAX_CALLS, model, MODEL_COLUMNS, MODELS_URL, PRICES_URL, provider, PROVIDER_COLUMNS, readAll,
   type Call, type Read, type Receipt,
 } from './source.ts';
-import { apply, EMPTY, failed, snapshot, type Database } from './store.ts';
-import { normalize, TITLES, TYPES, view, type State } from './views.ts';
+import { catalog, detail, model as about, offers } from './market.ts';
+import { apply, failed, snapshot, type Database } from './store.ts';
+import { normalize, NOTHING, TITLES, TYPES, view, type Loaded, type State } from './views.ts';
 
 export { view, TITLES };
 
@@ -21,6 +22,17 @@ export interface Context {
   surfaces?: Record<string, unknown>;
   database: Database;
   callTool(name: string, args: Record<string, unknown>): Promise<unknown>;
+}
+
+/** Everything the views read, in bounded queries: the pipeline snapshot, the model list, the opened model. */
+export async function load(db: Database, state: State): Promise<Loaded> {
+  const snap = await snapshot(db);
+  const models = await catalog(db);
+  if (!state.model) return { snap, models, open: null };
+  const d = await detail(db, state.model);
+  if (!d) return { snap, models, open: null };
+  const [list, facts] = await Promise.all([offers(db, state.model), about(db, state.model)]);
+  return { snap, models, open: { detail: d, offers: list, facts: facts?.facts ?? null, scores: facts?.scores ?? [] } };
 }
 
 const reason = (e: unknown) => String((e as Error)?.message ?? e).replace(/^Error:\s*/, '').slice(0, 400);
@@ -61,7 +73,7 @@ export async function refresh(ctx: Context): Promise<{ updates: ReturnType<typeo
     const read = got.receipts.reduce((n, r) => n + r.total, 0);
     await apply(ctx.database, { providers: got.providers.rows, listings, models: got.models.rows, benchmarks: got.benchmarks.rows, receipts: got.receipts, dropped, read, fingerprint }, started);
   }
-  return { updates: view(ctx.state, await snapshot(ctx.database)) };
+  return { updates: view(ctx.state, await load(ctx.database, ctx.state)) };
 }
 
 export async function handleAction(controlId: string, value: unknown, ctx: Context, action?: string) {
@@ -71,7 +83,13 @@ export async function handleAction(controlId: string, value: unknown, ctx: Conte
       const type = String((value as { type?: unknown } | null)?.type ?? 'all');
       if (type !== 'all' && !Object.hasOwn(TYPES, type)) throw new Error('That kind of change is not one this desk records');
       ctx.state.type = type;
-      return { updates: view(ctx.state, await snapshot(ctx.database)).filter((u) => u.surface === 'changes') };
+      return { updates: view(ctx.state, await load(ctx.database, ctx.state)).filter((u) => u.surface === 'changes') };
+    }
+    case 'open_model': {
+      const id = String((value as { id?: unknown } | null)?.id ?? '');
+      if (!id || id.length > 200 || !(await detail(ctx.database, id))) throw new Error('That model is not in the current snapshot; refresh and choose again');
+      ctx.state.model = id;
+      return { updates: view(ctx.state, await load(ctx.database, ctx.state)).filter((u) => u.surface === 'models') };
     }
     default: throw new Error(`Model Desk has no action ${action ?? controlId}`);
   }
@@ -79,7 +97,7 @@ export async function handleAction(controlId: string, value: unknown, ctx: Conte
 
 export async function renderApp(context: Context) {
   context.state = normalize(context.state);
-  return { updates: view(context.state, await snapshot(context.database)) };
+  return { updates: view(context.state, await load(context.database, context.state)) };
 }
 
-export const surfaceFile = () => view({}, EMPTY).map((u) => ({ id: u.surface, title: TITLES[u.surface], data: u.data[0]!.value, nodes: u.nodes }));
+export const surfaceFile = () => view({}, NOTHING).map((u) => ({ id: u.surface, title: TITLES[u.surface], data: u.data[0]!.value, nodes: u.nodes }));

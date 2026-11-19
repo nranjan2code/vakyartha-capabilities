@@ -2,14 +2,20 @@
 // (store.ts `snapshot`). Pure: the same inputs always give the same views.
 
 import type { Snapshot } from './store.ts';
-import { RECENT } from './store.ts';
+import { EMPTY, RECENT } from './store.ts';
 import { SOURCE } from './source.ts';
+import { CHAT, CORROBORATION, OUTLIER_FACTOR, spread, type Facts, type ModelDetail, type ModelRow, type Offer, type Score } from './market.ts';
 
-export interface State { type?: string }
+export interface State { type?: string; model?: string }
+/** One model opened on the Models view. */
+export interface Opened { detail: ModelDetail; offers: Offer[]; facts: Facts | null; scores: Score[] }
+/** Everything the views read: the pipeline snapshot, the model list and the opened model. */
+export interface Loaded { snap: Snapshot; models: ModelRow[]; open: Opened | null }
+export const NOTHING: Loaded = { snap: EMPTY, models: [], open: null };
 interface Node { id: string; type: string; props?: Record<string, unknown>; children?: string[] | { each: string; template: string } }
 export interface Update { surface: string; nodes: Node[]; data: { op: 'replace'; path: '/'; value: Record<string, unknown> }[] }
 
-export const TITLES: Record<string, string> = { overview: 'Overview', changes: 'Changes', pipeline: 'Pipeline' };
+export const TITLES: Record<string, string> = { overview: 'Overview', models: 'Models', changes: 'Changes', pipeline: 'Pipeline' };
 
 export const TYPES: Record<string, string> = {
   repriced: 'Repriced', model_added: 'Model added', provider_added: 'New provider', deprecated: 'Deprecated',
@@ -25,7 +31,9 @@ const STATUS: Record<string, string> = { applied: 'Applied', unchanged: 'No chan
 
 export function normalize(input: unknown): State {
   const s = input && typeof input === 'object' ? (input as Record<string, unknown>) : {};
-  return typeof s.type === 'string' && (s.type === 'all' || Object.hasOwn(TYPES, s.type)) ? { type: s.type } : { type: 'all' };
+  const type = typeof s.type === 'string' && (s.type === 'all' || Object.hasOwn(TYPES, s.type)) ? s.type : 'all';
+  const model = typeof s.model === 'string' && s.model.length > 0 && s.model.length <= 200 ? s.model : undefined;
+  return model ? { type, model } : { type };
 }
 
 const int = (v: unknown) => Number(v ?? 0);
@@ -62,12 +70,19 @@ function eventRows(rows: Record<string, unknown>[]) {
 const replace = (value: Record<string, unknown>) => [{ op: 'replace' as const, path: '/' as const, value }];
 const EVENT_COLUMNS = [{ key: 'type', label: 'Change' }, { key: 'provider', label: 'Provider' }, { key: 'model', label: 'Model' }, { key: 'change', label: 'What changed' }];
 
-function overview(snap: Snapshot): Update {
+/** Models where shopping around pays: widely priced, with a real gap (the original's rule). */
+export function widest(models: ModelRow[], minProviders = 6, limit = 6): ModelRow[] {
+  return models.filter((m) => m.comparable && m.priced >= minProviders && (spread(m) ?? 0) >= 1.5)
+    .sort((a, b) => spread(b)! - spread(a)! || a.name.localeCompare(b.name)).slice(0, limit);
+}
+
+function overview(snap: Snapshot, models: ModelRow[]): Update {
+  const wide = widest(models);
   const t = snap.totals, latest = snap.latest, applied = snap.applied;
   const kept = latest && latest.status !== 'applied' && latest.status !== 'unchanged';
   const appliedEvents = applied ? snap.recent.filter((e) => int(e.run) === int(applied.id)) : [];
   const nodes: Node[] = [
-    { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: [...(applied ? [] : ['ov-empty']), ...(kept ? ['ov-kept'] : []), 'ov-stats', ...(applied ? ['ov-latest'] : [])] },
+    { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: [...(applied ? [] : ['ov-empty']), ...(kept ? ['ov-kept'] : []), 'ov-stats', ...(wide.length ? ['ov-spreads'] : []), ...(applied ? ['ov-latest'] : [])] },
   ];
   if (!applied) nodes.push({ id: 'ov-empty', type: 'alert', props: { tone: 'info', title: 'No snapshot yet', body: 'Use Refresh in the app header to read the open model catalog. A refresh makes about 13 reads and takes under a minute.' } });
   if (kept) nodes.push({ id: 'ov-kept', type: 'alert', props: { tone: latest!.status === 'failed' ? 'danger' : 'warning', title: `The last refresh, ${when(latest!.started_at)}, kept the previous snapshot`, body: '{/kept}' } });
@@ -77,6 +92,10 @@ function overview(snap: Snapshot): Update {
     { id: 'ov-listings', type: 'stat', props: { label: 'Listings', value: '{/stats/listings}', caption: '{/stats/priced}' } },
     { id: 'ov-models', type: 'stat', props: { label: 'Models', value: '{/stats/models}', caption: '{/stats/labs}' } },
     { id: 'ov-matched', type: 'stat', props: { label: 'Listings matched to a model', value: '{/stats/matched}' } },
+  );
+  if (wide.length) nodes.push(
+    { id: 'ov-spreads', type: 'section', props: { title: 'Where shopping around pays', description: `The same model across providers, priced for a chat request. Prices are US dollars per million tokens.` }, children: ['ov-spread-table'] },
+    { id: 'ov-spread-table', type: 'table', props: { rows: '{/spreads}', columns: [{ key: 'name', label: 'Model' }, { key: 'priced', label: 'Priced by', align: 'end' }, { key: 'from', label: 'From', align: 'end' }, { key: 'to', label: 'Up to', align: 'end' }, { key: 'spread', label: 'Spread', align: 'end' }] } },
   );
   if (applied) {
     nodes.push({ id: 'ov-latest', type: 'section', props: { title: 'Latest snapshot', description: '{/latestNote}' }, children: appliedEvents.length ? ['ov-types', 'ov-events'] : ['ov-quiet'] });
@@ -94,6 +113,7 @@ function overview(snap: Snapshot): Update {
       providers: t.providers ? whole(t.providers) : '—', listings: t.listings ? whole(t.listings) : '—', priced: t.listings ? `${whole(t.priced)} with prices` : 'none yet',
       models: t.models ? whole(t.models) : '—', labs: t.models ? `from ${whole(t.labs)} labs` : 'none yet', matched,
     },
+    ...(wide.length ? { spreads: wide.map((m) => ({ name: m.name, priced: `${m.priced} providers`, from: money(m.credible_rate ?? m.low_rate), to: money(m.high_rate), spread: times(spread(m)) })) } : {}),
     ...(kept ? { kept: `${String(latest!.note ?? '')}${firstFail ? `. ${String(firstFail.message)}.` : '.'} See Pipeline for every check.` } : {}),
     ...(applied ? {
       latestNote: `Applied ${when(applied.started_at)}. ${String(applied.note ?? '')}.`,
@@ -166,7 +186,111 @@ function pipeline(snap: Snapshot): Update {
   return { surface: 'pipeline', nodes, data: replace(data) };
 }
 
-export function view(state: unknown, snap: Snapshot): Update[] {
+export function view(state: unknown, loaded: Loaded = NOTHING): Update[] {
   const s = normalize(state);
-  return [overview(snap), changes(s, snap), pipeline(snap)];
+  return [overview(loaded.snap, loaded.models), modelsView(loaded), changes(s, loaded.snap), pipeline(loaded.snap)];
+}
+
+/** A price per million tokens the way the original wrote it: cents for small, two places for large. */
+export function money(v: number | null | undefined): string {
+  if (v === null || v === undefined || !Number.isFinite(v)) return '—';
+  if (v === 0) return '$0';
+  if (v < 0.01) return `$${v.toPrecision(2)}`;
+  return `$${v < 1 ? Number(v.toFixed(3)) : Number(v.toFixed(2))}`;
+}
+const times = (r: number | null) => (r === null ? '—' : `${r >= 10 ? Math.round(r) : r.toFixed(1)}x`);
+/** 128,000 tokens as "128K", 1,048,576 as "1.05M". */
+export function tokens(n: unknown): string {
+  const v = Number(n);
+  if (n === null || n === undefined || !Number.isFinite(v) || v <= 0) return '—';
+  if (v >= 1_000_000) return `${Number((v / 1_000_000).toFixed(2))}M`;
+  if (v >= 1_000) return `${Math.round(v / 1_000)}K`;
+  return String(v);
+}
+
+/** The sentence a buyer needs (the original's summary): what to buy, against the lab, and the catch. */
+export function sentence(d: ModelDetail): string {
+  if (!d.comparable) return `Providers bill ${d.name} in other units than text tokens (images, audio or video), so its prices are listed but not compared.`;
+  const parts = [d.priced === d.providers ? `${d.providers} providers list ${d.name}.` : `${d.priced} of ${d.providers} providers publish a price for ${d.name}.`];
+  if (!d.priced) return `${d.providers} providers list ${d.name}; none publishes a price.`;
+  const pickName = d.pick_provider ?? d.low_provider;
+  if (pickName && d.pick_rate !== null) {
+    const price = `${money(d.pick_input)} in and ${money(d.pick_output)} out per million tokens`;
+    const saving = d.own_rate && d.own_provider !== pickName ? Math.round((1 - d.pick_rate / d.own_rate) * 100) : 0;
+    parts.push(saving > 0 ? `The cheapest full-context offer is ${pickName} at ${price}, ${saving}% below ${d.own_provider}'s own price.` : `The cheapest full-context offer is ${pickName} at ${price}.`);
+  } else parts.push('No offer carries the full context.');
+  const passedOver = d.low_provider && d.low_rate !== null && d.pick_rate !== null && d.low_rate < d.pick_rate;
+  if (passedOver && d.low_fits === false) parts.push(`${d.low_provider} lists lower but caps context at ${tokens(d.low_context)}.`);
+  else if (passedOver && d.low_status) parts.push(`${d.low_provider} lists lower on a ${d.low_status} offer.`);
+  else if (passedOver) parts.push(`${d.low_provider} lists lower, but no other provider comes within ${CORROBORATION}x of that price.`);
+  else if ((spread(d) ?? 0) >= 1.5) parts.push(`Prices span ${times(spread(d))} for the same model.`);
+  if (d.outliers) parts.push(`${d.outliers} price${d.outliers === 1 ? '' : 's'} more than ${OUTLIER_FACTOR}x from the middle ${d.outliers === 1 ? 'is' : 'are'} set aside as likely errors.`);
+  return parts.join(' ');
+}
+
+function note(o: Offer): string {
+  const n: string[] = [];
+  if (o.first_party) n.push("Lab's own");
+  if (o.rate === null) n.push('No published price');
+  else if (!o.kept) n.push('Set aside: far from the middle price');
+  else if (!o.confirmed) n.push(`Unconfirmed: no other provider within ${CORROBORATION}x`);
+  if (!o.fits) n.push('Smaller context');
+  if (o.status) n.push(o.status === 'alpha' ? 'Alpha' : 'Beta');
+  return n.join('; ') || '—';
+}
+
+function modelsView(l: Loaded): Update {
+  const open = l.open, d = open?.detail;
+  const withOwn = l.models.filter((m) => m.own_rate !== null).length;
+  const nodes: Node[] = [
+    { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: [l.models.length ? 'md-work' : 'md-none'] },
+  ];
+  if (!l.models.length) {
+    nodes.push({ id: 'md-none', type: 'text', props: { content: 'No models yet. Use Refresh in the app header to read the catalog.', variant: 'caption' } });
+    return { surface: 'models', nodes, data: replace({}) };
+  }
+  nodes.push(
+    { id: 'md-work', type: 'split', props: { ratio: '1:2', gap: 'lg' }, children: ['md-browse', d ? 'md-open' : 'md-pick'] },
+    { id: 'md-browse', type: 'stack', props: { gap: 'sm' }, children: ['md-count', 'md-list'] },
+    { id: 'md-count', type: 'text', props: { content: '{/count}', variant: 'caption' } },
+    { id: 'md-list', type: 'grid', props: { columns: 1, gap: 'sm', searchable: true, pageSize: 15 }, children: { each: '/models', template: 'md-card' } },
+    { id: 'md-card', type: 'card', props: { title: '{name}', subtitle: '{line}', badge: '{badge}', layout: 'row', titleLines: 2, action: 'open_model', payload: { id: '{id}' }, actionLabel: 'Open' } },
+  );
+  if (!d) nodes.push({ id: 'md-pick', type: 'text', props: { content: 'Choose a model to see every provider\'s offer, the lab\'s own price and its benchmark scores.', variant: 'caption' } });
+  else {
+    nodes.push(
+      { id: 'md-open', type: 'section', props: { title: d.name, description: '{/open/about}' }, children: ['md-stats', 'md-sentence', 'md-offers', ...(open!.scores.length ? ['md-scores'] : [])] },
+      { id: 'md-stats', type: 'grid', props: { columns: 4, minItemWidth: 'sm', gap: 'sm' }, children: ['md-providers', 'md-pick-stat', 'md-own', 'md-context'] },
+      { id: 'md-providers', type: 'stat', props: { label: 'Providers', value: '{/open/providers}', caption: '{/open/priced}' } },
+      { id: 'md-pick-stat', type: 'stat', props: { label: 'Best full-context offer', value: '{/open/pick}', caption: '{/open/pickBy}' } },
+      { id: 'md-own', type: 'stat', props: { label: "The lab's own price", value: '{/open/own}', caption: '{/open/ownBy}' } },
+      { id: 'md-context', type: 'stat', props: { label: 'Context', value: '{/open/context}', caption: '{/open/output}' } },
+      { id: 'md-sentence', type: 'text', props: { content: '{/open/sentence}' } },
+      { id: 'md-offers', type: 'table', props: { rows: '{/open/offers}', columns: [{ key: 'provider', label: 'Provider' }, { key: 'input', label: 'Input', align: 'end' }, { key: 'output', label: 'Output', align: 'end' }, { key: 'cache', label: 'Cache read', align: 'end' }, { key: 'context', label: 'Context', align: 'end' }, { key: 'chat', label: 'Chat price', align: 'end' }, { key: 'note', label: 'Note' }], searchable: true, sortable: true, pageSize: 15 } },
+    );
+    if (open!.scores.length) nodes.push({ id: 'md-scores', type: 'table', props: { rows: '{/open/scores}', columns: [{ key: 'name', label: 'Benchmark' }, { key: 'score', label: 'Score', align: 'end' }, { key: 'metric', label: 'Measure' }, { key: 'date', label: 'Date' }, { key: 'source', label: 'Source' }] } });
+  }
+  const data: Record<string, unknown> = {
+    count: `${l.models.length.toLocaleString('en-US')} models; ${withOwn.toLocaleString('en-US')} sold by their own lab. Prices are US dollars per million tokens, blended for a chat request: ${CHAT.inputTokens.toLocaleString('en-US')} tokens in (a fifth from cache), ${CHAT.outputTokens} out.`,
+    models: l.models.map((m) => ({
+      id: m.id, name: m.name,
+      line: `${m.lab} · ${m.providers} provider${m.providers === 1 ? '' : 's'} · ${m.pick_rate !== null ? `from ${money(m.pick_rate)}` : m.priced ? `from ${money(m.low_rate)}` : 'no published price'}`,
+      badge: m.comparable && (spread(m) ?? 0) >= 1.5 ? `${times(spread(m))} spread` : '',
+    })),
+  };
+  if (d) {
+    const f = open!.facts;
+    const about = [d.lab, f?.family, f?.release_date ? `released ${f.release_date}` : null, f?.knowledge ? `knowledge to ${f.knowledge}` : null,
+      f?.open_weights ? `open weights${f.license ? ` (${f.license})` : ''}` : f?.license ? `licence ${f.license}` : null].filter(Boolean).join(' · ');
+    data.open = {
+      about, providers: String(d.providers), priced: `${d.priced} with prices`,
+      pick: money(d.pick_rate), pickBy: d.pick_provider ?? 'No full-context offer',
+      own: money(d.own_rate), ownBy: d.own_provider ?? 'Not sold by the lab',
+      context: tokens(d.full_context ?? f?.context), output: f?.output_limit ? `${tokens(f.output_limit)} output` : 'Output limit not published',
+      sentence: sentence(d),
+      offers: open!.offers.map((o) => ({ provider: o.provider_name, input: money(o.input), output: money(o.output), cache: money(o.cache_read), context: tokens(o.context), chat: money(o.rate), note: note(o) })),
+      ...(open!.scores.length ? { scores: open!.scores.map((x) => ({ name: x.name, score: String(x.score), metric: x.metric ?? '—', date: x.date ?? '—', source: x.source ?? '—' })) } : {}),
+    };
+  }
+  return { surface: 'models', nodes, data: replace(data) };
 }

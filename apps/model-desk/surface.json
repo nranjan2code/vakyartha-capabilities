@@ -86,6 +86,32 @@
     ]
   },
   {
+    "id": "models",
+    "title": "Models",
+    "data": {},
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "md-none"
+        ]
+      },
+      {
+        "id": "md-none",
+        "type": "text",
+        "props": {
+          "content": "No models yet. Use Refresh in the app header to read the catalog.",
+          "variant": "caption"
+        }
+      }
+    ]
+  },
+  {
     "id": "changes",
     "title": "Changes",
     "data": {},
