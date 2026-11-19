@@ -1,0 +1,18 @@
+# Working on Model Desk
+
+Read Building a Vakyartha app (Vakyartha's app-building guide), then README.md, SKILLS.md and ARCHITECTURE.md here. Follow the root repository rules.
+
+## Invariants
+
+1. DuckDB owns all catalog data: `providers`, `listings`, `models`, `benchmarks` (the current snapshot), `events`, `price_history`, `runs`, `receipts` and `findings`. `context.state` holds only the Changes filter. Never copy catalog rows into state.
+2. A refresh is read, match, check, apply. Reads go through `web__fetch_page` with `rows`, within 16 calls; a short, reordered or failed read is a failed run, never a partial snapshot. Every value is checked for its type before it is stored (`source.ts`).
+3. Apply is one transaction: diff, price spans and the snapshot swap together. A failed check records the run and its findings and keeps the snapshot. Do not loosen a check to get a refresh applied; a check that is wrong is fixed with its reason.
+4. Identity: the catalog's `canonical_model_id` when it names a known model, else exact equality of reduced spellings; an ambiguous spelling matches nothing. Seller words come from the catalog's provider and lab ids. No list of company names, and no per-model exceptions.
+5. Load rows with one `from_json` statement per chunk, never one insert per row. Views read summaries and bounded recent rows (`snapshot` in `store.ts`), within DuckDB's 10,000-row, 256 KiB query limit.
+6. The price history is never pruned. Events are kept with their run.
+7. No model requests, no chat, no exported assistant tools or skills.
+8. Only Projection's basic catalog components. Regenerate `surface.json` from `surfaceFile()` after any view change.
+
+## Change and acceptance
+
+Run `node --test apps/model-desk/test/*.test.ts` here. In Vakyartha, the ahead check runs `test/ahead/model-desk.ahead.ts` against this repository's main: two refreshes through the real row reader over fixture catalogs (every kind of change, price spans, a blocked candidate, a failed read, an unchanged source) on an in-memory DuckDB with the app's settings, with every update linted. Update all four package documents with any behaviour change.

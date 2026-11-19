@@ -1,0 +1,55 @@
+{
+  "id": "model-desk",
+  "version": "0.0.0",
+  "channel": "dev",
+  "name": "Model Desk",
+  "description": "The AI model market as a local data pipeline: every provider's prices, limits and capabilities from the open model catalog, checked, matched to their underlying models and kept as a change log and price history in DuckDB.",
+  "author": "Vakyartha",
+  "icon": "chart",
+  "brand": "#0f766e",
+  "category": "developer",
+  "entrypoints": {
+    "backend": "server.ts",
+    "surface": "surface.json",
+    "render": "renderApp"
+  },
+  "runtime": {
+    "engine": "node26",
+    "memoryLimitMb": 512,
+    "cpuTimeLimitSec": 60
+  },
+  "entitlements": {
+    "network": {
+      "mode": "brokered",
+      "allowedDomains": []
+    },
+    "mcpTools": [
+      "web__fetch_page"
+    ],
+    "storage": {
+      "sqlite": false,
+      "duckdb": true,
+      "databaseMiB": 256
+    },
+    "toolActions": {
+      "refresh": [
+        "web__fetch_page"
+      ]
+    },
+    "toolPurposes": {
+      "web__fetch_page": {
+        "reason": "Read the open model catalog's price and model documents as tables, once a day and when you press Refresh.",
+        "optional": false
+      }
+    }
+  },
+  "triggers": [
+    {
+      "id": "daily-refresh",
+      "kind": "cron",
+      "expression": "0 9 * * *",
+      "action": "refresh",
+      "maxDurationSec": 120
+    }
+  ]
+}

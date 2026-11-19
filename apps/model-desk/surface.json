@@ -1,0 +1,297 @@
+[
+  {
+    "id": "overview",
+    "title": "Overview",
+    "data": {
+      "stats": {
+        "providers": "—",
+        "listings": "—",
+        "priced": "none yet",
+        "models": "—",
+        "labs": "none yet",
+        "matched": "—"
+      }
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "ov-empty",
+          "ov-stats"
+        ]
+      },
+      {
+        "id": "ov-empty",
+        "type": "alert",
+        "props": {
+          "tone": "info",
+          "title": "No snapshot yet",
+          "body": "Use Refresh in the app header to read the open model catalog. A refresh makes about 13 reads and takes under a minute."
+        }
+      },
+      {
+        "id": "ov-stats",
+        "type": "grid",
+        "props": {
+          "columns": 4,
+          "minItemWidth": "sm",
+          "gap": "sm"
+        },
+        "children": [
+          "ov-providers",
+          "ov-listings",
+          "ov-models",
+          "ov-matched"
+        ]
+      },
+      {
+        "id": "ov-providers",
+        "type": "stat",
+        "props": {
+          "label": "Providers",
+          "value": "{/stats/providers}"
+        }
+      },
+      {
+        "id": "ov-listings",
+        "type": "stat",
+        "props": {
+          "label": "Listings",
+          "value": "{/stats/listings}",
+          "caption": "{/stats/priced}"
+        }
+      },
+      {
+        "id": "ov-models",
+        "type": "stat",
+        "props": {
+          "label": "Models",
+          "value": "{/stats/models}",
+          "caption": "{/stats/labs}"
+        }
+      },
+      {
+        "id": "ov-matched",
+        "type": "stat",
+        "props": {
+          "label": "Listings matched to a model",
+          "value": "{/stats/matched}"
+        }
+      }
+    ]
+  },
+  {
+    "id": "changes",
+    "title": "Changes",
+    "data": {},
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "ch-none"
+        ]
+      },
+      {
+        "id": "ch-none",
+        "type": "text",
+        "props": {
+          "content": "No changes yet. Changes appear from the second refresh, measured against the first snapshot.",
+          "variant": "caption"
+        }
+      }
+    ]
+  },
+  {
+    "id": "pipeline",
+    "title": "Pipeline",
+    "data": {
+      "stats": {
+        "status": "None yet",
+        "when": "Use Refresh in the header",
+        "tone": "neutral",
+        "took": "—",
+        "reads": "0",
+        "findings": "0",
+        "findingTone": "neutral"
+      }
+    },
+    "nodes": [
+      {
+        "id": "root",
+        "type": "stack",
+        "props": {
+          "gap": "md",
+          "density": "compact"
+        },
+        "children": [
+          "pl-stats",
+          "pl-tabs"
+        ]
+      },
+      {
+        "id": "pl-stats",
+        "type": "grid",
+        "props": {
+          "columns": 4,
+          "minItemWidth": "sm",
+          "gap": "sm"
+        },
+        "children": [
+          "pl-status",
+          "pl-took",
+          "pl-reads",
+          "pl-checks"
+        ]
+      },
+      {
+        "id": "pl-status",
+        "type": "stat",
+        "props": {
+          "label": "Last refresh",
+          "value": "{/stats/status}",
+          "caption": "{/stats/when}",
+          "tone": "{/stats/tone}"
+        }
+      },
+      {
+        "id": "pl-took",
+        "type": "stat",
+        "props": {
+          "label": "Took",
+          "value": "{/stats/took}"
+        }
+      },
+      {
+        "id": "pl-reads",
+        "type": "stat",
+        "props": {
+          "label": "Source reads",
+          "value": "{/stats/reads}"
+        }
+      },
+      {
+        "id": "pl-checks",
+        "type": "stat",
+        "props": {
+          "label": "Check findings",
+          "value": "{/stats/findings}",
+          "tone": "{/stats/findingTone}"
+        }
+      },
+      {
+        "id": "pl-tabs",
+        "type": "tabs",
+        "children": [
+          "pl-runs",
+          "pl-findings",
+          "pl-receipts",
+          "pl-method"
+        ]
+      },
+      {
+        "id": "pl-runs",
+        "type": "section",
+        "props": {
+          "title": "Refreshes"
+        },
+        "children": [
+          "pl-no-runs"
+        ]
+      },
+      {
+        "id": "pl-no-runs",
+        "type": "text",
+        "props": {
+          "content": "No refresh yet.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "pl-findings",
+        "type": "section",
+        "props": {
+          "title": "Checks",
+          "description": "Findings of the last refresh. A failed check keeps the previous snapshot; a warning is applied and listed here."
+        },
+        "children": [
+          "pl-no-findings"
+        ]
+      },
+      {
+        "id": "pl-no-findings",
+        "type": "text",
+        "props": {
+          "content": "No refresh yet.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "pl-receipts",
+        "type": "section",
+        "props": {
+          "title": "Reads",
+          "description": "Each read of the last refresh, through the Web pages integration."
+        },
+        "children": [
+          "pl-no-receipts"
+        ]
+      },
+      {
+        "id": "pl-no-receipts",
+        "type": "text",
+        "props": {
+          "content": "No reads yet. If a read is blocked, review Access in the app header.",
+          "variant": "caption"
+        }
+      },
+      {
+        "id": "pl-method",
+        "type": "section",
+        "props": {
+          "title": "Method"
+        },
+        "children": [
+          "pl-accordion"
+        ]
+      },
+      {
+        "id": "pl-accordion",
+        "type": "accordion",
+        "props": {
+          "items": [
+            {
+              "title": "Source",
+              "body": "Prices, limits and capabilities of every provider's listing come from the open model catalog at https://models.dev, which its contributors keep up to date. Model facts, licences and benchmark scores with their sources come from the same catalog's model list. Each document is read as a table, a page at a time, and every value is checked for its type before it is stored."
+            },
+            {
+              "title": "One model, one entry",
+              "body": "A listing is matched to its underlying model by the catalog's own canonical id when it gives one. Otherwise its name and id are reduced to letters and digits and must equal a model's exactly; a spelling two models share matches neither, and nothing is matched by similarity."
+            },
+            {
+              "title": "Checks",
+              "body": "A refresh fails its checks, and keeps the previous snapshot, when more than 1 in 100 rows are malformed, when listings or models fall by more than half, when fewer than half the listings match a model, when a listing appears twice, or when the source is nearly empty. Contexts over 10 million tokens, prices over 1,000 USD per million tokens and unmatched listings are applied and listed as warnings."
+            },
+            {
+              "title": "Changes and price history",
+              "body": "Each applied refresh is compared with the snapshot before it, field by field, and every difference becomes a change event. Prices are kept as spans: a span opens when a listing's prices change and closes when they change again or the listing leaves, so the history is complete and never pruned."
+            },
+            {
+              "title": "Storage",
+              "body": "Everything lives in this app's DuckDB database on this computer. A refresh is applied in one transaction or not at all. The app makes no model requests."
+            }
+          ]
+        }
+      }
+    ]
+  }
+]

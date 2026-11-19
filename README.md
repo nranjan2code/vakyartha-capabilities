@@ -32,7 +32,7 @@ Find something useful on the catalog page, then add it from inside Vakyartha. No
 
 See the [catalog page](https://nranjan2code.github.io/vakyartha-capabilities/) for what is available now; `capabilities.json` names the Vakyartha versions this release works with.
 
-[Azure Operations Desk](apps/azure-operations-desk/README.md) and [Azure Infrastructure Workbench](apps/azure-infrastructure-workbench/README.md) are on the development channel.
+[Azure Operations Desk](apps/azure-operations-desk/README.md), [Azure Infrastructure Workbench](apps/azure-infrastructure-workbench/README.md) and [Model Desk](apps/model-desk/README.md) are on the development channel.
 
 ## Verify a release
 
