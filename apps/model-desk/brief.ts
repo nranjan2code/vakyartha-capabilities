@@ -94,7 +94,7 @@ export async function priceIndex(db: Database, w: Workload, days = 120): Promise
 }
 
 export type LedeKind = 'cut' | 'launch' | 'hike' | 'sunset' | 'street' | 'quiet';
-export interface Lede { kind: LedeKind; headline: string; body: string; rule: string; model: string | null; /** The story written for the ear. */ said: string }
+export interface Lede { kind: LedeKind; headline: string; body: string; rule: string; model: string | null; /** The story written for the ear. */ said: string; /** The story's one figure, shown large, and what it measures. */ figure: string; figureLabel: string }
 export interface WeekFacts { day: string; labs: Collapsed[]; street: Collapsed[]; launches: Launch[]; sunsets: { name: string; day: string }[]; changes: number }
 
 const pct = (v: number) => `${Math.round(Math.abs(v) * 100)}%`;
@@ -127,28 +127,28 @@ export function lede(f: WeekFacts): Lede {
   if (f.sunsets.length >= SUNSET_WAVE) candidates.push({ kind: 'sunset', day: f.sunsets[0]!.day, order: 3 });
   if (street) candidates.push({ kind: 'street', day: street.day, order: 4 });
   const pick = candidates.sort((a, b) => b.day.localeCompare(a.day) || a.order - b.order)[0]?.kind;
-  if (pick === 'cut') return { kind: 'cut', headline: `${cut!.name} is ${pct(cut!.pct)} cheaper`, body: `${cut!.providerName} cut its own input price from ${usd(cut!.from)} to ${usd(cut!.to)} per million tokens. Every provider reselling it now prices against a lower floor.`, rule: `The newest cut of ${pct(MATERIAL_MOVE)} or more by a model's own lab, in the last ${WEEK_DAYS} days.`, model: cut!.id,
+  if (pick === 'cut') return { kind: 'cut', headline: `${cut!.name} is ${pct(cut!.pct)} cheaper`, body: `${cut!.providerName} cut its own input price from ${usd(cut!.from)} to ${usd(cut!.to)} per million tokens. Every provider reselling it now prices against a lower floor.`, rule: `The newest cut of ${pct(MATERIAL_MOVE)} or more by a model's own lab, in the last ${WEEK_DAYS} days.`, model: cut!.id, figure: `−${pct(cut!.pct)}`, figureLabel: `${cut!.name}, the lab's own input price`,
     said: `${cut!.name} is ${spokenPct(cut!.pct)} cheaper. ${cut!.providerName} cut its own input price from ${spokenPrice(cut!.from)} to ${spokenPrice(cut!.to)} per million tokens, so every provider reselling it now prices against a lower floor.` };
   if (pick === 'launch') {
     const n = launch!.providers, ctx = launch!.context ? Number(launch!.context) : null;
-    return { kind: 'launch', headline: `${launch!.name} is out`, body: `${launch!.lab_name} released it on ${launch!.release_date}${ctx ? ` with a ${tokensShort(ctx)}-token context` : ''}, and ${n} provider${n === 1 ? '' : 's'} already list${n === 1 ? 's' : ''} it.`, rule: `A model released in the last ${LAUNCH_DAYS} days with at least one live listing.`, model: launch!.id,
+    return { kind: 'launch', headline: `${launch!.name} is out`, body: `${launch!.lab_name} released it on ${launch!.release_date}${ctx ? ` with a ${tokensShort(ctx)}-token context` : ''}, and ${n} provider${n === 1 ? '' : 's'} already list${n === 1 ? 's' : ''} it.`, rule: `A model released in the last ${LAUNCH_DAYS} days with at least one live listing.`, model: launch!.id, figure: String(n), figureLabel: `provider${n === 1 ? '' : 's'} list ${launch!.name} already`,
       said: `${launch!.name} is out. ${launch!.lab_name} released it on ${spokenDay(launch!.release_date)}${ctx ? `, with a context of ${spokenTokens(ctx)}` : ''}, and ${n === 1 ? 'one provider already lists it' : `${n} providers already list it`}.` };
   }
-  if (pick === 'hike') return { kind: 'hike', headline: `${hike!.name} costs ${pct(hike!.pct)} more`, body: `${hike!.providerName} raised its own input price from ${usd(hike!.from)} to ${usd(hike!.to)} per million tokens, a rare direction in this market.`, rule: `The newest rise of ${pct(MATERIAL_MOVE)} or more by a model's own lab, in the last ${WEEK_DAYS} days.`, model: hike!.id,
+  if (pick === 'hike') return { kind: 'hike', headline: `${hike!.name} costs ${pct(hike!.pct)} more`, body: `${hike!.providerName} raised its own input price from ${usd(hike!.from)} to ${usd(hike!.to)} per million tokens, a rare direction in this market.`, rule: `The newest rise of ${pct(MATERIAL_MOVE)} or more by a model's own lab, in the last ${WEEK_DAYS} days.`, model: hike!.id, figure: `+${pct(hike!.pct)}`, figureLabel: `${hike!.name}, the lab's own input price`,
     said: `${hike!.name} costs ${spokenPct(hike!.pct)} more. ${hike!.providerName} raised its own input price from ${spokenPrice(hike!.from)} to ${spokenPrice(hike!.to)} per million tokens, a rare direction in this market.` };
   if (pick === 'sunset') {
     const body = `Providers marked ${f.sunsets.length} listings deprecated, including ${f.sunsets[0]!.name}. Check anything you depend on before those endpoints stop answering.`;
-    return { kind: 'sunset', headline: `${f.sunsets.length} listings were retired this week`, body, rule: `${SUNSET_WAVE} or more deprecations in the last ${WEEK_DAYS} days.`, model: null, said: `${f.sunsets.length} listings were retired this week. ${body}` };
+    return { kind: 'sunset', headline: `${f.sunsets.length} listings were retired this week`, body, rule: `${SUNSET_WAVE} or more deprecations in the last ${WEEK_DAYS} days.`, model: null, said: `${f.sunsets.length} listings were retired this week. ${body}`, figure: String(f.sunsets.length), figureLabel: 'listings retired this week' };
   }
   if (pick === 'street') {
     const verb = street!.pct < 0 ? 'cut' : 'raised';
-    return { kind: 'street', headline: `${street!.providerName} ${verb} its ${street!.name} price by ${pct(street!.pct)}`, body: `The lab has not moved: this is a reseller changing its own price, from ${usd(street!.from)} to ${usd(street!.to)} per million input tokens. Worth knowing if you buy through them.`, rule: `The newest reseller move of ${pct(STREET_MOVE)} or more, in the last ${WEEK_DAYS} days.`, model: street!.id,
+    return { kind: 'street', headline: `${street!.providerName} ${verb} its ${street!.name} price by ${pct(street!.pct)}`, body: `The lab has not moved: this is a reseller changing its own price, from ${usd(street!.from)} to ${usd(street!.to)} per million input tokens. Worth knowing if you buy through them.`, rule: `The newest reseller move of ${pct(STREET_MOVE)} or more, in the last ${WEEK_DAYS} days.`, model: street!.id, figure: `${street!.pct < 0 ? '−' : '+'}${pct(street!.pct)}`, figureLabel: `${street!.name} at ${street!.providerName}`,
       said: `${street!.providerName} ${verb} its ${street!.name} price by ${spokenPct(street!.pct)}. The lab has not moved: this is a reseller changing its own price, from ${spokenPrice(street!.from)} to ${spokenPrice(street!.to)} per million input tokens.` };
   }
   return {
     kind: 'quiet', headline: 'No lab moved its prices this week',
     body: f.changes ? `The desk logged ${f.changes} change${f.changes === 1 ? '' : 's'} this week, none of them a lab repricing its own model by ${pct(MATERIAL_MOVE)} or more.` : 'Nothing changed anywhere in the catalog this week.',
-    rule: 'Nothing met the rules for a cut, a launch, a rise, a wave of retirements or a reseller move.', model: null,
+    rule: 'Nothing met the rules for a cut, a launch, a rise, a wave of retirements or a reseller move.', model: null, figure: String(f.changes), figureLabel: `change${f.changes === 1 ? '' : 's'} this week, none of them news`,
     said: f.changes ? `No lab moved its own prices this week. The desk logged ${f.changes} change${f.changes === 1 ? '' : 's'}, none of them a lab repricing its own model by ${spokenPct(MATERIAL_MOVE)} or more.` : 'No lab moved its own prices this week, and nothing changed anywhere in the catalog.',
   };
 }

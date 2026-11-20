@@ -6,7 +6,7 @@ import { EMPTY, RECENT } from './store.ts';
 import { SOURCE } from './source.ts';
 import { PROVENANCE_LABEL, PROVENANCE_NOTE, type Provenance } from './provenance.ts';
 import { ACCESS_LABEL, classify, LICENCE_LABEL, LICENCE_NOTE, named, type AccessClass, type LicenceClass } from './licence.ts';
-import { floor, MAX_GPUS, type Gpu } from './selfhost.ts';
+import { floor, MAX_GPUS, sizeAgrees, type Gpu } from './selfhost.ts';
 import { INDEX_MIN_DAYS, LAUNCH_DAYS, MATERIAL_MOVE, STREET_MOVE, SUNSET_WAVE, dayBefore, type Collapsed, type IndexPoint, type Lede, type WeekFacts } from './brief.ts';
 import { billable, CORROBORATION, MIN_RANKED, OUTLIER_FACTOR, spread, workload, WORKLOADS, type Abilities, type Board, type Entry, type OpenModel, type Facts, type ModelDetail, type ModelRow, type Offer, type Point, type Score, type Span, type Workload } from './market.ts';
 
@@ -77,7 +77,9 @@ export function summary(changes: unknown): string {
   let list: { field?: unknown; old?: unknown; new?: unknown }[] = [];
   try { list = typeof changes === 'string' ? JSON.parse(changes) : Array.isArray(changes) ? changes : []; } catch { list = []; }
   if (!Array.isArray(list) || !list.length) return '';
-  const shown = list.slice(0, 3).map((c) => `${FIELDS[String(c.field)] ?? String(c.field).replace(/_/g, ' ')} ${value(c.old)} to ${value(c.new)}`);
+  // Limits read as token counts and prices with their unit, as on every other view.
+  const as = (field: string, v: unknown) => (v === null || v === undefined ? 'none' : field.startsWith('limit.') && typeof v === 'number' ? tokens(v) : field.startsWith('cost.') && field !== 'cost.tiers' && typeof v === 'number' ? money(v) : value(v));
+  const shown = list.slice(0, 3).map((c) => `${FIELDS[String(c.field)] ?? String(c.field).replace(/_/g, ' ')} ${as(String(c.field), c.old)} to ${as(String(c.field), c.new)}`);
   return shown.join('; ') + (list.length > 3 ? `; and ${list.length - 3} more` : '');
 }
 
@@ -97,52 +99,106 @@ export function widest(models: ModelRow[], minProviders = 6, limit = 6): ModelRo
     .sort((a, b) => spread(b)! - spread(a)! || a.name.localeCompare(b.name)).slice(0, limit);
 }
 
+/**
+ * The front page: the week's lead story beside the figures at a glance, the wire (labs' own
+ * price moves beside resellers'), where the same model costs most differently, the lab price
+ * index, and one fold for how each is measured. Figures carry their unit where they stand.
+ */
 function overview(snap: Snapshot, models: ModelRow[], w: Workload, brief: Loaded['brief'] = null): Update {
   const wide = widest(models);
   const t = snap.totals, latest = snap.latest, applied = snap.applied;
   const kept = latest && latest.status !== 'applied' && latest.status !== 'unchanged';
-  const appliedEvents = applied ? snap.recent.filter((e) => int(e.run) === int(applied.id)) : [];
+  const labs = brief ? brief.facts.labs.filter((m) => m.id) : [], street = brief ? brief.facts.street.filter((m) => m.id) : [];
+  const ready = brief ? brief.index.length >= INDEX_MIN_DAYS : false;
   const nodes: Node[] = [
-    { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: [...(applied ? [] : ['ov-empty']), ...(kept ? ['ov-kept'] : []), ...(brief ? ['ov-brief'] : []), 'ov-stats', ...(brief ? ['ov-week'] : []), ...(wide.length ? ['ov-spreads'] : []), ...(applied ? ['ov-latest'] : [])] },
+    { id: 'root', type: 'stack', props: { gap: 'lg', density: 'compact' }, children: [...(applied ? [] : ['ov-empty']), ...(kept ? ['ov-kept'] : []), brief ? 'ov-front' : 'ov-glance', ...(brief ? ['ov-wire'] : []), ...(wide.length ? ['ov-spreads'] : []), ...(brief ? ['ov-index'] : []), ...(applied ? ['ov-method'] : [])] },
   ];
-  if (!applied) nodes.push({ id: 'ov-empty', type: 'alert', props: { tone: 'info', title: 'No snapshot yet', body: 'Use Refresh in the app header to read the open model catalog. A refresh makes about 13 reads and takes under a minute.' } });
+  if (!applied) nodes.push({ id: 'ov-empty', type: 'alert', props: { tone: 'info', title: 'No snapshot yet', body: 'Use Refresh in the app header to read the open model catalog. It takes under a minute.' } });
   if (kept) nodes.push({ id: 'ov-kept', type: 'alert', props: { tone: latest!.status === 'failed' ? 'danger' : 'warning', title: applied ? `The last refresh, ${when(latest!.started_at)}, kept the previous snapshot` : `The first refresh, ${when(latest!.started_at)}, did not complete`, body: '{/kept}' } });
+  // The lead story and the figures at a glance, side by side.
+  if (brief) nodes.push(
+    { id: 'ov-front', type: 'split', props: { ratio: '2:1', gap: 'lg' }, children: ['ov-lede', 'ov-glance'] },
+    { id: 'ov-lede', type: 'stack', props: { gap: 'sm' }, children: ['ov-kicker', 'ov-figure', 'ov-headline', 'ov-body', 'ov-rule', ...(brief.lede.model ? ['ov-open'] : [])] },
+    { id: 'ov-kicker', type: 'text', props: { content: '{/front/kicker}', variant: 'caption' } },
+    { id: 'ov-figure', type: 'stat', props: { label: '{/front/figureLabel}', value: '{/front/figure}', size: 'hero', tone: '{/front/tone}' } },
+    { id: 'ov-headline', type: 'text', props: { content: '{/front/headline}', variant: 'heading' } },
+    { id: 'ov-body', type: 'text', props: { content: '{/front/body}' } },
+    { id: 'ov-rule', type: 'text', props: { content: '{/front/rule}', variant: 'caption' } },
+    ...(brief.lede.model ? [{ id: 'ov-open', type: 'button', props: { label: 'Open the model', action: 'open_model', payload: { id: brief.lede.model, focus: true }, style: 'secondary' } }] : []),
+  );
   nodes.push(
-    { id: 'ov-stats', type: 'grid', props: { columns: 4, minItemWidth: 'sm', gap: 'sm' }, children: ['ov-providers', 'ov-listings', 'ov-models', 'ov-matched'] },
-    { id: 'ov-providers', type: 'stat', props: { label: 'Providers', value: '{/stats/providers}' } },
-    { id: 'ov-listings', type: 'stat', props: { label: 'Listings', value: '{/stats/listings}', caption: '{/stats/priced}' } },
-    { id: 'ov-models', type: 'stat', props: { label: 'Models', value: '{/stats/models}', caption: '{/stats/labs}' } },
-    { id: 'ov-matched', type: 'stat', props: { label: 'Listings matched to a model', value: '{/stats/matched}' } },
+    { id: 'ov-glance', type: 'section', props: { title: 'At a glance' }, children: ['ov-glance-grid'] },
+    { id: 'ov-glance-grid', type: 'grid', props: { columns: 2, gap: 'sm' }, children: ['ov-providers', 'ov-priced', 'ov-models', 'ov-week-changes'] },
+    { id: 'ov-providers', type: 'stat', props: { label: 'Providers', value: '{/glance/providers}' } },
+    { id: 'ov-priced', type: 'stat', props: { label: 'Priced listings', value: '{/glance/priced}' } },
+    { id: 'ov-models', type: 'stat', props: { label: 'Models', value: '{/glance/models}' } },
+    { id: 'ov-week-changes', type: 'stat', props: { label: 'Changes this week', value: '{/glance/changes}' } },
   );
-  if (brief) nodes.push(...briefNodes(brief));
-  if (wide.length) nodes.push(
-    { id: 'ov-spreads', type: 'section', props: { title: 'Where shopping around pays', description: `The same model across providers, priced for ${article(w)}. Prices are US dollars per million tokens.` }, children: ['ov-spread-table'] },
-    { id: 'ov-spread-table', type: 'table', props: { rows: '{/spreads}', columns: [{ key: 'name', label: 'Model' }, { key: 'priced', label: 'Priced by', align: 'end' }, { key: 'from', label: 'From', align: 'end' }, { key: 'to', label: 'Up to', align: 'end' }, { key: 'spread', label: 'Spread', align: 'end' }] } },
-  );
-  if (applied) {
-    nodes.push({ id: 'ov-latest', type: 'section', props: { title: 'Latest snapshot', description: '{/latestNote}' }, children: appliedEvents.length ? ['ov-types', 'ov-events'] : ['ov-quiet'] });
-    if (appliedEvents.length) nodes.push(
-      { id: 'ov-types', type: 'stack', props: { direction: 'horizontal', gap: 'sm', wrap: true }, children: snap.byType.map((b) => `ov-type-${String(b.type)}`) },
-      ...snap.byType.map((b) => ({ id: `ov-type-${String(b.type)}`, type: 'stat', props: { label: TYPES[String(b.type)] ?? String(b.type), value: whole(int(b.n)) } })),
-      { id: 'ov-events', type: 'table', props: { rows: '{/events}', columns: EVENT_COLUMNS, searchable: true, pageSize: 15 } },
+  // The wire: what moved this week, labs apart from resellers.
+  if (brief) {
+    nodes.push(
+      { id: 'ov-wire', type: 'section', props: { title: 'The wire', description: '{/wire/note}' }, children: ['ov-wire-split', 'ov-all-changes'] },
+      { id: 'ov-wire-split', type: 'split', props: { ratio: '1:1', gap: 'lg' }, children: ['ov-labs', 'ov-street'] },
+      { id: 'ov-labs', type: 'section', props: { title: "Labs' own prices" }, children: [labs.length ? 'ov-labs-list' : 'ov-labs-none'] },
+      { id: 'ov-street', type: 'section', props: { title: 'Resellers' }, children: [street.length ? 'ov-street-list' : 'ov-street-none'] },
+      labs.length ? { id: 'ov-labs-list', type: 'grid', props: { columns: 1, gap: 'sm', searchable: false }, children: { each: '/wire/labs', template: 'ov-lab-move' } } : { id: 'ov-labs-none', type: 'text', props: { content: 'No lab changed its own input price this week.', variant: 'caption' } },
+      street.length ? { id: 'ov-street-list', type: 'grid', props: { columns: 1, gap: 'sm', searchable: false }, children: { each: '/wire/street', template: 'ov-street-move' } } : { id: 'ov-street-none', type: 'text', props: { content: 'No reseller changed an input price this week.', variant: 'caption' } },
+      // A template appears only with its list: an unused one would render on its own.
+      ...(labs.length ? [{ id: 'ov-lab-move', type: 'card', props: { title: '{name}', subtitle: '{line}', badge: '{change}', tone: '{tone}', layout: 'row', titleLines: 1, action: 'open_model', payload: { id: '{id}', focus: true }, actionLabel: 'Open the model' } }] : []),
+      ...(street.length ? [{ id: 'ov-street-move', type: 'card', props: { title: '{name}', subtitle: '{line}', badge: '{change}', tone: '{tone}', layout: 'row', titleLines: 1, action: 'open_model', payload: { id: '{id}', focus: true }, actionLabel: 'Open the model' } }] : []),
+      { id: 'ov-all-changes', type: 'button', props: { label: 'Every change', action: 'view.open', payload: { surface: 'changes' }, style: 'link' } },
     );
-    else nodes.push({ id: 'ov-quiet', type: 'text', props: { content: '{/quiet}', variant: 'caption' } });
   }
-  const matched = t.listings ? `${Math.round((t.attributed / t.listings) * 100)}%` : '—';
+  // Same weights, different bill: each model's span of prices, the lab's own marked.
+  if (wide.length) nodes.push(
+    { id: 'ov-spreads', type: 'section', props: { title: 'Same weights, different bill', description: '{/spreadNote}' }, children: ['ov-spread-list'] },
+    { id: 'ov-spread-list', type: 'grid', props: { columns: 1, gap: 'sm', searchable: false }, children: { each: '/spreads', template: 'ov-spread' } },
+    // A model's name and spread read as a row; the bar beneath carries only the prices.
+    { id: 'ov-spread', type: 'card', props: { title: '{name}', subtitle: '{note}', badge: '{times}', titleLines: 1, action: 'open_model', payload: { id: '{id}', focus: true }, actionLabel: 'Open the model' }, children: ['ov-spread-bar'] },
+    { id: 'ov-spread-bar', type: 'rangebar', props: { low: '{low}', high: '{high}', min: 0, max: '{max}', marker: '{own}', lowLabel: '{lowLabel}', highLabel: '{highLabel}' } },
+  );
+  if (brief) nodes.push(
+    { id: 'ov-index', type: 'section', props: { title: 'Lab price index', description: '{/indexNote}' }, children: ready ? ['ov-index-chart'] : [] },
+    ...(ready ? [{ id: 'ov-index-chart', type: 'chart', props: { kind: 'line', xScale: 'time', yScale: 'auto', labels: '{/indexDays}', series: '{/indexSeries}', yLabel: 'US dollars per million tokens', height: 'sm' } }] : []),
+  );
+  if (applied) nodes.push({ id: 'ov-method', type: 'accordion', props: { items: '{/method}' } });
+
   const firstFail = snap.findings.find((f) => f.level === 'fail');
+  const signed = (m: Collapsed) => `${m.pct < 0 ? '−' : '+'}${Math.round(Math.abs(m.pct) * 100)}%`;
+  const wireRow = (m: Collapsed) => ({ id: m.id, name: m.name, change: signed(m), tone: m.pct < 0 ? 'success' : 'danger', line: `${money(m.from)} to ${money(m.to)} per million input tokens · ${m.venues > 1 ? `${m.providerName} and ${m.venues - 1} more` : m.providerName}` });
   const data: Record<string, unknown> = {
-    stats: {
-      providers: t.providers ? whole(t.providers) : '—', listings: t.listings ? whole(t.listings) : '—', priced: t.listings ? `${whole(t.priced)} with prices` : 'none yet',
-      models: t.models ? whole(t.models) : '—', labs: t.models ? `from ${whole(t.labs)} labs` : 'none yet', matched,
+    glance: {
+      providers: t.providers ? whole(t.providers) : '—', priced: t.priced ? whole(t.priced) : '—', models: t.models ? whole(t.models) : '—',
+      changes: brief ? whole(brief.facts.changes) : '—',
     },
-    ...(brief ? briefData(brief, w) : { spoken: { brief: 'Model Desk has no snapshot yet. Use Refresh in the app header to read the catalog.' } }),
-    ...(wide.length ? { spreads: wide.map((m) => ({ name: m.name, priced: `${m.priced} providers`, from: money(m.credible_rate ?? m.low_rate), to: money(m.high_rate), spread: times(spread(m)) })) } : {}),
     ...(kept ? { kept: keptBody(String(latest!.note ?? ''), firstFail ? String(firstFail.message) : null) } : {}),
-    ...(applied ? {
-      latestNote: `Applied ${when(applied.started_at)}. ${String(applied.note ?? '')}.`,
-      ...(appliedEvents.length ? { events: eventRows(appliedEvents) } : { quiet: int(applied.events) ? 'The changes are listed under Changes.' : 'This snapshot is the baseline; later refreshes list what changes against it.' }),
-    } : {}),
+    spoken: { brief: brief ? brief.spoken : 'Model Desk has no snapshot yet. Use Refresh in the app header to read the catalog.' },
   };
+  if (brief) {
+    const b = brief, first = b.index[0], last = b.index.at(-1);
+    const change = ready && first && last && first.median > 0 ? (last.median - first.median) / first.median : null;
+    Object.assign(data, {
+      front: { kicker: `Lead story · the week to ${spokenDayShort(b.facts.day)}`, figure: b.lede.figure, figureLabel: b.lede.figureLabel, tone: b.lede.kind === 'cut' ? 'success' : b.lede.kind === 'hike' || b.lede.kind === 'sunset' ? 'danger' : b.lede.kind === 'street' ? (b.lede.figure.startsWith('−') ? 'success' : 'danger') : 'neutral', headline: b.lede.headline, body: b.lede.body, rule: `Chosen because: ${b.lede.rule.charAt(0).toLowerCase()}${b.lede.rule.slice(1)}` },
+      wire: { note: `The week to ${spokenDayShort(b.facts.day)}: each model's input price move, one row per model.`, labs: labs.slice(0, 8).map(wireRow), street: street.slice(0, 8).map(wireRow) },
+      indexNote: ready
+        ? `The median of labs' own prices for ${article(w)}: ${money(last!.median)} per million tokens across ${last!.models} models, ${change! < 0 ? 'down' : change! > 0 ? 'up' : 'unchanged'}${change ? ` ${Math.round(Math.abs(change) * 100)}%` : ''} over ${b.index.length} days.`
+        : `Publishes after ${INDEX_MIN_DAYS} days of refreshes; ${b.index.length} so far, so it starts on ${last ? spokenDayShort(dayBefore(last.day, -(INDEX_MIN_DAYS - b.index.length))) : 'the fourteenth day'}.`,
+      ...(ready ? { indexDays: b.index.map((p) => p.day), indexSeries: [{ name: "Labs' own price, median", values: b.index.map((p) => p.median) }] } : {}),
+    });
+  }
+  if (wide.length) Object.assign(data, {
+    spreadNote: `The same model, cheapest to dearest, for ${article(w)}, in US dollars per million tokens; the dot is the lab's own price.`,
+    spreads: wide.map((m) => {
+      const low = m.credible_rate ?? m.low_rate ?? 0, high = m.high_rate ?? low;
+      return { id: m.id, name: m.name, times: times(spread(m)), note: `${m.priced} providers${m.own_rate !== null ? `; the lab's own price ${money(m.own_rate)}` : ''}`, low, high, max: Math.max(high, m.own_rate ?? 0) * 1.04, own: m.own_rate, lowLabel: money(low), highLabel: money(high) };
+    }),
+  });
+  if (applied) data.method = [
+    { title: 'How the lead story is chosen', body: `The newest story the rules allow, over the week to the latest snapshot: a lab's own input price cut or rise of ${Math.round(MATERIAL_MOVE * 100)}% or more, a model released in the last ${LAUNCH_DAYS} days, ${SUNSET_WAVE} or more retirements, or a reseller move of ${Math.round(STREET_MOVE * 100)}% or more; on the same day, in that order.` },
+    { title: 'How moves are counted', body: 'Each provider\'s input price from its first to its last value in the week, then one row per model: the middle move of every provider that made it. Unpublished prices are not moves.' },
+    { title: 'Same weights, different bill', body: `Models priced by at least six providers whose prices span at least 1.5 times, for ${article(w)} at each offer's full context. The low end is the cheapest price another provider comes within 1.5 times of; prices more than 20 times from the middle are set aside.` },
+    { title: 'Lab price index', body: `The median, across models, of their own lab's cheapest price for ${article(w)} at each day's last refresh. Resellers' margins do not move it.` },
+  ];
   return { surface: 'overview', nodes, data: replace(data) };
 }
 
@@ -151,8 +207,12 @@ function changes(s: State, snap: Snapshot): Update {
   const chosen = types.includes(s.type!) ? s.type! : 'all';
   const rows = eventRows(chosen === 'all' ? snap.recent : snap.recent.filter((e) => e.type === chosen));
   const nodes: Node[] = [
-    { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: [...(snap.recent.length ? ['ch-filter'] : []), rows.length ? 'ch-table' : 'ch-none'] },
+    { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: [...(snap.byType.length ? ['ch-kinds'] : []), ...(snap.recent.length ? ['ch-filter'] : []), rows.length ? 'ch-table' : 'ch-none'] },
   ];
+  if (snap.byType.length) nodes.push(
+    { id: 'ch-kinds', type: 'grid', props: { columns: 4, minItemWidth: 'sm', gap: 'sm' }, children: snap.byType.map((b) => `ch-kind-${String(b.type)}`) },
+    ...snap.byType.map((b) => ({ id: `ch-kind-${String(b.type)}`, type: 'stat', props: { label: TYPES[String(b.type)] ?? String(b.type), value: whole(int(b.n)) } })),
+  );
   if (snap.recent.length) nodes.push(
     { id: 'ch-filter', type: 'stack', props: { direction: 'horizontal', gap: 'sm', wrap: true }, children: types.map((k) => `ch-show-${k}`) },
     ...types.map((k) => ({ id: `ch-show-${k}`, type: 'button', props: { label: k === 'all' ? 'All' : TYPES[k], action: 'show_changes', payload: { type: k }, style: k === chosen ? 'primary' : 'secondary' } })),
@@ -168,7 +228,7 @@ function pipeline(snap: Snapshot, weightReads: Record<string, unknown>[] = []): 
   const nodes: Node[] = [
     { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: ['pl-stats', 'pl-tabs'] },
     { id: 'pl-stats', type: 'grid', props: { columns: 4, minItemWidth: 'sm', gap: 'sm' }, children: ['pl-status', 'pl-took', 'pl-reads', 'pl-checks'] },
-    { id: 'pl-status', type: 'stat', props: { label: 'Last refresh', value: '{/stats/status}', caption: '{/stats/when}', tone: '{/stats/tone}' } },
+    { id: 'pl-status', type: 'stat', props: { label: '{/stats/when}', value: '{/stats/status}', tone: '{/stats/tone}' } },
     { id: 'pl-took', type: 'stat', props: { label: 'Took', value: '{/stats/took}' } },
     { id: 'pl-reads', type: 'stat', props: { label: 'Source reads', value: '{/stats/reads}' } },
     { id: 'pl-checks', type: 'stat', props: { label: 'Check findings', value: '{/stats/findings}', tone: '{/stats/findingTone}' } },
@@ -202,7 +262,7 @@ function pipeline(snap: Snapshot, weightReads: Record<string, unknown>[] = []): 
   const tone = !latest ? 'neutral' : latest.status === 'failed' ? 'danger' : latest.status === 'blocked' ? 'warning' : 'success';
   const data: Record<string, unknown> = {
     stats: {
-      status: latest ? STATUS[String(latest.status)] ?? String(latest.status) : 'None yet', when: latest ? when(latest.started_at) : 'Use Refresh in the header', tone,
+      status: latest ? STATUS[String(latest.status)] ?? String(latest.status) : 'None yet', when: latest ? `Last refresh, ${when(latest.started_at)}` : 'Last refresh', tone,
       took: latest ? seconds(latest.started_at, latest.finished_at) : '—', reads: String(snap.receipts.reduce((n, r) => n + int(r.pages), 0)),
       findings: String(snap.findings.length), findingTone: failures ? 'danger' : snap.findings.length ? 'warning' : 'neutral',
     },
@@ -289,14 +349,18 @@ function modelsView(l: Loaded, s: State): Update {
   if (!d) nodes.push({ id: 'md-pick', type: 'text', props: { content: 'Choose a model to see every provider\'s offer, the lab\'s own price and its benchmark scores.', variant: 'caption' } });
   else {
     const charted = open!.history.length >= 2;
+    const ranged = d.comparable && d.high_rate !== null && (d.credible_rate ?? d.low_rate) !== null && d.high_rate > (d.credible_rate ?? d.low_rate)!;
     const comparing = s.compare!.includes(d.id), full = s.compare!.length >= MAX_COMPARED;
     nodes.push(
-      { id: 'md-open', type: 'section', props: { title: d.name, description: '{/open/about}' }, children: ['md-stats', 'md-sentence', 'md-compare', 'md-tabs'] },
-      { id: 'md-stats', type: 'grid', props: { columns: 4, minItemWidth: 'sm', gap: 'sm' }, children: ['md-providers', 'md-pick-stat', 'md-own', 'md-context'] },
-      { id: 'md-providers', type: 'stat', props: { label: 'Providers', value: '{/open/providers}', caption: '{/open/priced}' } },
-      { id: 'md-pick-stat', type: 'stat', props: { label: 'Best full-context offer', value: '{/open/pick}', caption: '{/open/pickBy}' } },
-      { id: 'md-own', type: 'stat', props: { label: "The lab's own price", value: '{/open/own}', caption: '{/open/ownBy}' } },
-      { id: 'md-context', type: 'stat', props: { label: 'Context', value: '{/open/context}', caption: '{/open/output}' } },
+      // The best price leads; the span of every provider's price sits under it, the lab's own marked.
+      { id: 'md-open', type: 'section', props: { title: d.name, description: '{/open/about}' }, children: ['md-hero', ...(ranged ? ['md-range'] : []), 'md-stats', 'md-sentence', 'md-compare', 'md-tabs'] },
+      { id: 'md-hero', type: 'stat', props: { label: '{/open/pickBy}', value: '{/open/pick}', size: 'hero' } },
+      ...(ranged ? [{ id: 'md-range', type: 'rangebar', props: { low: '{/open/range/low}', high: '{/open/range/high}', min: 0, max: '{/open/range/max}', marker: '{/open/range/own}', lowLabel: '{/open/range/lowLabel}', highLabel: '{/open/range/highLabel}' } }] : []),
+      { id: 'md-stats', type: 'grid', props: { columns: 4, minItemWidth: 'sm', gap: 'sm' }, children: ['md-own', 'md-providers', 'md-context', 'md-output'] },
+      { id: 'md-own', type: 'stat', props: { label: '{/open/ownBy}', value: '{/open/own}' } },
+      { id: 'md-providers', type: 'stat', props: { label: 'Providers with a price', value: '{/open/providers}' } },
+      { id: 'md-context', type: 'stat', props: { label: 'Context', value: '{/open/context}' } },
+      { id: 'md-output', type: 'stat', props: { label: 'Output limit', value: '{/open/output}' } },
       { id: 'md-sentence', type: 'text', props: { content: '{/open/sentence}' } },
       comparing
         ? { id: 'md-compare', type: 'button', props: { label: 'Remove from Compare', action: 'compare_remove', payload: { id: d.id }, style: 'secondary' } }
@@ -318,7 +382,7 @@ function modelsView(l: Loaded, s: State): Update {
     if (open!.scores.length) nodes.push({ id: 'md-scores', type: 'table', props: { rows: '{/open/scores}', columns: [{ key: 'name', label: 'Benchmark' }, { key: 'score', label: 'Score', align: 'end' }, { key: 'metric', label: 'Measure' }, { key: 'kind', label: 'Published by' }, { key: 'date', label: 'Date' }, { key: 'source', label: 'Source' }] } });
   }
   const data: Record<string, unknown> = {
-    count: `${l.models.length.toLocaleString('en-US')} models; ${withOwn.toLocaleString('en-US')} sold by their own lab. Prices are US dollars per million tokens, for ${article(w)}: ${shape(w)}. Choose the request under Costs.`,
+    count: `${l.models.length.toLocaleString('en-US')} models · ${withOwn.toLocaleString('en-US')} sold by their own lab · prices per million tokens for ${article(w)}`,
     models: l.models.map((m) => ({
       id: m.id, name: m.name,
       line: `${m.lab} · ${m.providers} provider${m.providers === 1 ? '' : 's'} · ${m.pick_rate !== null ? `from ${money(m.pick_rate)}` : m.priced ? `from ${money(m.low_rate)}` : 'no published price'}`,
@@ -327,13 +391,16 @@ function modelsView(l: Loaded, s: State): Update {
   };
   if (d) {
     const f = open!.facts;
+    const ranged = d.comparable && d.high_rate !== null && (d.credible_rate ?? d.low_rate) !== null && d.high_rate > (d.credible_rate ?? d.low_rate)!;
     const about = [d.lab, f?.family, f?.release_date ? `released ${f.release_date}` : null, f?.knowledge ? `knowledge to ${f.knowledge}` : null,
       f?.open_weights ? `open weights${f.license ? ` (${f.license})` : ''}` : f?.license ? `licence ${f.license}` : null].filter(Boolean).join(' · ');
     data.open = {
-      about, providers: String(d.providers), priced: `${d.priced} with prices`,
-      pick: money(d.pick_rate), pickBy: d.pick_provider ?? 'No full-context offer',
-      own: money(d.own_rate), ownBy: d.own_provider ?? 'Not sold by the lab',
-      context: tokens(d.full_context ?? f?.context), output: f?.output_limit ? `${tokens(f.output_limit)} output` : 'Output limit not published',
+      about,
+      pick: money(d.pick_rate), pickBy: d.pick_provider ? `Best full-context offer, ${d.pick_provider}, per million tokens for ${article(w)}` : 'No full-context offer',
+      own: money(d.own_rate), ownBy: d.own_provider ? `${d.own_provider}, the lab's own price` : 'The lab does not sell it',
+      providers: `${d.priced} of ${d.providers}`,
+      context: tokens(d.full_context ?? f?.context), output: f?.output_limit ? tokens(f.output_limit) : '—',
+      ...(ranged ? { range: { low: d.credible_rate ?? d.low_rate, high: d.high_rate, max: Math.max(d.high_rate!, d.own_rate ?? 0) * 1.04, own: d.own_rate, lowLabel: money(d.credible_rate ?? d.low_rate), highLabel: money(d.high_rate) } } : {}),
       sentence: sentence(d),
       offers: open!.offers.map((o) => ({ provider: o.provider_name, input: money(o.input), output: money(o.output), cache: money(o.cache_read), context: tokens(o.context), chat: money(o.rate), note: note(o) })),
       historyNote: historyNote(open!.history, w),
@@ -406,12 +473,13 @@ function costs(l: Loaded, s: State): Update {
     .sort((a, b) => a.request - b.request || a.m.name.localeCompare(b.m.name));
   const tiered = rows.filter((r) => r.m.pick_tier !== null).length;
   const nodes: Node[] = [
-    { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: ['co-request', 'co-volume', 'co-shape', rows.length ? 'co-table' : 'co-none'] },
+    { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: ['co-request', 'co-volume', 'co-shape', ...(rows.length ? ['co-chart'] : []), rows.length ? 'co-table' : 'co-none'] },
     { id: 'co-request', type: 'stack', props: { direction: 'horizontal', gap: 'sm', wrap: true }, children: WORKLOADS.map((x) => `co-w-${x.id}`) },
     ...WORKLOADS.map((x) => ({ id: `co-w-${x.id}`, type: 'button', props: { label: x.name, action: 'set_workload', payload: { id: x.id }, style: x.id === w.id ? 'primary' : 'secondary' } })),
     { id: 'co-volume', type: 'stack', props: { direction: 'horizontal', gap: 'sm', wrap: true }, children: VOLUMES.map((v) => `co-v-${v}`) },
     ...VOLUMES.map((v) => ({ id: `co-v-${v}`, type: 'button', props: { label: `${volumeLabel(v)} a month`, action: 'set_volume', payload: { volume: v }, style: v === volume ? 'primary' : 'secondary' } })),
     { id: 'co-shape', type: 'text', props: { content: '{/shape}', variant: 'caption' } },
+    ...(rows.length ? [{ id: 'co-chart', type: 'chart', props: { kind: 'bar', orientation: 'horizontal', title: '{/chartTitle}', series: { records: '{/cheapest}', label: 'name', fields: ['dollars'] }, highlight: '{/cheapestName}', height: 'md' } }] : []),
     rows.length
       ? { id: 'co-table', type: 'table', props: { rows: '{/rows}', columns: [{ key: 'name', label: 'Model' }, { key: 'lab', label: 'Lab' }, { key: 'provider', label: 'Best full-context offer' }, { key: 'request', label: 'Per request', align: 'end' }, { key: 'month', label: 'Per month', align: 'end' }, { key: 'rate', label: 'Per million tokens', align: 'end' }, { key: 'note', label: 'Note' }], searchable: true, sortable: true, pageSize: 20 } }
       : { id: 'co-none', type: 'text', props: { content: '{/none}', variant: 'caption' } },
@@ -419,6 +487,7 @@ function costs(l: Loaded, s: State): Update {
   const data = {
     shape: `${w.name}: ${w.description} ${shape(w)}, ${Math.round(w.cacheWriteRate * 100)}% written to cache. ${volumeLabel(volume)} requests a month, at each model's best full-context offer${tiered ? `; ${tiered} of these prices come from a context price tier` : ''}.${small ? ` ${small} models whose context is smaller than ${tokens(w.contextTokens)} are left out.` : ''}`,
     ...(rows.length ? {} : { none: priced.length ? `No priced model's context holds ${article(w)} of ${tokens(w.contextTokens)}.` : 'No priced models yet. Use Refresh in the app header to read the catalog.' }),
+    ...(rows.length ? { chartTitle: `The 12 cheapest, US dollars a month for ${volumeLabel(volume)} ${w.name.toLowerCase()} requests`, cheapestName: rows[0]!.m.name, cheapest: rows.slice(0, 12).map(({ m, request }) => ({ name: m.name, dollars: Math.round(request * volume * 100) / 100 })) } : {}),
     ...(rows.length ? { rows: rows.map(({ m, request }) => ({ name: m.name, lab: m.lab, provider: m.pick_provider ?? '—', request: dollars(request), month: dollars(request * volume), rate: money(m.pick_rate), note: m.pick_tier !== null ? `${tokens(m.pick_tier)}+ context price` : '—' })) } : {}),
   };
   return { surface: 'costs', nodes, data: replace(data) };
@@ -441,30 +510,35 @@ function compare(l: Loaded, s: State): Update {
     row('Lab', (c) => c.detail.lab),
     row('Providers', (c) => `${c.detail.providers} (${c.detail.priced} priced)`),
     row('Best full-context offer', (c) => c.detail.pick_provider ?? '—'),
-    row(`Price, ${w.name.toLowerCase()} request`, (c) => money(c.detail.pick_rate)),
-    row(`Per month, ${volumeLabel(volume)} requests`, perMonth),
-    row("The lab's own price", (c) => money(c.detail.own_rate)),
-    row('Context', (c) => tokens(c.detail.full_context ?? c.facts?.context)),
-    row('Output limit', (c) => tokens(c.facts?.output_limit)),
-    row('Reasoning', (c) => yes(c.abilities.reasoning)),
-    row('Tool calls', (c) => yes(c.abilities.tool_call)),
     row('Structured output', (c) => yes(c.abilities.structured_output)),
     row('Attachments', (c) => yes(c.abilities.attachment)),
-    row('Open weights', (c) => yes(c.facts?.open_weights)),
     row('Licence', (c) => c.facts?.license ?? '—'),
     row('Released', (c) => c.facts?.release_date ?? '—'),
     row('Knowledge to', (c) => c.facts?.knowledge ?? '—'),
     ...scoreNames.map((name) => row(name, (c) => { const x = c.scores.find((y) => y.name === name); return x ? `${x.score}${x.metric ? ` ${x.metric}` : ''}` : '—'; })),
   ];
   const nodes: Node[] = [
-    { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: ['cp-caption', 'cp-table', 'cp-remove'] },
+    { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: ['cp-caption', 'cp-options', 'cp-details', 'cp-remove'] },
     { id: 'cp-caption', type: 'text', props: { content: '{/caption}', variant: 'caption' } },
+    { id: 'cp-options', type: 'compare', props: { options: '{/options}', best: '{/best}' } },
+    { id: 'cp-details', type: 'section', props: { title: 'More about each' }, children: ['cp-table'] },
     { id: 'cp-table', type: 'table', props: { rows: '{/rows}', columns: [{ key: 'label', label: '' }, ...cs.map((c, i) => ({ key: key(i), label: c.detail.name }))] } },
     { id: 'cp-remove', type: 'stack', props: { direction: 'horizontal', gap: 'sm', wrap: true }, children: cs.map((c, i) => `cp-remove-${i}`) },
     ...cs.map((c, i) => ({ id: `cp-remove-${i}`, type: 'button', props: { label: `Remove ${c.detail.name}`, action: 'compare_remove', payload: { id: c.detail.id }, style: 'secondary' } })),
   ];
   const data = {
-    caption: `Prices are US dollars per million tokens for ${article(w)}, at each model's best full-context offer; change the request and volume under Costs.${scoreNames.length ? ' Benchmark scores are as each lab or evaluator published them.' : ''}`,
+    ...(() => {
+      const fits = cs.filter((c) => holds(c) && c.detail.pick_rate !== null).sort((a, b) => a.detail.pick_rate! - b.detail.pick_rate!);
+      return {
+        best: fits[0]?.detail.name ?? '',
+        options: cs.map((c) => ({
+          name: c.detail.name, price: perMonth(c),
+          note: c.detail.pick_provider ? `Best full-context offer: ${c.detail.pick_provider}, ${money(c.detail.pick_rate)} per million tokens.` : 'No full-context offer.',
+          specs: { "Lab's own price": money(c.detail.own_rate), Context: tokens(c.detail.full_context ?? c.facts?.context), 'Output limit': tokens(c.facts?.output_limit), Reasoning: yes(c.abilities.reasoning), 'Tool calls': yes(c.abilities.tool_call), 'Open weights': yes(c.facts?.open_weights) },
+        })),
+      };
+    })(),
+    caption: `A month of ${volumeLabel(volume)} ${w.name.toLowerCase()} requests at each model's best full-context offer; prices are US dollars per million tokens; change the request and volume under Costs.${scoreNames.length ? ' Benchmark scores are as each lab or evaluator published them.' : ''}`,
     rows,
   };
   return { surface: 'compare', nodes, data: replace(data) };
@@ -520,16 +594,16 @@ function benchmarksView(l: Loaded, s: State): Update {
   const leaders = open.independent >= MIN_RANKED ? rows.filter((r) => r.perDollar !== null).sort((a, b) => b.perDollar! - a.perDollar! || a.entry.model_name.localeCompare(b.entry.model_name)).slice(0, 5) : [];
   const kinds = [...new Set(l.board.map((e) => e.provenance))].sort();
   nodes.push(
-    { id: 'bm-open', type: 'section', props: { title: boardTitle(open), description: '{/board/about}' }, children: [...(leaders.length ? ['bm-leaders'] : ['bm-unranked']), 'bm-entries', 'bm-kinds'] },
-    leaders.length
-      ? { id: 'bm-leaders', type: 'table', props: { rows: '{/board/leaders}', columns: [{ key: 'rank', label: '', align: 'end' }, { key: 'model', label: 'Best value, independently measured' }, { key: 'score', label: 'Score', align: 'end' }, { key: 'run', label: 'Cost per request', align: 'end' }, { key: 'points', label: 'Points per dollar', align: 'end' }] } }
-      : { id: 'bm-unranked', type: 'text', props: { content: '{/board/unranked}', variant: 'caption' } },
+    { id: 'bm-open', type: 'section', props: { title: boardTitle(open), description: '{/board/about}' }, children: [...(leaders.length ? ['bm-chart'] : ['bm-unranked']), 'bm-entries', 'bm-kinds'] },
+    ...(leaders.length ? [{ id: 'bm-chart', type: 'chart', props: { kind: 'bar', orientation: 'horizontal', title: 'Points per dollar, independently measured', series: { records: '{/board/chart}', label: 'name', fields: ['points'] }, highlight: '{/board/chartBest}', height: 'sm' } }] : []),
+    ...(leaders.length ? [] : [{ id: 'bm-unranked', type: 'text', props: { content: '{/board/unranked}', variant: 'caption' } }]),
     { id: 'bm-entries', type: 'table', props: { rows: '{/board/entries}', columns: [{ key: 'model', label: 'Model' }, { key: 'score', label: 'Score', align: 'end' }, { key: 'kind', label: 'Published by' }, { key: 'run', label: 'Cost per request', align: 'end' }, { key: 'points', label: 'Points per dollar', align: 'end' }, { key: 'date', label: 'Date' }, { key: 'source', label: 'Source' }], searchable: true, sortable: true, pageSize: 15 } },
     { id: 'bm-kinds', type: 'accordion', props: { items: '{/board/kinds}' } },
   );
   const points = (n: number | null) => (n === null ? '—' : n >= 100 ? Math.round(n).toLocaleString('en-US') : n.toFixed(1));
   data.board = {
     about: `${open.models} models, ${open.independent} measured independently. Cost per request is for ${article(w)} at each model's best full-context offer; choose the request under Costs.`,
+    ...(leaders.length ? { chartBest: leaders[0]!.entry.model_name, chart: leaders.map((r) => ({ name: r.entry.model_name, points: Math.round(r.perDollar!) })) } : {}),
     ...(leaders.length ? { leaders: leaders.map((r, i) => ({ rank: String(i + 1), model: r.entry.model_name, score: String(r.entry.score), run: dollars(r.perRun), points: points(r.perDollar) })) }
       : { unranked: `Not ranked: fewer than ${MIN_RANKED} models on this benchmark were measured independently, and figures from labs and sellers are not ranked against each other.` }),
     entries: rows.map((r) => ({ model: r.entry.model_name, score: String(r.entry.score), kind: kindOf(r.entry.provenance, r.entry.publisher), run: dollars(r.perRun), points: points(r.perDollar), date: r.entry.date ?? '—', source: r.entry.source ?? '—' })),
@@ -557,9 +631,11 @@ function weightsView(l: Loaded, s: State): Update {
     const licence = m.license ?? m.host_license;
     const kind = classify(licence);
     const access: AccessClass = m.read_at ? (m.gated === 'gated' ? 'gated' : m.gated === 'open' ? 'open' : 'unknown') : 'unknown';
-    const c = floor(m.parameters === null ? null : Number(m.parameters), kind, price.get(m.id) ?? null, gpu);
-    return { m, licence, kind, access, c };
-  });
+    const reported = m.parameters === null ? null : Number(m.parameters);
+    const agrees = sizeAgrees(m.name, reported);
+    const c = floor(agrees === false ? null : reported, kind, price.get(m.id) ?? null, gpu);
+    return { m, licence, kind, access, c, agrees };
+  }).sort((a, b) => (a.c.tokens === null ? 1 : 0) - (b.c.tokens === null ? 1 : 0) || (a.c.tokens ?? 0) - (b.c.tokens ?? 0) || a.m.name.localeCompare(b.m.name));
   const read = l.weights.filter((m) => m.read_at).length, linked = l.weights.filter((m) => m.repo).length;
   // A repository whose organisation has been read but which was not in its listing is not on the host.
   const orgsRead = new Set(l.weightReads.filter((r) => r.status === 'Read').map((r) => String(r.org).toLowerCase()));
@@ -567,7 +643,7 @@ function weightsView(l: Loaded, s: State): Update {
   const notFound = l.weights.filter(missing).length;
   const count = (k: LicenceClass) => rows.filter((r) => r.kind === k).length;
   const nodes: Node[] = [
-    { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: [...(l.weights.length ? ['ow-stats'] : []), 'ow-gpu-section', l.weights.length ? 'ow-table' : 'ow-none', 'ow-kinds'] },
+    { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: [...(l.weights.length ? ['ow-stats', 'ow-status'] : []), 'ow-gpu-section', l.weights.length ? 'ow-table' : 'ow-none', 'ow-kinds'] },
     { id: 'ow-gpu-section', type: 'section', props: { title: 'Your GPU', description: '{/gpuNote}' }, children: ['ow-gpu'] },
     { id: 'ow-gpu', type: 'stack', props: { direction: 'horizontal', gap: 'sm', wrap: true, align: 'end' }, children: ['ow-memory', 'ow-price', 'ow-save'] },
     { id: 'ow-memory', type: 'input', props: { label: 'Memory per GPU', bind: '/gpuDraft/memory', kind: 'number', min: 1, max: 1000, unit: 'GB', maxWidth: 'sm' } },
@@ -580,10 +656,11 @@ function weightsView(l: Loaded, s: State): Update {
   ];
   if (l.weights.length) nodes.push(
     { id: 'ow-stats', type: 'grid', props: { columns: 4, minItemWidth: 'sm', gap: 'sm' }, children: ['ow-open', 'ow-permissive', 'ow-own', 'ow-read'] },
-    { id: 'ow-open', type: 'stat', props: { label: 'Open-weights models', value: '{/stats/models}', caption: '{/stats/limited}' } },
-    { id: 'ow-permissive', type: 'stat', props: { label: 'Standard open licence', value: '{/stats/permissive}' } },
-    { id: 'ow-own', type: 'stat', props: { label: "The lab's own licence", value: '{/stats/own}', caption: '{/stats/none}' } },
-    { id: 'ow-read', type: 'stat', props: { label: 'Access and size read', value: '{/stats/read}', caption: '{/stats/readNote}' } },
+    { id: 'ow-open', type: 'stat', props: { label: 'Standard open licence', value: '{/stats/permissive}' } },
+    { id: 'ow-permissive', type: 'stat', props: { label: "The lab's own licence", value: '{/stats/own}' } },
+    { id: 'ow-own', type: 'stat', props: { label: 'Non-commercial', value: '{/stats/limited}' } },
+    { id: 'ow-read', type: 'stat', props: { label: 'No licence published', value: '{/stats/none}' } },
+    { id: 'ow-status', type: 'text', props: { content: '{/stats/status}', variant: 'caption' } },
   );
   const data: Record<string, unknown> = {
     gpuDraft: s.gpuDraft,
@@ -593,66 +670,21 @@ function weightsView(l: Loaded, s: State): Update {
     kinds: (['permissive', 'own', 'non-commercial', 'none'] as LicenceClass[]).map((k) => ({ title: LICENCE_LABEL[k], body: LICENCE_NOTE[k] })),
   };
   if (l.weights.length) {
-    const lastRead = l.weightReads[0];
     data.stats = {
-      models: l.weights.length.toLocaleString('en-US'), limited: `${count('non-commercial')} non-commercial`, permissive: count('permissive').toLocaleString('en-US'), own: count('own').toLocaleString('en-US'), none: `${count('none')} with no licence published`,
-      read: `${read} of ${linked}`,
-      readNote: read + notFound < linked ? 'Read hourly while Keep running is on' : notFound ? `${notFound} not found on the weights host` : lastRead ? `Last read ${when(lastRead.read_at)}` : '—',
+      models: l.weights.length.toLocaleString('en-US'), limited: whole(count('non-commercial')), permissive: whole(count('permissive')), own: whole(count('own')), none: whole(count('none')),
+      status: `${whole(l.weights.length)} open-weights models. Access and size are read for ${read} of ${linked} linked repositories${read + notFound < linked ? '; the rest are read each hour while Keep running is on' : notFound ? `; ${notFound} ${notFound === 1 ? 'is' : 'are'} not on the weights host` : ''}.`,
     };
-    data.rows = rows.map(({ m, licence, kind, access, c }) => ({
-      name: m.name, licence: named(licence) ? `${LICENCE_LABEL[kind]}: ${named(licence)}` : LICENCE_LABEL[kind], access: !m.repo ? 'No weights link' : missing(m) ? 'Not on the weights host' : ACCESS_LABEL[access],
-      parameters: m.parameters === null ? '—' : many(Number(m.parameters)), memory: c.memory === null ? '—' : `${Math.round(c.memory).toLocaleString('en-US')} GB`,
+    data.rows = rows.map(({ m, licence, kind, access, c, agrees }) => ({
+      name: m.name, licence: named(licence) ?? LICENCE_LABEL[kind], access: !m.repo ? 'No weights link' : missing(m) ? 'Not on the weights host' : ACCESS_LABEL[access],
+      parameters: m.parameters === null ? '—' : agrees === false ? `${many(Number(m.parameters))}?` : many(Number(m.parameters)), memory: c.memory === null ? '—' : `${Math.round(c.memory).toLocaleString('en-US')} GB`,
       gpus: c.gpus === null ? '—' : String(c.gpus), rent: c.rent === null ? '—' : dollars(c.rent), price: money(price.get(m.id) ?? null), tokens: many(c.tokens),
-      note: VERDICT[c.verdict] || (access === 'gated' ? 'Weights need an access request' : '—'),
+      note: agrees === false ? 'The size on the weights host does not match the name' : VERDICT[c.verdict] || (access === 'gated' ? 'Weights need an access request' : '—'),
     }));
   }
   return { surface: 'weights', nodes, data: replace(data) };
 }
 
-const movePct = (m: Collapsed) => `${m.pct < 0 ? 'down' : 'up'} ${Math.round(Math.abs(m.pct) * 100)}%`;
-function moveRows(list: Collapsed[]) {
-  return list.slice(0, 50).map((m) => ({ name: m.name, provider: m.venues > 1 ? `${m.providerName} and ${m.venues - 1} more` : m.providerName, from: money(m.from), to: money(m.to), change: movePct(m), day: m.day }));
-}
-const MOVE_COLUMNS = [{ key: 'name', label: 'Model' }, { key: 'provider', label: 'Provider' }, { key: 'from', label: 'Input before', align: 'end' }, { key: 'to', label: 'Input now', align: 'end' }, { key: 'change', label: 'Change', align: 'end' }, { key: 'day', label: 'Day' }];
-
-/** The lead story, the week's moves (labs apart from resellers) and the lab price index. */
-function briefNodes(b: NonNullable<Loaded['brief']>): Node[] {
-  const ready = b.index.length >= INDEX_MIN_DAYS;
-  return [
-    { id: 'ov-brief', type: 'section', props: { title: '{/brief/headline}', description: '{/brief/body}' }, children: ['ov-rule', ...(b.lede.model ? ['ov-open'] : [])] },
-    { id: 'ov-rule', type: 'text', props: { content: '{/brief/rule}', variant: 'caption' } },
-    ...(b.lede.model ? [{ id: 'ov-open', type: 'button', props: { label: 'Open the model', action: 'open_model', payload: { id: b.lede.model, focus: true }, style: 'secondary' } }] : []),
-    { id: 'ov-week', type: 'section', props: { title: 'This week', description: '{/brief/week}' }, children: ['ov-week-tabs'] },
-    ...tabbed('ov-week-tabs', [
-      [`Labs' own prices (${b.facts.labs.length})`, b.facts.labs.length ? ['ov-labs'] : ['ov-labs-none']],
-      [`Resellers (${b.facts.street.length})`, b.facts.street.length ? ['ov-street'] : ['ov-street-none']],
-      ['Lab price index', ready ? ['ov-index-note', 'ov-index'] : ['ov-index-note']],
-    ]),
-    b.facts.labs.length ? { id: 'ov-labs', type: 'table', props: { rows: '{/brief/labs}', columns: MOVE_COLUMNS, searchable: true, pageSize: 10 } } : { id: 'ov-labs-none', type: 'text', props: { content: 'No lab changed its own input price this week.', variant: 'caption' } },
-    b.facts.street.length ? { id: 'ov-street', type: 'table', props: { rows: '{/brief/street}', columns: MOVE_COLUMNS, searchable: true, pageSize: 10 } } : { id: 'ov-street-none', type: 'text', props: { content: 'No reseller changed an input price this week.', variant: 'caption' } },
-    { id: 'ov-index-note', type: 'text', props: { content: '{/brief/indexNote}', variant: 'caption' } },
-    ...(ready ? [{ id: 'ov-index', type: 'chart', props: { kind: 'line', xScale: 'time', yScale: 'auto', labels: '{/brief/indexDays}', series: '{/brief/indexSeries}', yLabel: 'US dollars per million tokens', height: 'sm' } }] : []),
-  ];
-}
-
-function briefData(b: NonNullable<Loaded['brief']>, w: Workload): Record<string, unknown> {
-  const ready = b.index.length >= INDEX_MIN_DAYS;
-  const first = b.index[0], last = b.index.at(-1);
-  const change = ready && first && last && first.median > 0 ? (last.median - first.median) / first.median : null;
-  const startsOn = !ready && last ? dayBefore(last.day, -(INDEX_MIN_DAYS - b.index.length)) : null;
-  return {
-    brief: {
-      headline: b.lede.headline, body: b.lede.body, rule: `Chosen by the rule: ${b.lede.rule}`,
-      week: `The week to ${b.facts.day}. A lab's own input price move of ${Math.round(MATERIAL_MOVE * 100)}% or more, a launch in the last ${LAUNCH_DAYS} days, ${SUNSET_WAVE} or more retirements and a reseller move of ${Math.round(STREET_MOVE * 100)}% or more can lead the brief; moves are one row per model, the middle move of every provider that made it.`,
-      labs: moveRows(b.facts.labs), street: moveRows(b.facts.street),
-      indexNote: ready
-        ? `The median across models of their own lab's cheapest price for ${article(w)}, at each day's last refresh: ${money(last!.median)} per million tokens across ${last!.models} models, ${change! < 0 ? 'down' : change! > 0 ? 'up' : 'unchanged'}${change ? ` ${Math.round(Math.abs(change) * 100)}%` : ''} over ${b.index.length} days. Resellers' margins do not move it.`
-        : `The lab price index needs ${INDEX_MIN_DAYS} days of history and has ${b.index.length}; it starts on ${startsOn ?? 'the fourteenth day of refreshes'}.`,
-      ...(ready ? { indexDays: b.index.map((p) => p.day), indexSeries: [{ name: "Labs' own price, median", values: b.index.map((p) => p.median) }] } : {}),
-    },
-    spoken: { brief: b.spoken },
-  };
-}
+export const spokenDayShort = (day: string) => new Date(`${day}T00:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
 
 /** Why a refresh kept the snapshot, each reason once, as sentences. */
 export function keptBody(note: string, finding: string | null): string {

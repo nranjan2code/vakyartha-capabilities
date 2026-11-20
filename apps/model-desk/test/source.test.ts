@@ -42,7 +42,7 @@ test('values are the type they should be or the row is left out', () => {
 });
 
 test('a change reads as words, and times read in UTC', () => {
-  assert.equal(summary('[{"field":"cost.input","old":0.15,"new":0.3},{"field":"limit.context","old":128000,"new":null}]'), 'input price 0.15 to 0.3; context 128000 to none');
+  assert.equal(summary('[{"field":"cost.input","old":0.15,"new":0.3},{"field":"limit.context","old":128000,"new":null}]'), 'input price $0.15 to $0.3; context 128K to none');
   assert.equal(summary('[{"field":"a","old":1,"new":2},{"field":"b","old":1,"new":2},{"field":"c","old":1,"new":2},{"field":"d","old":1,"new":2}]'), 'a 1 to 2; b 1 to 2; c 1 to 2; and 1 more');
   assert.equal(summary('[]'), '');
   assert.equal(when('2026-11-19T14:05:09.000Z'), '19 Nov 2026, 14:05 UTC');

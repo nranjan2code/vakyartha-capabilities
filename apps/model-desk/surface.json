@@ -3,13 +3,11 @@
     "id": "overview",
     "title": "Overview",
     "data": {
-      "stats": {
+      "glance": {
         "providers": "—",
-        "listings": "—",
-        "priced": "none yet",
+        "priced": "—",
         "models": "—",
-        "labs": "none yet",
-        "matched": "—"
+        "changes": "—"
       },
       "spoken": {
         "brief": "Model Desk has no snapshot yet. Use Refresh in the app header to read the catalog."
@@ -20,12 +18,12 @@
         "id": "root",
         "type": "stack",
         "props": {
-          "gap": "md",
+          "gap": "lg",
           "density": "compact"
         },
         "children": [
           "ov-empty",
-          "ov-stats"
+          "ov-glance"
         ]
       },
       {
@@ -34,22 +32,31 @@
         "props": {
           "tone": "info",
           "title": "No snapshot yet",
-          "body": "Use Refresh in the app header to read the open model catalog. A refresh makes about 13 reads and takes under a minute."
+          "body": "Use Refresh in the app header to read the open model catalog. It takes under a minute."
         }
       },
       {
-        "id": "ov-stats",
+        "id": "ov-glance",
+        "type": "section",
+        "props": {
+          "title": "At a glance"
+        },
+        "children": [
+          "ov-glance-grid"
+        ]
+      },
+      {
+        "id": "ov-glance-grid",
         "type": "grid",
         "props": {
-          "columns": 4,
-          "minItemWidth": "sm",
+          "columns": 2,
           "gap": "sm"
         },
         "children": [
           "ov-providers",
-          "ov-listings",
+          "ov-priced",
           "ov-models",
-          "ov-matched"
+          "ov-week-changes"
         ]
       },
       {
@@ -57,16 +64,15 @@
         "type": "stat",
         "props": {
           "label": "Providers",
-          "value": "{/stats/providers}"
+          "value": "{/glance/providers}"
         }
       },
       {
-        "id": "ov-listings",
+        "id": "ov-priced",
         "type": "stat",
         "props": {
-          "label": "Listings",
-          "value": "{/stats/listings}",
-          "caption": "{/stats/priced}"
+          "label": "Priced listings",
+          "value": "{/glance/priced}"
         }
       },
       {
@@ -74,16 +80,15 @@
         "type": "stat",
         "props": {
           "label": "Models",
-          "value": "{/stats/models}",
-          "caption": "{/stats/labs}"
+          "value": "{/glance/models}"
         }
       },
       {
-        "id": "ov-matched",
+        "id": "ov-week-changes",
         "type": "stat",
         "props": {
-          "label": "Listings matched to a model",
-          "value": "{/stats/matched}"
+          "label": "Changes this week",
+          "value": "{/glance/changes}"
         }
       }
     ]
@@ -498,7 +503,7 @@
     "data": {
       "stats": {
         "status": "None yet",
-        "when": "Use Refresh in the header",
+        "when": "Last refresh",
         "tone": "neutral",
         "took": "—",
         "reads": "0",
@@ -538,9 +543,8 @@
         "id": "pl-status",
         "type": "stat",
         "props": {
-          "label": "Last refresh",
+          "label": "{/stats/when}",
           "value": "{/stats/status}",
-          "caption": "{/stats/when}",
           "tone": "{/stats/tone}"
         }
       },

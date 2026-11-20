@@ -41,3 +41,19 @@ export function floor(parameters: number | null, licence: LicenceClass, perMilli
   if (!perMillion || perMillion <= 0) return { verdict: 'missing', memory, gpus, rent, tokens: null };
   return { verdict: 'break-even', memory, gpus, rent, tokens: (rent / perMillion) * 1_000_000 };
 }
+
+/**
+ * Does the size the weights host reports agree with the size the model's name states? A repository
+ * can report a fraction of a model (one shard, an adapter) or another model's count; "9B" in the
+ * name and 934 thousand parameters on the host (seen in Vakyartha Dev, 2026-11-20) cannot both be
+ * true, so the count is not used. A name that states no size cannot be checked. (The original's rule.)
+ */
+export function sizeAgrees(name: string, parameters: number | null): boolean | null {
+  if (parameters === null || parameters <= 0) return null;
+  const stated = [...name.matchAll(/(\d+(?:\.\d+)?)\s*B\b/gi)].map((m) => Number(m[1]));
+  if (!stated.length) return null;
+  const actual = parameters / 1e9;
+  return stated.some((b) => b > 0 && Math.max(b, actual) / Math.min(b, actual) <= SIZE_TOLERANCE);
+}
+/** A gap between the stated and reported size beyond this means the count is not the model's. */
+const SIZE_TOLERANCE = 1.5;

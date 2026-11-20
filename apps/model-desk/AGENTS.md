@@ -17,6 +17,7 @@ Read Building a Vakyartha app (Vakyartha's app-building guide), then README.md, 
 11. The price history is never pruned. Events are kept with their run.
 12. No model requests, no chat, no exported assistant tools or skills.
 13. Only Projection's basic catalog components. Regenerate `surface.json` from `surfaceFile()` after any view change.
+14. Views read like a front page: one large figure per view (the lead story's, the model's best price), each figure shown once (a figure in a side-by-side or a chart is not repeated in a table below), prices and limits always with their unit ($, K, M), and moves signed and toned (a cut green, a rise red). A stat shows its label and value only, so a qualifier goes in the label or a line of text. A list template is emitted only with its list.
 
 ## Change and acceptance
 
