@@ -5,7 +5,7 @@ Read Building a Vakyartha app (Vakyartha's app-building guide), then README.md, 
 ## Invariants
 
 1. DuckDB owns all catalog data: `providers`, `listings`, `models`, `benchmarks` (the current snapshot), `events`, `price_history`, `runs`, `receipts` and `findings`. `context.state` holds only the Changes filter. Never copy catalog rows into state.
-2. A refresh is read, match, check, apply. Reads go through `web__fetch_page` with `rows`, within 16 calls; a short, reordered or failed read is a failed run, never a partial snapshot. Every value is checked for its type before it is stored (`source.ts`).
+2. A refresh is read, match, check, apply. A source that changed between pages is a failed read in plain words (`readFailure`), never a mixed snapshot; the hourly run catches up a failed read (`catchUpDue`). Reads go through `web__fetch_page` with `rows`, within 16 calls; a short, reordered or failed read is a failed run, never a partial snapshot. Every value is checked for its type before it is stored (`source.ts`).
 3. Apply is one transaction: diff, price spans and the snapshot swap together. A failed check records the run and its findings and keeps the snapshot. Do not loosen a check to get a refresh applied; a check that is wrong is fixed with its reason.
 4. Identity: the catalog's `canonical_model_id` when it names a known model, else exact equality of reduced spellings; an ambiguous spelling matches nothing. Seller words come from the catalog's provider and lab ids. No list of company names, and no per-model exceptions.
 5. Load rows with one `from_json` statement per chunk, never one insert per row. Views read summaries and bounded recent rows (`snapshot` in `store.ts`), within DuckDB's 10,000-row, 256 KiB query limit.

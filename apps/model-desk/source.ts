@@ -15,6 +15,18 @@ export type Call = (name: string, args: Record<string, unknown>) => Promise<unkn
 
 export interface Receipt { what: string; url: string; pages: number; rows: number; total: number; ms: number; status: string }
 
+/**
+ * The source changed between two pages of one read: the catalog deploys in bursts of updates, and
+ * while it does, its servers can answer from the old and the new version in turn. The reader
+ * refuses to mix them (its words below); the desk keeps its last snapshot and says so plainly.
+ */
+export const SOURCE_UPDATING = 'The catalog was being updated while it was read, so its pages came from two versions. The last snapshot is kept; refresh again in a few minutes.';
+const CHANGED = /the document changed since the previous page/i;
+/** A read's failure in words a person can act on. */
+export function readFailure(message: string): string {
+  return CHANGED.test(message) ? SOURCE_UPDATING : message;
+}
+
 export interface Read<T> { rows: T[]; dropped: number; receipt: Receipt }
 
 /** Each page the tool returns: `URL: <url>`, a blank line, then the page as JSON. */
@@ -40,7 +52,9 @@ export async function readAll<T>(call: Call, what: string, url: string, each: st
   let after: string | undefined, pages = 0, total = 0, received = 0, dropped = 0;
   do {
     if (pages >= budget) throw new Error(`${what}: the source needs more than ${budget} reads in one refresh`);
-    const p = page(await call('web__fetch_page', { url, rows: { each, columns, limit: PAGE_BYTES, ...(after ? { after } : {}) } }));
+    let p: ReturnType<typeof page>;
+    try { p = page(await call('web__fetch_page', { url, rows: { each, columns, limit: PAGE_BYTES, ...(after ? { after } : {}) } })); }
+    catch (e) { throw new Error(`${what}: ${readFailure(String((e as Error)?.message ?? e))}`); }
     if (p.from !== received) throw new Error(`${what}: page ${pages + 1} starts at row ${p.from}, expected ${received}`);
     pages++;
     total = p.total;

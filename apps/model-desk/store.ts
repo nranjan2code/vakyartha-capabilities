@@ -290,3 +290,12 @@ export async function saveWeights(db: Database, org: string, rows: { repo: strin
 export async function weightsFailed(db: Database, org: string, at: string, ms: number, reason: string) {
   await db.run('INSERT INTO weight_reads VALUES (?,?,?,?,?)', [org, at, 0, ms, `Failed: ${reason}`.slice(0, 300)]);
 }
+
+/** How long a failed catalog read waits before the hourly run tries the refresh again. */
+export const CATCH_UP_MINUTES = 10;
+/** The latest catalog refresh failed to read and is old enough to try again. */
+export async function catchUpDue(db: Database, now: string): Promise<boolean> {
+  await initialize(db);
+  const [last] = await db.query('SELECT status, started_at FROM runs ORDER BY id DESC LIMIT 1');
+  return Boolean(last && last.status === 'failed' && Date.parse(String(last.started_at)) <= Date.parse(now) - CATCH_UP_MINUTES * 60_000);
+}

@@ -106,7 +106,7 @@ function overview(snap: Snapshot, models: ModelRow[], w: Workload, brief: Loaded
     { id: 'root', type: 'stack', props: { gap: 'md', density: 'compact' }, children: [...(applied ? [] : ['ov-empty']), ...(kept ? ['ov-kept'] : []), ...(brief ? ['ov-brief'] : []), 'ov-stats', ...(brief ? ['ov-week'] : []), ...(wide.length ? ['ov-spreads'] : []), ...(applied ? ['ov-latest'] : [])] },
   ];
   if (!applied) nodes.push({ id: 'ov-empty', type: 'alert', props: { tone: 'info', title: 'No snapshot yet', body: 'Use Refresh in the app header to read the open model catalog. A refresh makes about 13 reads and takes under a minute.' } });
-  if (kept) nodes.push({ id: 'ov-kept', type: 'alert', props: { tone: latest!.status === 'failed' ? 'danger' : 'warning', title: `The last refresh, ${when(latest!.started_at)}, kept the previous snapshot`, body: '{/kept}' } });
+  if (kept) nodes.push({ id: 'ov-kept', type: 'alert', props: { tone: latest!.status === 'failed' ? 'danger' : 'warning', title: applied ? `The last refresh, ${when(latest!.started_at)}, kept the previous snapshot` : `The first refresh, ${when(latest!.started_at)}, did not complete`, body: '{/kept}' } });
   nodes.push(
     { id: 'ov-stats', type: 'grid', props: { columns: 4, minItemWidth: 'sm', gap: 'sm' }, children: ['ov-providers', 'ov-listings', 'ov-models', 'ov-matched'] },
     { id: 'ov-providers', type: 'stat', props: { label: 'Providers', value: '{/stats/providers}' } },
@@ -137,7 +137,7 @@ function overview(snap: Snapshot, models: ModelRow[], w: Workload, brief: Loaded
     },
     ...(brief ? briefData(brief, w) : { spoken: { brief: 'Model Desk has no snapshot yet. Use Refresh in the app header to read the catalog.' } }),
     ...(wide.length ? { spreads: wide.map((m) => ({ name: m.name, priced: `${m.priced} providers`, from: money(m.credible_rate ?? m.low_rate), to: money(m.high_rate), spread: times(spread(m)) })) } : {}),
-    ...(kept ? { kept: `${String(latest!.note ?? '')}${firstFail ? `. ${String(firstFail.message)}.` : '.'} See Pipeline for every check.` } : {}),
+    ...(kept ? { kept: keptBody(String(latest!.note ?? ''), firstFail ? String(firstFail.message) : null) } : {}),
     ...(applied ? {
       latestNote: `Applied ${when(applied.started_at)}. ${String(applied.note ?? '')}.`,
       ...(appliedEvents.length ? { events: eventRows(appliedEvents) } : { quiet: int(applied.events) ? 'The changes are listed under Changes.' : 'This snapshot is the baseline; later refreshes list what changes against it.' }),
@@ -652,4 +652,12 @@ function briefData(b: NonNullable<Loaded['brief']>, w: Workload): Record<string,
     },
     spoken: { brief: b.spoken },
   };
+}
+
+/** Why a refresh kept the snapshot, each reason once, as sentences. */
+export function keptBody(note: string, finding: string | null): string {
+  const sentence = (t: string) => (/[.!?]$/.test(t.trim()) ? t.trim() : `${t.trim()}.`);
+  const parts = [note, finding].filter((t): t is string => Boolean(t && t.trim())).map(sentence);
+  const unique = parts.filter((t, i) => parts.indexOf(t) === i && !parts.some((o, j) => j !== i && o.length > t.length && o.includes(t.replace(/\.$/, ''))));
+  return [...unique, 'See Pipeline for every check.'].join(' ');
 }

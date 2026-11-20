@@ -37,6 +37,8 @@ A refresh runs once a day at 09:00 and whenever you press Refresh in the app hea
 
 Price spans are the permanent record: a span opens when a listing's prices change and closes when they change again or the listing leaves, and none is ever pruned. A day's history point is what the spans held at that day's last refresh, judged by the same rules as today's prices where prices alone can say (outliers, confirmation, the lab's own offer); context and status are not kept in a span, so past offers are not judged on them.
 
+The catalog deploys in bursts of updates, and while it does its servers can answer from the old and the new version in turn; a refresh that reads pages from two versions keeps the last snapshot and says the catalog was being updated. While Keep running is on, the next hourly run tries a refresh that could not read again, once it is ten minutes old.
+
 A refresh is applied in one transaction or not at all. If a quality check fails (malformed rows, a sudden fall in listings or models, most listings unmatched, duplicates, a nearly empty source), the previous snapshot is kept and the Pipeline view lists the findings. Unusual but plausible values (contexts over 10 million tokens, prices over 1,000 USD per million tokens, unmatched listings) are applied and listed as warnings. A refresh that finds the source unchanged is recorded as such.
 
 ## Tools and skills

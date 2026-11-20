@@ -14,7 +14,7 @@ import {
   type Call, type Read, type Receipt,
 } from './source.ts';
 import { abilities, board as boardEntries, boards, catalog, detail, history, model as about, offers, openModels, spans, workload, WORKLOADS } from './market.ts';
-import { apply, dueOrganisations, failed, modelEvents, saveWeights, snapshot, weightsFailed, type Database } from './store.ts';
+import { apply, catchUpDue, dueOrganisations, failed, modelEvents, saveWeights, snapshot, weightsFailed, type Database } from './store.ts';
 import { MAX_COMPARED, normalize, NOTHING, TITLES, TYPES, view, VOLUMES, type Compared, type Loaded, type State } from './views.ts';
 
 export { view, TITLES };
@@ -116,6 +116,10 @@ export async function refresh(ctx: Context): Promise<{ updates: ReturnType<typeo
 export async function refreshWeights(ctx: Context): Promise<{ updates: ReturnType<typeof view> }> {
   ctx.state = normalize(ctx.state);
   const now = new Date().toISOString();
+  // A catalog refresh that could not read (the source mid-update, a network failure) is tried
+  // again here, before any weights, once it is ten minutes old: the host does not retry a run that
+  // made external calls, and a refresh needs all but two of an hour's calls.
+  if (await catchUpDue(ctx.database, now)) return refresh(ctx);
   let calls = 0;
   const call: Call = (name, args) => { calls++; return ctx.callTool(name, args); };
   for (const org of await dueOrganisations(ctx.database, now, MAX_CALLS)) {
