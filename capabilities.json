@@ -223,6 +223,34 @@
     {
       "id": "time.now",
       "about": "The current time and time-zone conversions."
+    },
+    {
+      "id": "image.text",
+      "about": "Read text, tables, formulas and figures from images on this computer."
+    },
+    {
+      "id": "media.image",
+      "about": "Generate or edit images."
+    },
+    {
+      "id": "media.audio",
+      "about": "Create narration, music or sound, or transcribe audio."
+    },
+    {
+      "id": "media.video",
+      "about": "Generate, animate or edit video."
+    },
+    {
+      "id": "chat.search",
+      "about": "Search earlier messages of this chat."
+    },
+    {
+      "id": "decision.score",
+      "about": "Score options against criteria and risks."
+    },
+    {
+      "id": "apps.author",
+      "about": "Draft and save apps and skills for the person to review."
     }
   ]
 }
