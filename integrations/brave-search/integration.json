@@ -39,5 +39,29 @@
     "env": {
       "BRAVE_API_KEY": "INTEGRATION_BRAVE_SEARCH_APIKEY"
     }
+  },
+  "tools": {
+    "capabilities": {
+      "brave_web_search": [
+        "web.search"
+      ],
+      "brave_news_search": [
+        "web.search",
+        "news.latest"
+      ],
+      "brave_local_search": [
+        "web.search",
+        "place.lookup"
+      ],
+      "brave_image_search": [
+        "web.search"
+      ],
+      "brave_video_search": [
+        "web.search"
+      ],
+      "brave_summarizer": [
+        "web.search"
+      ]
+    }
   }
 }

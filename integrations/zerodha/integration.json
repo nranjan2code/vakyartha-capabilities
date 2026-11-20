@@ -26,5 +26,39 @@
         "host": "mcp.kite.trade"
       }
     ]
+  },
+  "tools": {
+    "capabilities": {
+      "get_profile": [
+        "account.read"
+      ],
+      "get_holdings": [
+        "portfolio.read"
+      ],
+      "get_positions": [
+        "portfolio.read"
+      ],
+      "get_margins": [
+        "portfolio.read"
+      ],
+      "get_mf_holdings": [
+        "portfolio.read"
+      ],
+      "get_quotes": [
+        "market.quote"
+      ],
+      "get_ltp": [
+        "market.quote"
+      ],
+      "get_ohlc": [
+        "market.quote"
+      ],
+      "get_historical_data": [
+        "market.history"
+      ],
+      "search_instruments": [
+        "market.reference"
+      ]
+    }
   }
 }

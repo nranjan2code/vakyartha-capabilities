@@ -110,7 +110,10 @@
             "query"
           ],
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "documents.search"
+        ]
       },
       {
         "name": "get_document_outline",
@@ -130,7 +133,10 @@
             "id"
           ],
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "documents.read"
+        ]
       },
       {
         "name": "read_document",
@@ -166,7 +172,10 @@
             "id"
           ],
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "documents.read"
+        ]
       },
       {
         "name": "list_documents",
@@ -222,7 +231,10 @@
             }
           },
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "documents.search"
+        ]
       }
     ],
     "skills": [

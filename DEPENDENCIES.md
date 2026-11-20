@@ -29,6 +29,26 @@ it in `metadata.enhances`. For an app it is derived: an owner whose every declar
 tool is marked `"optional": true` in `entitlements.toolPurposes` enhances the app
 instead of being required by it.
 
+## Capabilities
+
+A capability is a job a tool does (`web.search`, `weather.forecast`). The
+vocabulary is the `vocabulary` list in `capabilities.json`, each id with one
+plain sentence; it grows only by review, and the signed index carries it.
+
+- Every tool says what it does: an integration maps each tool its server lists in
+  `tools.capabilities` (`{ "<tool>": ["id", ...] }`), and every exported app tool
+  lists `capabilities`. An integration whose calls spend the person's paid quota
+  or credits sets `"metered": true`.
+- A skill step asks for a job with `- capability: <ids>` when any provider of that
+  job serves it (a web search, documentation). Vakyartha offers the step every
+  ready provider, the tools it names first. A step that needs one exact tool, such
+  as an app reading its own data or a call with provider-specific arguments, names
+  that tool only.
+- `requires` and `enhances` may name `capability:<id>`: met by any ready tool that
+  does the job, so no one provider is required.
+
+Ids are identifiers, never words matched against a request.
+
 ## What Vakyartha does
 
 | Action | Part of Vakyartha | Part of an app | Requires |
@@ -49,6 +69,8 @@ instead of being required by it.
 4. Requirements form no cycle.
 5. A release item never requires or enhances a development-only item.
 6. `provides` in `capabilities.json` counts release items only.
+7. Every capability id used (integration tools, app exports, skill steps, `requires`, `enhances`) is in the vocabulary, listed once with an about sentence.
+8. Every exported app tool declares at least one capability; every tool an integration offers through `tools.only` is mapped; `metered` is true or false.
 
 ## Development-only items
 

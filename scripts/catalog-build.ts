@@ -5,11 +5,11 @@
 import { createHash } from "node:crypto";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { APP_GROUPS, INTEGRATION_GROUPS, ROOT, SCHEMA, SKILL_GROUPS, checkCatalog, readItems, readManifest, refText, releaseItems, usedBy, type Item } from "./catalog.ts";
+import { APP_GROUPS, INTEGRATION_GROUPS, ROOT, SCHEMA, SKILL_GROUPS, checkCatalog, type Capability, readItems, readManifest, refText, releaseItems, usedBy, type Item } from "./catalog.ts";
 import { site } from "./site.ts";
 
 export interface IndexItem extends Omit<Item, "files" | "channel"> { usedBy: string[]; file: string; sha256: string; bytes: number }
-export interface Index { schema: number; name: string; version: string; groups: Record<string, Record<string, string>>; requires: { vakyartha: { min: string; below: string; provides: { skills: string[]; integrations: string[] } } }; items: IndexItem[] }
+export interface Index { schema: number; name: string; version: string; groups: Record<string, Record<string, string>>; vocabulary: Capability[]; requires: { vakyartha: { min: string; below: string; provides: { skills: string[]; integrations: string[] } } }; items: IndexItem[] }
 
 export function build(out: string): Index {
   const manifest = readManifest(), all = readItems();
@@ -28,7 +28,7 @@ export function build(out: string): Index {
     return { ...item, usedBy: users.get(refText(item)) ?? [], file, sha256, bytes: data.length };
   });
   // Group names travel with the release, so Vakyartha never keeps its own copy of the catalog vocabulary.
-  const index: Index = { schema: SCHEMA, name: manifest.name, version: manifest.version, groups: { app: APP_GROUPS, skill: SKILL_GROUPS, integration: INTEGRATION_GROUPS }, requires: manifest.requires, items: listed };
+  const index: Index = { schema: SCHEMA, name: manifest.name, version: manifest.version, groups: { app: APP_GROUPS, skill: SKILL_GROUPS, integration: INTEGRATION_GROUPS }, vocabulary: manifest.vocabulary, requires: manifest.requires, items: listed };
   writeFileSync(path.join(out, "index.json"), `${JSON.stringify(index, null, 2)}\n`);
   writeFileSync(path.join(out, "index.html"), site(index));
   writeFileSync(path.join(out, "SHA256SUMS.txt"), listed.map(i => `${i.sha256}  ${i.file}`).join("\n") + "\n");

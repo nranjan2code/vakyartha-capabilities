@@ -198,6 +198,7 @@
     "tools": [
       {
         "name": "get_market_summary",
+        "capabilities": ["market.overview"],
         "description": "Latest delayed NSE indices, breadth and India VIX, top movers and tracked quotes, each with its time and basis",
         "readOnly": true,
         "inputSchema": {
@@ -213,16 +214,19 @@
       },
       {
         "name": "get_market_brief",
+        "capabilities": ["market.overview"],
         "description": "A spoken-style market brief (indices, breadth, VIX, movers, sectors, watchlist, portfolio, alerts) written in sentences, and the same brief as a programme (segments with live charts and figures, and a price ticker) that another app can publish at its voice.listen path to play or watch",
         "readOnly": true
       },
       {
         "name": "get_portfolio",
+        "capabilities": ["portfolio.read"],
         "description": "The user's NSE holdings valued from the latest saved quotes: value, day change and unrealised P&L in INR",
         "readOnly": true
       },
       {
         "name": "get_instrument",
+        "capabilities": ["market.quote", "market.reference"],
         "description": "Saved research for one NSE symbol: quote, daily analytics, 52-week range, benchmark beta and correlation, corporate actions, volume profile and related news",
         "inputSchema": {
           "type": "object",

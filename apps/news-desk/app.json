@@ -79,7 +79,10 @@
             }
           }
         },
-        "readOnly": true
+        "readOnly": true,
+        "capabilities": [
+          "news.latest"
+        ]
       },
       {
         "name": "get_bulletin",
@@ -101,7 +104,10 @@
             }
           }
         },
-        "readOnly": true
+        "readOnly": true,
+        "capabilities": [
+          "news.latest"
+        ]
       },
       {
         "name": "get_story_coverage",
@@ -118,7 +124,10 @@
             "query"
           ]
         },
-        "readOnly": true
+        "readOnly": true,
+        "capabilities": [
+          "news.latest"
+        ]
       }
     ],
     "feeds": [

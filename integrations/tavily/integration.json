@@ -43,5 +43,27 @@
         }
       }
     ]
-  }
+  },
+  "tools": {
+    "capabilities": {
+      "tavily_search": [
+        "web.search",
+        "news.latest"
+      ],
+      "tavily_extract": [
+        "web.read"
+      ],
+      "tavily_crawl": [
+        "web.crawl"
+      ],
+      "tavily_map": [
+        "web.crawl"
+      ],
+      "tavily_research": [
+        "research.report",
+        "web.search"
+      ]
+    }
+  },
+  "metered": true
 }

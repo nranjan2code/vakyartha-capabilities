@@ -47,7 +47,10 @@
           "properties": {},
           "additionalProperties": false
         },
-        "readOnly": true
+        "readOnly": true,
+        "capabilities": [
+          "cloud.resources"
+        ]
       },
       {
         "name": "read_scope",
@@ -69,7 +72,10 @@
           ],
           "additionalProperties": false
         },
-        "readOnly": true
+        "readOnly": true,
+        "capabilities": [
+          "cloud.resources"
+        ]
       }
     ]
   }

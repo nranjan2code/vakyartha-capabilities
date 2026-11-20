@@ -42,5 +42,187 @@
     "apps": 11,
     "skills": 9,
     "integrations": 17
-  }
+  },
+  "vocabulary": [
+    {
+      "id": "web.search",
+      "about": "Search the open web for pages, news and sources."
+    },
+    {
+      "id": "web.read",
+      "about": "Read a given web page or document at an address."
+    },
+    {
+      "id": "web.crawl",
+      "about": "Map or crawl the pages of one site."
+    },
+    {
+      "id": "research.report",
+      "about": "Research a question across many sources and return a written report."
+    },
+    {
+      "id": "news.latest",
+      "about": "Current news stories, coverage and bulletins."
+    },
+    {
+      "id": "market.quote",
+      "about": "The current price of a listed stock, index or instrument."
+    },
+    {
+      "id": "market.overview",
+      "about": "How a market is doing now: indices, breadth, movers, mood and briefs."
+    },
+    {
+      "id": "market.history",
+      "about": "Past prices and performance of stocks and indices, and comparisons over time."
+    },
+    {
+      "id": "market.reference",
+      "about": "Facts about listed instruments: symbol lookup, valuation, corporate actions."
+    },
+    {
+      "id": "market.backtest",
+      "about": "Results of trading strategies run on past data."
+    },
+    {
+      "id": "portfolio.read",
+      "about": "Holdings, positions, accounts and margins the person has."
+    },
+    {
+      "id": "finance.ledger",
+      "about": "The person's own ledger of transactions: read it and add to it."
+    },
+    {
+      "id": "economy.indicators",
+      "about": "Central bank rates, reserves and other economic indicators."
+    },
+    {
+      "id": "regulation.search",
+      "about": "Find and read regulations, directions and official circulars."
+    },
+    {
+      "id": "weather.forecast",
+      "about": "Weather forecasts for places, including marine, flood and seasonal outlooks."
+    },
+    {
+      "id": "weather.history",
+      "about": "Past weather and long-range climate projections."
+    },
+    {
+      "id": "air.quality",
+      "about": "Air quality and pollutant levels for places."
+    },
+    {
+      "id": "place.lookup",
+      "about": "Find places, their coordinates and elevation."
+    },
+    {
+      "id": "documents.search",
+      "about": "Search the person's own document library."
+    },
+    {
+      "id": "documents.read",
+      "about": "Read the outline or text of a document in the person's library."
+    },
+    {
+      "id": "files.search",
+      "about": "Find files in folders the person shared."
+    },
+    {
+      "id": "files.read",
+      "about": "Read files and folder listings the person shared."
+    },
+    {
+      "id": "files.write",
+      "about": "Create, edit or move files in folders the person shared."
+    },
+    {
+      "id": "notes.search",
+      "about": "Search the person's notes workspace."
+    },
+    {
+      "id": "notes.read",
+      "about": "Read pages, blocks and databases in the person's notes workspace."
+    },
+    {
+      "id": "notes.write",
+      "about": "Create or change pages, blocks and databases in the person's notes workspace."
+    },
+    {
+      "id": "memory.read",
+      "about": "Recall what was remembered in the person's knowledge graph."
+    },
+    {
+      "id": "memory.write",
+      "about": "Remember or forget facts in the person's knowledge graph."
+    },
+    {
+      "id": "docs.search",
+      "about": "Search technical and product documentation."
+    },
+    {
+      "id": "docs.read",
+      "about": "Read technical and product documentation pages."
+    },
+    {
+      "id": "code.search",
+      "about": "Search code, repositories, models and datasets."
+    },
+    {
+      "id": "code.read",
+      "about": "Read repositories, issues and pull requests."
+    },
+    {
+      "id": "code.write",
+      "about": "Change repositories, issues and pull requests."
+    },
+    {
+      "id": "code.run",
+      "about": "Run commands and code in a contained workspace."
+    },
+    {
+      "id": "data.query",
+      "about": "Query a connected data platform."
+    },
+    {
+      "id": "cloud.resources",
+      "about": "Read cloud resources, scopes and regional availability."
+    },
+    {
+      "id": "account.read",
+      "about": "Read who the person is signed in as on a connected service."
+    },
+    {
+      "id": "appointments.read",
+      "about": "Read a schedule: free slots, attention lists and insights."
+    },
+    {
+      "id": "appointments.prepare",
+      "about": "Prepare a booking for the person to review."
+    },
+    {
+      "id": "content.draft",
+      "about": "Draft content (a course, a video, an edit) for the person to review."
+    },
+    {
+      "id": "tasks.plan",
+      "about": "Plan work and propose attempts for a task."
+    },
+    {
+      "id": "shopping.prices",
+      "about": "Track and check prices of products the person wants."
+    },
+    {
+      "id": "shopping.wishlist",
+      "about": "Read and change the person's wishlist."
+    },
+    {
+      "id": "system.health",
+      "about": "The health of this computer and recent problems."
+    },
+    {
+      "id": "time.now",
+      "about": "The current time and time-zone conversions."
+    }
+  ]
 }

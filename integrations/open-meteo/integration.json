@@ -94,6 +94,59 @@
       "weather_forecast"
     ],
     "detail": "Free public weather API; non-commercial use with rate limits. Paid weather keys/subscriptions are unsupported by this connector; the chat model's plan does not change weather access.",
-    "otherDetail": "This tool is outside the reviewed free Weather connector's capabilities. Paid weather access is not supported."
+    "otherDetail": "This tool is outside the reviewed free Weather connector's capabilities. Paid weather access is not supported.",
+    "capabilities": {
+      "weather_forecast": [
+        "weather.forecast"
+      ],
+      "weather_archive": [
+        "weather.history"
+      ],
+      "air_quality": [
+        "air.quality"
+      ],
+      "marine_weather": [
+        "weather.forecast"
+      ],
+      "elevation": [
+        "place.lookup"
+      ],
+      "flood_forecast": [
+        "weather.forecast"
+      ],
+      "geocoding": [
+        "place.lookup"
+      ],
+      "dwd_icon_forecast": [
+        "weather.forecast"
+      ],
+      "gfs_forecast": [
+        "weather.forecast"
+      ],
+      "meteofrance_forecast": [
+        "weather.forecast"
+      ],
+      "ecmwf_forecast": [
+        "weather.forecast"
+      ],
+      "jma_forecast": [
+        "weather.forecast"
+      ],
+      "metno_forecast": [
+        "weather.forecast"
+      ],
+      "gem_forecast": [
+        "weather.forecast"
+      ],
+      "seasonal_forecast": [
+        "weather.forecast"
+      ],
+      "climate_projection": [
+        "weather.history"
+      ],
+      "ensemble_forecast": [
+        "weather.forecast"
+      ]
+    }
   }
 }

@@ -26,5 +26,73 @@
         "host": "mcp.nseindia.in"
       }
     ]
+  },
+  "tools": {
+    "capabilities": {
+      "get_top_by_volume": [
+        "market.overview"
+      ],
+      "get_top_movers": [
+        "market.overview"
+      ],
+      "nse_lookup_symbol": [
+        "market.reference"
+      ],
+      "get_market_mood": [
+        "market.overview"
+      ],
+      "get_index_valuation": [
+        "market.reference"
+      ],
+      "get_market_breadth": [
+        "market.overview"
+      ],
+      "get_corporate_actions": [
+        "market.reference"
+      ],
+      "compare_indices": [
+        "market.history"
+      ],
+      "get_index_movers": [
+        "market.overview"
+      ],
+      "get_ltp_by_date": [
+        "market.history"
+      ],
+      "get_bulk_quote": [
+        "market.quote"
+      ],
+      "get_volume_analysis": [
+        "market.history"
+      ],
+      "get_stock_history": [
+        "market.history"
+      ],
+      "get_index_snapshot": [
+        "market.quote",
+        "market.overview"
+      ],
+      "search_symbols": [
+        "market.reference"
+      ],
+      "get_stock_vs_index": [
+        "market.history"
+      ],
+      "compare_stocks": [
+        "market.history"
+      ],
+      "get_index_history": [
+        "market.history"
+      ],
+      "moving_average": [
+        "market.history"
+      ],
+      "get_52_week_high_low": [
+        "market.history"
+      ],
+      "get_index_performance": [
+        "market.history"
+      ]
+    }
   }
 }

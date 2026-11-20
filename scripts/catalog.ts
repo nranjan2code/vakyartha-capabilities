@@ -25,13 +25,22 @@ export type Kind = "app" | "skill" | "integration";
 export const KIND_DIRS: Record<Kind, string> = { app: "apps", skill: "skills", integration: "integrations" };
 const GROUPS: Record<Kind, Record<string, string>> = { app: APP_GROUPS, skill: SKILL_GROUPS, integration: INTEGRATION_GROUPS };
 
+/** A job a tool does (ADR-094 in Vakyartha): tools, app exports and skill steps name these ids, never request words. */
+export interface Capability { id: string; about: string }
+export const CAPABILITY_ID = /^[a-z]+(?:\.[a-z0-9]+(?:-[a-z0-9]+)*)+$/;
 export interface Manifest {
   schema: number; name: string; version: string;
+  /** Every capability id the catalog and Vakyartha's own tools may use. Grows only by review. */
+  vocabulary: Capability[];
   requires: { vakyartha: { min: string; below: string; provides: { skills: string[]; integrations: string[] } } };
   provides: { apps: number; skills: number; integrations: number };
 }
-/** A reference such as skill:presentation. One requirement may list alternatives (any one satisfies it). */
-export interface Ref { kind: Kind; id: string }
+/**
+ * A reference such as skill:presentation, or capability:web.search for any ready tool that does that job. One
+ * requirement may list alternatives (any one satisfies it).
+ */
+export type RefKind = Kind | "capability";
+export interface Ref { kind: RefKind; id: string }
 /** What a person is told before adding an item. Derived from the item's own declarations only. */
 export interface Access { network: "none" | "governed tools" | "hosts"; tools: string[]; hosts: string[]; database: boolean; schedule: boolean; files: number; credentials: string[] }
 /** A skill that ships inside an app and lives and dies with it. */
@@ -42,6 +51,8 @@ export interface Item {
   kind: Kind; id: string; version: string; channel: Channel; name: string; description: string;
   category: string; author: string; access: Access;
   requires: Ref[][]; enhances: Ref[]; skills: PartSkill[];
+  /** Capability ids the item's tools, exports or skill steps declare; checked against the vocabulary. */
+  uses: string[];
   files: [string, Buffer][];
 }
 
@@ -103,10 +114,19 @@ export function frontmatter(text: string): Record<string, string> {
 const unquote = (v: string) => v.replace(/^"(.*)"$/, "$1").replace(/^'(.*)'$/, "$1").trim();
 
 function ref(text: string, where: string): Ref {
+  const job = /^capability:(.+)$/.exec(text);
+  if (job) { if (!CAPABILITY_ID.test(job[1]!)) throw new Error(`${where}: ${job[1]} is not a capability id`); return { kind: "capability", id: job[1]! }; }
   const m = /^(app|skill|integration):([a-z0-9]+(?:-[a-z0-9]+)*)$/.exec(text);
   if (!m) throw new Error(`${where}: ${text} is not kind:id`);
   return { kind: m[1] as Kind, id: m[2]! };
 }
+
+/** The capability ids a skill's steps ask for: each `- capability:` line under its Steps heading. */
+export function stepCapabilities(text: string): string[] {
+  const steps = /^## Steps\s*$([\s\S]*?)(?=^## |(?![\s\S]))/m.exec(text)?.[1] ?? "";
+  return [...steps.matchAll(/^\s*- capability:\s*(.+)$/gm)].flatMap(m => m[1]!.trim().split(/\s+/));
+}
+const capabilityRefs = (refs: readonly Ref[]) => refs.filter(r => r.kind === "capability").map(r => r.id);
 /** "skill:a integration:b|integration:c" → [[a], [b, c]]: every group is needed, any one member satisfies it. */
 const requirements = (text: string | undefined, where: string): Ref[][] => (text ?? "").split(/\s+/).filter(Boolean).map(g => g.split("|").map(r => ref(r, where)));
 const optional = (text: string | undefined, where: string): Ref[] => (text ?? "").split(/\s+/).filter(Boolean).map(r => ref(r, where));
@@ -166,6 +186,7 @@ function skill(id: string): Item {
     kind: "skill", id, version, channel: channel(where, fm["metadata.channel"]), name: title(id), description: fm.description, category: group("skill", id, fm["metadata.category"] ?? ""), author: "Vakyartha",
     access: { network: "none", tools, hosts: [], database: false, schedule: false, files: files.length, credentials: [] },
     requires: requirements(fm["metadata.requires"], where), enhances: optional(fm["metadata.enhances"], where), skills: [], files,
+    uses: stepCapabilities(text),
   };
 }
 
@@ -192,6 +213,12 @@ function app(id: string): Item {
     (m.entitlements?.toolPurposes?.[tool]?.optional === true ? extras : owners).set(refText(r), r);
   }
   for (const key of owners.keys()) extras.delete(key);
+  // Every tool an app exports says what job it does, so routing and skill steps can find it by capability.
+  const partUses: string[] = [];
+  const exportUses = (m.exports?.tools ?? []).flatMap((t: { name: string; capabilities?: unknown }) => {
+    if (!Array.isArray(t.capabilities) || !t.capabilities.length || !t.capabilities.every(c => typeof c === "string")) throw new Error(`apps/${id}: exported tool ${t.name} needs capabilities (ids from the vocabulary)`);
+    return t.capabilities as string[];
+  });
   const skills: PartSkill[] = (m.exports?.skills ?? []).map((s: { name: string; description: string; path?: string }) => {
     const where = `apps/${id}/${s.path}`;
     if (s.path !== `skills/${s.name}/SKILL.md`) throw new Error(`apps/${id}: skill ${s.name} must be at skills/${s.name}/SKILL.md`);
@@ -203,6 +230,7 @@ function app(id: string): Item {
     if (fm.name !== s.name) throw new Error(`${where}: frontmatter name must be ${s.name}`);
     if (fm["metadata.part-of"] !== `app:${id}`) throw new Error(`${where}: metadata.part-of must be app:${id}`);
     if (fm["metadata.author"] !== "Vakyartha") throw new Error(`${where}: metadata.author must be Vakyartha`);
+    partUses.push(...stepCapabilities(text));
     return { name: s.name, description: s.description, path: s.path, requires: requirements(fm["metadata.requires"], where) };
   });
   if (m.brand !== undefined && !/^#[0-9a-f]{6}$/i.test(String(m.brand))) throw new Error(`apps/${id}: brand must be a #rrggbb colour`);
@@ -212,6 +240,7 @@ function app(id: string): Item {
     kind: "app", id, version: m.version, channel: channel(`apps/${id}`, m.channel), name: m.name, description: m.description, category: group("app", id, m.category ?? ""), author: "Vakyartha",
     access: { network: m.entitlements?.network?.mode === "brokered" ? "governed tools" : "none", tools, hosts: [], database: !!m.entitlements?.storage?.duckdb, schedule: (m.triggers ?? []).some((t: { kind: string }) => t.kind === "cron"), files: files.length, credentials: [] },
     requires: [...owners.values()].map(r => [r]), enhances: [...extras.values()], skills, files,
+    uses: [...exportUses, ...partUses],
   };
 }
 
@@ -240,11 +269,17 @@ function integration(id: string): Item {
   const hosts: string[] = (d.egress?.hosts ?? []).map((h: { host: string }) => h.host);
   for (const h of hosts) if (!PUBLIC_HOST.test(h)) throw new Error(`${where}: ${h} is not a public host name`);
   if (s.kind === "http" && s.url && !hosts.includes(new URL(s.url).hostname)) throw new Error(`${where}: egress must list ${new URL(s.url).hostname}`);
+  if (d.metered !== undefined && typeof d.metered !== "boolean") throw new Error(`${where}: metered must be true or false`);
+  const caps = d.tools?.capabilities ?? {};
+  if (typeof caps !== "object" || Array.isArray(caps)) throw new Error(`${where}: tools.capabilities maps each tool name to capability ids`);
+  for (const [tool, list] of Object.entries(caps)) if (!Array.isArray(list) || !list.length || !list.every(c => typeof c === "string")) throw new Error(`${where}: tools.capabilities.${tool} needs at least one capability id`);
+  for (const tool of d.tools?.only ?? []) if (!Object.hasOwn(caps, tool)) throw new Error(`${where}: ${tool} is offered (tools.only) but says no capability`);
   const credentials: string[] = (d.config ?? []).filter((c: { kind: string }) => c.kind === "secret").map((c: { label: string }) => c.label);
   return {
     kind: "integration", id, version: d.version, channel: channel(where, d.channel), name: d.name, description: d.description, category: group("integration", id, d.category ?? ""), author: d.publisher,
     access: { network: "hosts", tools: d.tools?.only ?? [], hosts, database: false, schedule: false, files: 1, credentials },
     requires: [], enhances: [], skills: [], files,
+    uses: Object.values(caps as Record<string, string[]>).flat(),
   };
 }
 
@@ -265,6 +300,15 @@ export function checkCatalog(m: Manifest, items: Item[]): void {
   const shipped = releaseItems(items);
   const counts = { apps: shipped.filter(i => i.kind === "app").length, skills: shipped.filter(i => i.kind === "skill").length, integrations: shipped.filter(i => i.kind === "integration").length };
   if (JSON.stringify(m.provides) !== JSON.stringify(counts)) throw new Error(`capabilities.json: provides must be ${JSON.stringify(counts)}; run node scripts/version.ts ${m.version}`);
+  if (!Array.isArray(m.vocabulary) || !m.vocabulary.length) throw new Error("capabilities.json: needs a vocabulary of capability ids");
+  const vocabulary = new Set<string>();
+  for (const c of m.vocabulary) {
+    if (!CAPABILITY_ID.test(c.id ?? "")) throw new Error(`capabilities.json: ${c.id} is not a capability id (dotted lowercase words)`);
+    if (vocabulary.has(c.id)) throw new Error(`capabilities.json: ${c.id} is listed twice`);
+    if (typeof c.about !== "string" || !c.about.trim()) throw new Error(`capabilities.json: ${c.id} needs an about sentence`);
+    vocabulary.add(c.id);
+  }
+  for (const i of items) for (const id of [...i.uses, ...capabilityRefs([...i.requires.flat(), ...i.enhances, ...i.skills.flatMap(s => s.requires.flat())])]) if (!vocabulary.has(id)) throw new Error(`${KIND_DIRS[i.kind]}/${i.id}: ${id} is not in the capability vocabulary`);
   const core = m.requires.vakyartha.provides;
   // One namespace per kind: catalog items, skills inside apps and Vakyartha's own core items never share a name.
   const names = new Map<string, string>();
@@ -275,7 +319,7 @@ export function checkCatalog(m: Manifest, items: Item[]): void {
     claim(refText(i), `${KIND_DIRS[i.kind]}/${i.id}`);
     for (const s of i.skills) claim(`skill:${s.name}`, `apps/${i.id}`);
   }
-  const exists = (r: Ref) => names.has(refText(r));
+  const exists = (r: Ref) => r.kind === "capability" ? vocabulary.has(r.id) : names.has(refText(r));
   const edges = new Map<string, string[]>();
   for (const i of items) {
     const all = [...i.requires.flat(), ...i.enhances, ...i.skills.flatMap(s => s.requires.flat())];
@@ -283,7 +327,7 @@ export function checkCatalog(m: Manifest, items: Item[]): void {
     if (i.kind === "skill" && i.requires.flat().some(r => r.kind === "app")) throw new Error(`skills/${i.id}: needs an app, so it must ship inside that app`);
     // A release never names an item it does not carry.
     if (i.channel === "release") for (const r of all) if (items.find(o => refText(o) === refText(r))?.channel === "dev") throw new Error(`${KIND_DIRS[i.kind]}/${i.id}: a release item cannot use ${refText(r)}, which is for development builds only`);
-    edges.set(refText(i), i.requires.flat().map(refText));
+    edges.set(refText(i), i.requires.flat().filter(r => r.kind !== "capability").map(refText));
   }
   // Requirements form no cycle, so adding and removing always has an order.
   const state = new Map<string, number>();

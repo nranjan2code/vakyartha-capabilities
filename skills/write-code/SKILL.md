@@ -5,7 +5,7 @@ description: Write, set up or explain source code, scripts, functions, config fi
 compatibility: Language-agnostic. Uses the Microsoft Learn, AWS Knowledge and Library docs integrations and Sandboxed execution when they are enabled; works without them.
 metadata:
   output: text
-  enhances: "integration:microsoft-learn integration:aws-knowledge integration:context7 integration:github integration:sandbox-execution"
+  enhances: "capability:docs.search capability:docs.read integration:github integration:sandbox-execution"
   category: code
   author: Vakyartha
   version: "1.1.0"
@@ -19,6 +19,7 @@ allowed-tools: use_skill microsoft-learn__microsoft_docs_search microsoft-learn_
 1. **target**: Identify language/version, framework, task and required files. State routine assumptions and avoid broadening the requested change.
 2. **docs**: Read current official documentation for the relevant SDK or library when its tools are offered. Otherwise SKIP and state the unverified version assumptions.
    - tool: microsoft-learn__microsoft_docs_search microsoft-learn__microsoft_docs_fetch microsoft-learn__microsoft_code_sample_search aws-knowledge__aws___search_documentation aws-knowledge__aws___read_documentation context7__resolve-library-id context7__query-docs
+   - capability: docs.search docs.read
    - needs: target
    - optional: true
    - effect: read

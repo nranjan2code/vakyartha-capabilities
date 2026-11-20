@@ -25,5 +25,18 @@
         "host": "learn.microsoft.com"
       }
     ]
+  },
+  "tools": {
+    "capabilities": {
+      "microsoft_docs_search": [
+        "docs.search"
+      ],
+      "microsoft_code_sample_search": [
+        "docs.search"
+      ],
+      "microsoft_docs_fetch": [
+        "docs.read"
+      ]
+    }
   }
 }

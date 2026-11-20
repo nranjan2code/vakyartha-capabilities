@@ -32,5 +32,51 @@
   ],
   "egress": {
     "hosts": []
+  },
+  "tools": {
+    "capabilities": {
+      "read_file": [
+        "files.read"
+      ],
+      "read_text_file": [
+        "files.read"
+      ],
+      "read_media_file": [
+        "files.read"
+      ],
+      "read_multiple_files": [
+        "files.read"
+      ],
+      "list_directory": [
+        "files.read"
+      ],
+      "list_directory_with_sizes": [
+        "files.read"
+      ],
+      "directory_tree": [
+        "files.read"
+      ],
+      "get_file_info": [
+        "files.read"
+      ],
+      "list_allowed_directories": [
+        "files.read"
+      ],
+      "search_files": [
+        "files.search"
+      ],
+      "write_file": [
+        "files.write"
+      ],
+      "edit_file": [
+        "files.write"
+      ],
+      "create_directory": [
+        "files.write"
+      ],
+      "move_file": [
+        "files.write"
+      ]
+    }
   }
 }

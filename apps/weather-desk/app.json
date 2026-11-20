@@ -115,7 +115,10 @@
           "type": "object",
           "properties": {},
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "weather.forecast"
+        ]
       },
       {
         "name": "get_weather",
@@ -131,7 +134,10 @@
             }
           },
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "weather.forecast"
+        ]
       },
       {
         "name": "get_weather_briefing",
@@ -146,7 +152,10 @@
             }
           },
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "weather.forecast"
+        ]
       }
     ],
     "skills": [

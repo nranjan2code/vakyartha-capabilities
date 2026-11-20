@@ -106,7 +106,10 @@
             }
           },
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "market.backtest"
+        ]
       },
       {
         "name": "get_paper_accounts",
@@ -117,7 +120,10 @@
           "type": "object",
           "properties": {},
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "portfolio.read"
+        ]
       }
     ],
     "skills": [

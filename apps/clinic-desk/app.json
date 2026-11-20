@@ -54,7 +54,10 @@
             }
           },
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "appointments.read"
+        ]
       },
       {
         "name": "find_free_slots",
@@ -79,7 +82,10 @@
             }
           },
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "appointments.read"
+        ]
       },
       {
         "name": "get_attention_list",
@@ -90,7 +96,10 @@
           "type": "object",
           "properties": {},
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "appointments.read"
+        ]
       },
       {
         "name": "get_insights",
@@ -113,7 +122,10 @@
             }
           },
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "appointments.read"
+        ]
       },
       {
         "name": "prepare_booking",
@@ -162,7 +174,10 @@
             "name"
           ],
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "appointments.prepare"
+        ]
       }
     ],
     "skills": [

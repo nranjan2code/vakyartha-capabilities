@@ -39,5 +39,81 @@
     "env": {
       "NOTION_TOKEN": "INTEGRATION_NOTION_TOKEN"
     }
+  },
+  "tools": {
+    "capabilities": {
+      "API-post-search": [
+        "notes.search"
+      ],
+      "API-get-block-children": [
+        "notes.read"
+      ],
+      "API-retrieve-a-block": [
+        "notes.read"
+      ],
+      "API-retrieve-a-page": [
+        "notes.read"
+      ],
+      "API-retrieve-a-page-property": [
+        "notes.read"
+      ],
+      "API-retrieve-a-comment": [
+        "notes.read"
+      ],
+      "API-query-data-source": [
+        "notes.read"
+      ],
+      "API-retrieve-a-data-source": [
+        "notes.read"
+      ],
+      "API-list-data-source-templates": [
+        "notes.read"
+      ],
+      "API-retrieve-a-database": [
+        "notes.read"
+      ],
+      "API-retrieve-page-markdown": [
+        "notes.read"
+      ],
+      "API-patch-block-children": [
+        "notes.write"
+      ],
+      "API-update-a-block": [
+        "notes.write"
+      ],
+      "API-delete-a-block": [
+        "notes.write"
+      ],
+      "API-patch-page": [
+        "notes.write"
+      ],
+      "API-post-page": [
+        "notes.write"
+      ],
+      "API-create-a-comment": [
+        "notes.write"
+      ],
+      "API-update-a-data-source": [
+        "notes.write"
+      ],
+      "API-create-a-data-source": [
+        "notes.write"
+      ],
+      "API-move-page": [
+        "notes.write"
+      ],
+      "API-update-page-markdown": [
+        "notes.write"
+      ],
+      "API-get-user": [
+        "account.read"
+      ],
+      "API-get-users": [
+        "account.read"
+      ],
+      "API-get-self": [
+        "account.read"
+      ]
+    }
   }
 }

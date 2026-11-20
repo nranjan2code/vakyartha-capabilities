@@ -37,5 +37,18 @@
     "env": {
       "CONTEXT7_API_KEY": "INTEGRATION_CONTEXT7_APIKEY"
     }
+  },
+  "tools": {
+    "capabilities": {
+      "resolve-library-id": [
+        "docs.search"
+      ],
+      "get-library-docs": [
+        "docs.read"
+      ],
+      "query-docs": [
+        "docs.read"
+      ]
+    }
   }
 }

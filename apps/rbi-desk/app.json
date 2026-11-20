@@ -96,7 +96,10 @@
           },
           "additionalProperties": false
         },
-        "readOnly": true
+        "readOnly": true,
+        "capabilities": [
+          "economy.indicators"
+        ]
       },
       {
         "name": "get_rbi_briefing",
@@ -106,7 +109,10 @@
           "properties": {},
           "additionalProperties": false
         },
-        "readOnly": true
+        "readOnly": true,
+        "capabilities": [
+          "economy.indicators"
+        ]
       },
       {
         "name": "get_rate_history",
@@ -137,7 +143,10 @@
           ],
           "additionalProperties": false
         },
-        "readOnly": true
+        "readOnly": true,
+        "capabilities": [
+          "economy.indicators"
+        ]
       },
       {
         "name": "get_rbi_updates",
@@ -189,7 +198,11 @@
           },
           "additionalProperties": false
         },
-        "readOnly": true
+        "readOnly": true,
+        "capabilities": [
+          "regulation.search",
+          "economy.indicators"
+        ]
       },
       {
         "name": "get_forex_reserves",
@@ -206,7 +219,10 @@
           },
           "additionalProperties": false
         },
-        "readOnly": true
+        "readOnly": true,
+        "capabilities": [
+          "economy.indicators"
+        ]
       },
       {
         "name": "find_master_direction",
@@ -225,7 +241,10 @@
           ],
           "additionalProperties": false
         },
-        "readOnly": true
+        "readOnly": true,
+        "capabilities": [
+          "regulation.search"
+        ]
       }
     ],
     "feeds": [

@@ -25,8 +25,8 @@ Find something useful on the catalog page, then add it from inside Vakyartha. No
 | --- | --- |
 | `apps/<id>/` | One app package: `app.json`, its code and surfaces, and the skills it ships in `skills/<name>/SKILL.md`. Each app has its own README, AGENTS, SKILLS and ARCHITECTURE documents |
 | `skills/<id>/` | One standalone skill: `SKILL.md`, its reference files, and any kinds of page (`templates/<id>.json`) and looks (`looks/<id>.json`) it ships |
-| `integrations/<id>/` | One integration: `integration.json`, fully declarative |
-| `capabilities.json` | The release version, the Vakyartha versions it supports, and what it expects Vakyartha to provide |
+| `integrations/<id>/` | One integration: `integration.json`, fully declarative, including the job each of its tools does (`tools.capabilities`) |
+| `capabilities.json` | The release version, the Vakyartha versions it supports, what it expects Vakyartha to provide, and the capability vocabulary every tool and skill step uses ([DEPENDENCIES.md](DEPENDENCIES.md#capabilities)) |
 | `keys/catalog.pub` | The public key every release is verified with |
 | `signatures/` | One signature per release |
 

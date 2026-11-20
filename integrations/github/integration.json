@@ -42,5 +42,54 @@
         }
       }
     ]
+  },
+  "tools": {
+    "capabilities": {
+      "search_repositories": [
+        "code.search"
+      ],
+      "search_code": [
+        "code.search"
+      ],
+      "search_issues": [
+        "code.search"
+      ],
+      "search_pull_requests": [
+        "code.search"
+      ],
+      "get_file_contents": [
+        "code.read"
+      ],
+      "list_issues": [
+        "code.read"
+      ],
+      "get_issue": [
+        "code.read"
+      ],
+      "list_pull_requests": [
+        "code.read"
+      ],
+      "get_pull_request": [
+        "code.read"
+      ],
+      "list_commits": [
+        "code.read"
+      ],
+      "get_me": [
+        "account.read"
+      ],
+      "create_issue": [
+        "code.write"
+      ],
+      "add_issue_comment": [
+        "code.write"
+      ],
+      "create_pull_request": [
+        "code.write"
+      ],
+      "create_or_update_file": [
+        "code.write"
+      ]
+    }
   }
 }

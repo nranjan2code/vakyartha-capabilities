@@ -89,7 +89,10 @@
             }
           },
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "shopping.wishlist"
+        ]
       },
       {
         "name": "get_price_history",
@@ -115,7 +118,10 @@
             }
           },
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "shopping.prices"
+        ]
       },
       {
         "name": "get_broadcast_script",
@@ -136,7 +142,10 @@
             }
           },
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "shopping.prices"
+        ]
       },
       {
         "name": "remember_wish",
@@ -214,7 +223,10 @@
             "title"
           ],
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "shopping.wishlist"
+        ]
       },
       {
         "name": "record_price",
@@ -286,7 +298,10 @@
             "price"
           ],
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "shopping.prices"
+        ]
       },
       {
         "name": "check_amazon_price",
@@ -314,7 +329,10 @@
             "expectedRevision"
           ],
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "shopping.prices"
+        ]
       },
       {
         "name": "remove_wish",
@@ -342,7 +360,10 @@
             "expectedRevision"
           ],
           "additionalProperties": false
-        }
+        },
+        "capabilities": [
+          "shopping.wishlist"
+        ]
       }
     ],
     "skills": [

@@ -25,5 +25,24 @@
         "host": "knowledge-mcp.global.api.aws"
       }
     ]
+  },
+  "tools": {
+    "capabilities": {
+      "aws___search_documentation": [
+        "docs.search"
+      ],
+      "aws___read_documentation": [
+        "docs.read"
+      ],
+      "aws___list_regions": [
+        "cloud.resources"
+      ],
+      "aws___get_regional_availability": [
+        "cloud.resources"
+      ],
+      "aws___retrieve_skill": [
+        "docs.read"
+      ]
+    }
   }
 }

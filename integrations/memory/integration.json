@@ -25,5 +25,36 @@
   "config": [],
   "egress": {
     "hosts": []
+  },
+  "tools": {
+    "capabilities": {
+      "read_graph": [
+        "memory.read"
+      ],
+      "search_nodes": [
+        "memory.read"
+      ],
+      "open_nodes": [
+        "memory.read"
+      ],
+      "create_entities": [
+        "memory.write"
+      ],
+      "create_relations": [
+        "memory.write"
+      ],
+      "add_observations": [
+        "memory.write"
+      ],
+      "delete_entities": [
+        "memory.write"
+      ],
+      "delete_observations": [
+        "memory.write"
+      ],
+      "delete_relations": [
+        "memory.write"
+      ]
+    }
   }
 }

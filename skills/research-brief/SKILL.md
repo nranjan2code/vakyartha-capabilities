@@ -5,11 +5,11 @@ description: Research a question across available sources and produce a sourced 
 compatibility: Works with text chat, research tools, web readers, and canvas evidence tables.
 metadata:
   requires: "integration:web"
-  enhances: "integration:brave-search integration:tavily"
+  enhances: "capability:web.search"
   category: writing
   author: Vakyartha
   version: "1.2.0"
-allowed-tools: use_skill brave-search__brave_web_search web__fetch_page
+allowed-tools: use_skill web__fetch_page
 ---
 
 # Sourced Research Briefs
@@ -18,7 +18,8 @@ allowed-tools: use_skill brave-search__brave_web_search web__fetch_page
 
 1. **scope**: Identify the research question, timeframe, needed evidence and supplied source URLs. Keep factual scope separate from assumptions.
 2. **sources**: Read every source URL the request supplies. To find more, search when a search tool is offered; otherwise open an organisation's home or publications page and follow the links it gives. Use only addresses given by the request, a search result or a page you read, never one written from memory. When an address is not found, read a different one. Prefer primary evidence; retain actual source links, publication dates and claim passages.
-   - tool: brave-search__brave_web_search web__fetch_page
+   - tool: web__fetch_page
+   - capability: web.search web.read
    - needs: scope
    - optional: true
    - effect: read

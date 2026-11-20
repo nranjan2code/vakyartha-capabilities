@@ -49,7 +49,10 @@
           "properties": {},
           "additionalProperties": false
         },
-        "title": "Read course preferences"
+        "title": "Read course preferences",
+        "capabilities": [
+          "content.draft"
+        ]
       },
       {
         "name": "propose_course",
@@ -294,7 +297,10 @@
           ],
           "additionalProperties": false
         },
-        "title": "Save a course draft"
+        "title": "Save a course draft",
+        "capabilities": [
+          "content.draft"
+        ]
       }
     ],
     "skills": [

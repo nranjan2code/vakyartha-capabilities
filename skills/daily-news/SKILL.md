@@ -5,11 +5,11 @@ description: Prepare a current daily news digest or headline dashboard for a sel
 compatibility: Works with text summaries, news readers, web search tools, and interactive digest canvases.
 metadata:
   requires: "integration:web"
-  enhances: "integration:brave-search integration:tavily"
+  enhances: "capability:web.search"
   category: live-data
   author: Vakyartha
   version: "1.0.0"
-allowed-tools: read_skill_file use_skill app-news-desk__get_latest_articles app-news-desk__get_bulletin app-news-desk__get_story_coverage brave-search__brave_web_search web__fetch_page
+allowed-tools: read_skill_file use_skill app-news-desk__get_latest_articles app-news-desk__get_bulletin app-news-desk__get_story_coverage web__fetch_page
 ---
 
 # Daily News Digest & Headline Reviews
@@ -24,7 +24,8 @@ allowed-tools: read_skill_file use_skill app-news-desk__get_latest_articles app-
    - effect: read
    - rounds: 2
 3. **web**: Only for requested reporting missing from saved stories, search accessible reporting or read supplied/source URLs. Otherwise SKIP. Do not invent headlines.
-   - tool: brave-search__brave_web_search web__fetch_page
+   - tool: web__fetch_page
+   - capability: web.search web.read
    - needs: scope, read
    - optional: true
    - effect: read

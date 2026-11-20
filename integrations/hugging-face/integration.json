@@ -25,5 +25,21 @@
         "host": "huggingface.co"
       }
     ]
+  },
+  "tools": {
+    "capabilities": {
+      "hf_whoami": [
+        "account.read"
+      ],
+      "hub_repo_search": [
+        "code.search"
+      ],
+      "hub_repo_details": [
+        "code.read"
+      ],
+      "hf_fs": [
+        "code.read"
+      ]
+    }
   }
 }

@@ -25,5 +25,18 @@
         "host": "mcp.deepwiki.com"
       }
     ]
+  },
+  "tools": {
+    "capabilities": {
+      "ask_wiki_question": [
+        "docs.search"
+      ],
+      "read_wiki_contents": [
+        "docs.read"
+      ],
+      "read_wiki_structure": [
+        "docs.read"
+      ]
+    }
   }
 }

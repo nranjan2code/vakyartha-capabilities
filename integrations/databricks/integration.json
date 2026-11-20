@@ -53,5 +53,9 @@
   ],
   "egress": {
     "hosts": []
-  }
+  },
+  "tools": {
+    "capabilities": {}
+  },
+  "metered": true
 }

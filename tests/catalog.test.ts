@@ -65,3 +65,29 @@ test("development-only items stay out of releases, and release items never use t
   // A development-only item may use release items, and is not counted in what a release provides.
   checkCatalog(manifest, [...items, { ...dev, requires: [[{ kind: "skill", id: base.id }]] }]);
 });
+
+test("every tool says what job it does, in ids the vocabulary lists", async () => {
+  const { stepCapabilities } = await import("../scripts/catalog.ts");
+  const manifest = readManifest(), items = readItems();
+  const ids = new Set(manifest.vocabulary.map(c => c.id));
+  for (const i of items.filter(i => i.kind === "app")) {
+    const app = JSON.parse(i.files.find(([n]) => n === "app.json")![1].toString("utf8"));
+    for (const t of app.exports?.tools ?? []) assert.ok(t.capabilities?.length, `${i.id}: ${t.name} has no capability`);
+  }
+  for (const i of items) for (const id of i.uses) assert.ok(ids.has(id), `${i.id}: ${id}`);
+  // A search step finds every ready search provider, not one provider's tool by name.
+  const research = items.find(i => i.id === "research-brief")!;
+  assert.deepEqual(stepCapabilities(research.files.find(([n]) => n === "SKILL.md")![1].toString("utf8")), ["web.search", "web.read"]);
+  assert.ok(!research.files.find(([n]) => n === "SKILL.md")![1].toString("utf8").includes("brave-search__"), "no provider named for a job any provider can do");
+  // A broken id, a duplicate or a missing export capability is refused.
+  assert.throws(() => checkCatalog({ ...manifest, vocabulary: [...manifest.vocabulary, manifest.vocabulary[0]!] }, items), /listed twice/);
+  assert.throws(() => checkCatalog({ ...manifest, vocabulary: manifest.vocabulary.filter(c => c.id !== "web.search") }, items), /web\.search is not in the capability vocabulary/);
+  assert.throws(() => checkCatalog({ ...manifest, vocabulary: [] }, items), /needs a vocabulary/);
+});
+
+test("a requirement or enhancement can name a capability", async () => {
+  const items = readItems();
+  const research = items.find(i => i.id === "research-brief")!;
+  assert.deepEqual(research.enhances, [{ kind: "capability", id: "web.search" }]);
+  checkCatalog(readManifest(), items);
+});
