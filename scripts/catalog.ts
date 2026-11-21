@@ -62,7 +62,7 @@ export function readManifest(): Manifest {
 
 /**
  * What an item's jobs cover, when that is less than the jobs' own sentences say ("Listings of one country's exchange
- * only."): one plain sentence, read by the host wherever jobs are offered, so a request outside it is not sent there.
+ * only."): one plain sentence, a fact about the item that a host decides where to use.
  */
 function coverage(where: string, value: unknown): void {
   if (value === undefined) return;

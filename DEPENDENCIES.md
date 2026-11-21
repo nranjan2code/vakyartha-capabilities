@@ -40,8 +40,8 @@ plain sentence; it grows only by review, and the signed index carries it.
   lists `capabilities`. An integration whose calls spend the person's paid quota
   or credits sets `"metered": true`.
 - **Coverage** (optional): one sentence on an integration or app, `"coverage"`, when what its jobs cover is less
-  than the jobs' own sentences say, such as one country's exchange or one central bank's publications. Hosts show it
-  wherever the job is offered, so a request outside it is not sent there.
+  than the jobs' own sentences say, such as one country's exchange or one central bank's publications. It is a fact
+  about the item for a host to use; a host decides where to show it.
 - A skill step asks for a job with `- capability: <ids>` when any provider of that
   job serves it (a web search, documentation). Vakyartha offers the step every
   ready provider, the tools it names first. A step that needs one exact tool, such
