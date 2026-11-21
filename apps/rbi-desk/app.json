@@ -3,6 +3,7 @@
   "version": "1.1.0",
   "name": "RBI Desk",
   "description": "Official RBI rates, weekly foreign exchange reserves, notices and searchable Master Directions, with source dates and receipts.",
+  "coverage": "The Reserve Bank of India's own rates, reserves, notices and directions only.",
   "author": "Vakyartha",
   "icon": "shield",
   "brand": "#92400e",

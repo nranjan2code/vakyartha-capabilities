@@ -91,3 +91,11 @@ test("a requirement or enhancement can name a capability", async () => {
   assert.deepEqual(research.enhances, [{ kind: "capability", id: "web.search" }]);
   checkCatalog(readManifest(), items);
 });
+
+test("what a provider's jobs cover is one sentence, given where it is less than the jobs say", () => {
+  const items = readItems();
+  const coverage = (i: { files: [string, Buffer][]; kind: string }) => JSON.parse(i.files.find(([n]) => n === (i.kind === "app" ? "app.json" : "integration.json"))![1].toString("utf8")).coverage as string | undefined;
+  // Every market job's providers cover one country's exchanges, and say so.
+  for (const i of items.filter(i => (i.kind === "integration" || i.kind === "app") && i.uses.some(u => u.startsWith("market.")))) assert.match(coverage(i) ?? "", /only/, `${i.id} does market jobs and says nothing of what it covers`);
+  for (const i of items.filter(i => i.kind === "integration" || i.kind === "app")) { const c = coverage(i); if (c !== undefined) assert.match(c, /^\S[^\n]{8,198}\.$/, i.id); }
+});

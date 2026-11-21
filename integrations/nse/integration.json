@@ -9,6 +9,7 @@
   "icon": "chart",
   "summary": "Historical bhavcopy, stock prices and market breadth from the National Stock Exchange of India.",
   "description": "National Stock Exchange of India's official hosted Bhavcopy MCP server: up to 5 years of historical end-of-day cash market data, daily bhavcopy, advances/declines, delivery volumes and 52-week highs/lows. Public and authentication-free.",
+  "coverage": "Listings, indices and end-of-day history of the National Stock Exchange of India only.",
   "homepage": "https://www.nseindia.com/nse-mcp",
   "access": [
     "Public market data from the National Stock Exchange of India",

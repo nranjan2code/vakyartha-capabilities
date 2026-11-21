@@ -9,6 +9,7 @@
   "icon": "chart",
   "summary": "Live quotes, portfolio holdings, orders and trades with Kite.",
   "description": "Zerodha's hosted Kite MCP server: market data quotes, historical candles, portfolio holdings, positions, and order management. Login is handled securely in your browser via Zerodha; no API credentials need to be stored in the app.",
+  "coverage": "The person's Zerodha account and instruments on Indian exchanges (NSE, BSE) only.",
   "homepage": "https://github.com/zerodha/kite-mcp-server",
   "access": [
     "Your Zerodha account, after signing in through your browser",

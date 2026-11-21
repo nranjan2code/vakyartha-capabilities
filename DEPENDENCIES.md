@@ -39,6 +39,9 @@ plain sentence; it grows only by review, and the signed index carries it.
   `tools.capabilities` (`{ "<tool>": ["id", ...] }`), and every exported app tool
   lists `capabilities`. An integration whose calls spend the person's paid quota
   or credits sets `"metered": true`.
+- **Coverage** (optional): one sentence on an integration or app, `"coverage"`, when what its jobs cover is less
+  than the jobs' own sentences say, such as one country's exchange or one central bank's publications. Hosts show it
+  wherever the job is offered, so a request outside it is not sent there.
 - A skill step asks for a job with `- capability: <ids>` when any provider of that
   job serves it (a web search, documentation). Vakyartha offers the step every
   ready provider, the tools it names first. A step that needs one exact tool, such
@@ -70,7 +73,7 @@ Ids are identifiers, never words matched against a request.
 5. A release item never requires or enhances a development-only item.
 6. `provides` in `capabilities.json` counts release items only.
 7. Every capability id used (integration tools, app exports, skill steps, `requires`, `enhances`) is in the vocabulary, listed once with an about sentence.
-8. Every exported app tool declares at least one capability; every tool an integration offers through `tools.only` is mapped; `metered` is true or false.
+8. Every exported app tool declares at least one capability; every tool an integration offers through `tools.only` is mapped; `metered` is true or false; `coverage`, when given, is one sentence of 10 to 200 characters ending in a period.
 
 ## Development-only items
 

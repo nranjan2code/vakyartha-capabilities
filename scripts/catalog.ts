@@ -60,6 +60,15 @@ export function readManifest(): Manifest {
   return JSON.parse(readFileSync(path.join(ROOT, "capabilities.json"), "utf8")) as Manifest;
 }
 
+/**
+ * What an item's jobs cover, when that is less than the jobs' own sentences say ("Listings of one country's exchange
+ * only."): one plain sentence, read by the host wherever jobs are offered, so a request outside it is not sent there.
+ */
+function coverage(where: string, value: unknown): void {
+  if (value === undefined) return;
+  if (typeof value !== "string" || !/^\S[^\n]{8,198}\.$/.test(value)) throw new Error(`${where}: coverage is one sentence of 10 to 200 characters ending in a period`);
+}
+
 function walk(dir: string, prefix = ""): [string, Buffer][] {
   const found: [string, Buffer][] = [];
   for (const name of readdirSync(dir).sort()) {
@@ -213,6 +222,7 @@ function app(id: string): Item {
     (m.entitlements?.toolPurposes?.[tool]?.optional === true ? extras : owners).set(refText(r), r);
   }
   for (const key of owners.keys()) extras.delete(key);
+  coverage(`apps/${id}`, m.coverage);
   // Every tool an app exports says what job it does, so routing and skill steps can find it by capability.
   const partUses: string[] = [];
   const exportUses = (m.exports?.tools ?? []).flatMap((t: { name: string; capabilities?: unknown }) => {
@@ -270,6 +280,7 @@ function integration(id: string): Item {
   for (const h of hosts) if (!PUBLIC_HOST.test(h)) throw new Error(`${where}: ${h} is not a public host name`);
   if (s.kind === "http" && s.url && !hosts.includes(new URL(s.url).hostname)) throw new Error(`${where}: egress must list ${new URL(s.url).hostname}`);
   if (d.metered !== undefined && typeof d.metered !== "boolean") throw new Error(`${where}: metered must be true or false`);
+  coverage(where, d.coverage);
   const caps = d.tools?.capabilities ?? {};
   if (typeof caps !== "object" || Array.isArray(caps)) throw new Error(`${where}: tools.capabilities maps each tool name to capability ids`);
   for (const [tool, list] of Object.entries(caps)) if (!Array.isArray(list) || !list.length || !list.every(c => typeof c === "string")) throw new Error(`${where}: tools.capabilities.${tool} needs at least one capability id`);

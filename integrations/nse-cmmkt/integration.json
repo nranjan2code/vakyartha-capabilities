@@ -9,6 +9,7 @@
   "icon": "chart",
   "summary": "Near-real-time equity quotes, indices and market snapshots from the National Stock Exchange of India.",
   "description": "National Stock Exchange of India's official hosted CM Market Live MCP server: near-real-time snapshots of the current trading day, stock quotes, top gainers/losers, indices and active securities. Public and authentication-free.",
+  "coverage": "Listings and indices of the National Stock Exchange of India only, for the current trading day.",
   "homepage": "https://www.nseindia.com/nse-mcp",
   "access": [
     "Public market data from the National Stock Exchange of India",
