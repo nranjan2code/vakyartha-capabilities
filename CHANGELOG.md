@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Jobs whose results are pages say so: `web.search`, `web.read`, `web.crawl` and `research.report` carry `"returns": "documents"` in the vocabulary, and the check refuses any other value. Vakyartha takes the figures such pages state by reference instead of copying search hits as records. Found on Vakyartha's turn outcome gate: a census report charted its search hits' relevance score, and the census figures stayed in the hits' text.
+
 - Items say what their jobs cover when that is less than the jobs say: an optional one-sentence `coverage` on an integration or app. Every provider of the market jobs covers only Indian exchanges (`nse`, `nse-cmmkt`, `zerodha`, Market Terminal, Strategy Lab) and RBI Desk only the Reserve Bank of India, and each now says so. Found on Vakyartha's turn outcome gate: a report on an invented company's share offering, and the first-day close of another, chose the market skill and market jobs, whose sentences describe any listed stock.
 
 - Every tool says what job it does. `capabilities.json` holds the capability vocabulary (52 ids, each with one sentence, covering catalog tools and Vakyartha's own); every integration maps its tools in `tools.capabilities` and marks paid calls `metered`; every exported app tool lists `capabilities`. Research Brief and Daily News search by `web.search` and read by `web.read`, so any ready search integration serves them instead of one named provider; Write Code reads documentation by `docs.search` and `docs.read`. `requires` and `enhances` may name `capability:<id>`. The check refuses an unknown id, a duplicate, an export with no capability and an unmapped `tools.only` tool.

@@ -33,7 +33,10 @@ instead of being required by it.
 
 A capability is a job a tool does (`web.search`, `weather.forecast`). The
 vocabulary is the `vocabulary` list in `capabilities.json`, each id with one
-plain sentence; it grows only by review, and the signed index carries it.
+plain sentence; it grows only by review, and the signed index carries it. A job
+whose results are pages found or read (`web.search`, `web.read`, `web.crawl`,
+`research.report`) says `"returns": "documents"`: Vakyartha takes the figures
+their text states, by reference, and never copies their records as data.
 
 - Every tool says what it does: an integration maps each tool its server lists in
   `tools.capabilities` (`{ "<tool>": ["id", ...] }`), and every exported app tool

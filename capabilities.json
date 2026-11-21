@@ -46,19 +46,23 @@
   "vocabulary": [
     {
       "id": "web.search",
-      "about": "Search the open web for pages, news and sources."
+      "about": "Search the open web for pages, news and sources.",
+      "returns": "documents"
     },
     {
       "id": "web.read",
-      "about": "Read a given web page or document at an address."
+      "about": "Read a given web page or document at an address.",
+      "returns": "documents"
     },
     {
       "id": "web.crawl",
-      "about": "Map or crawl the pages of one site."
+      "about": "Map or crawl the pages of one site.",
+      "returns": "documents"
     },
     {
       "id": "research.report",
-      "about": "Research a question across many sources and return a written report."
+      "about": "Research a question across many sources and return a written report.",
+      "returns": "documents"
     },
     {
       "id": "news.latest",

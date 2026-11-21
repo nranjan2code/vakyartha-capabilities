@@ -26,7 +26,8 @@ export const KIND_DIRS: Record<Kind, string> = { app: "apps", skill: "skills", i
 const GROUPS: Record<Kind, Record<string, string>> = { app: APP_GROUPS, skill: SKILL_GROUPS, integration: INTEGRATION_GROUPS };
 
 /** A job a tool does (ADR-094 in Vakyartha): tools, app exports and skill steps name these ids, never request words. */
-export interface Capability { id: string; about: string }
+/** A job a tool does. `returns: "documents"`: its results are pages found or read, whose text holds the facts. */
+export interface Capability { id: string; about: string; returns?: "documents" }
 export const CAPABILITY_ID = /^[a-z]+(?:\.[a-z0-9]+(?:-[a-z0-9]+)*)+$/;
 export interface Manifest {
   schema: number; name: string; version: string;
@@ -318,6 +319,8 @@ export function checkCatalog(m: Manifest, items: Item[]): void {
     if (!CAPABILITY_ID.test(c.id ?? "")) throw new Error(`capabilities.json: ${c.id} is not a capability id (dotted lowercase words)`);
     if (vocabulary.has(c.id)) throw new Error(`capabilities.json: ${c.id} is listed twice`);
     if (typeof c.about !== "string" || !c.about.trim()) throw new Error(`capabilities.json: ${c.id} needs an about sentence`);
+    // A job whose results are pages found or read: hosts take the figures their text states instead of copying their records.
+    if (c.returns !== undefined && c.returns !== "documents") throw new Error(`capabilities.json: ${c.id} returns must be "documents" when given`);
     vocabulary.add(c.id);
   }
   for (const i of items) for (const id of [...i.uses, ...capabilityRefs([...i.requires.flat(), ...i.enhances, ...i.skills.flatMap(s => s.requires.flat())])]) if (!vocabulary.has(id)) throw new Error(`${KIND_DIRS[i.kind]}/${i.id}: ${id} is not in the capability vocabulary`);
