@@ -64,9 +64,10 @@ export function readManifest(): Manifest {
  * What an item's jobs cover, when that is less than the jobs' own sentences say ("Listings of one country's exchange
  * only."): one plain sentence, a fact about the item that a host decides where to use.
  */
-function coverage(where: string, value: unknown): void {
+export function coverage(where: string, value: unknown): void {
   if (value === undefined) return;
-  if (typeof value !== "string" || !/^\S[^\n]{8,198}\.$/.test(value)) throw new Error(`${where}: coverage is one sentence of 10 to 200 characters ending in a period`);
+  // One line that ends as a sentence ends in its own script (a period, 。, ?, ।): nothing about its words or domain.
+  if (typeof value !== "string" || !/^\S[^\n]{8,198}\p{Sentence_Terminal}$/u.test(value)) throw new Error(`${where}: coverage is one sentence of 10 to 200 characters on one line`);
 }
 
 function walk(dir: string, prefix = ""): [string, Buffer][] {

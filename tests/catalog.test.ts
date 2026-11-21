@@ -92,10 +92,14 @@ test("a requirement or enhancement can name a capability", async () => {
   checkCatalog(readManifest(), items);
 });
 
-test("what a provider's jobs cover is one sentence, given where it is less than the jobs say", () => {
-  const items = readItems();
-  const coverage = (i: { files: [string, Buffer][]; kind: string }) => JSON.parse(i.files.find(([n]) => n === (i.kind === "app" ? "app.json" : "integration.json"))![1].toString("utf8")).coverage as string | undefined;
-  // Every market job's providers cover one country's exchanges, and say so.
-  for (const i of items.filter(i => (i.kind === "integration" || i.kind === "app") && i.uses.some(u => u.startsWith("market.")))) assert.match(coverage(i) ?? "", /only/, `${i.id} does market jobs and says nothing of what it covers`);
-  for (const i of items.filter(i => i.kind === "integration" || i.kind === "app")) { const c = coverage(i); if (c !== undefined) assert.match(c, /^\S[^\n]{8,198}\.$/, i.id); }
+test("an item's coverage, when it gives one, is one sentence in any script; nothing requires it of any job", async () => {
+  const { coverage } = await import("../scripts/catalog.ts");
+  for (const ok of ["Listings of one exchange only.", "Solo los datos que la aplicación guardó.", "この取引所の銘柄だけを扱います。"]) assert.doesNotThrow(() => coverage("item", ok), ok);
+  for (const bad of ["", "Too short", "Two lines.\nOf text.", "x".repeat(205) + ".", 7]) assert.throws(() => coverage("item", bad), /one sentence/, String(bad));
+  assert.doesNotThrow(() => coverage("item", undefined), "coverage is optional");
+  // Every coverage the catalog ships passes the same check readItems applies.
+  for (const i of readItems().filter(i => i.kind === "integration" || i.kind === "app")) {
+    const doc = JSON.parse(i.files.find(([n]) => n === (i.kind === "app" ? "app.json" : "integration.json"))![1].toString("utf8")) as { coverage?: unknown };
+    assert.doesNotThrow(() => coverage(i.id, doc.coverage), i.id);
+  }
 });

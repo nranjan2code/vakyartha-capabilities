@@ -73,7 +73,7 @@ Ids are identifiers, never words matched against a request.
 5. A release item never requires or enhances a development-only item.
 6. `provides` in `capabilities.json` counts release items only.
 7. Every capability id used (integration tools, app exports, skill steps, `requires`, `enhances`) is in the vocabulary, listed once with an about sentence.
-8. Every exported app tool declares at least one capability; every tool an integration offers through `tools.only` is mapped; `metered` is true or false; `coverage`, when given, is one sentence of 10 to 200 characters ending in a period.
+8. Every exported app tool declares at least one capability; every tool an integration offers through `tools.only` is mapped; `metered` is true or false; `coverage`, when given, is one sentence of 10 to 200 characters on one line, ending as a sentence ends in its script. Nothing requires coverage of any job.
 
 ## Development-only items
 
